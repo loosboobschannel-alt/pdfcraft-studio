@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -22,12 +23,7 @@ import com.pdfcraft.studio.R
 import com.pdfcraft.studio.ui.editor.canvas.PdfCanvasPlaceholder
 import com.pdfcraft.studio.ui.theme.PDFCraftStudioTheme
 
-/**
- * PDF creation workspace. For this stage it only hosts an empty
- * preview/canvas area (see [PdfCanvasPlaceholder]). Future stages will add
- * the toolbar (text/image/link tools) and export action here, around the
- * same canvas, without needing to touch HomeScreen or the nav graph.
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditorScreen(onBackClick: () -> Unit) {
     Scaffold(
