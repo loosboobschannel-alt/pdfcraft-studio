@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Foreground: white document page, red "P" mark, small red "+" creation badge -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Document page -->
+    <path
+        android:fillColor="#F5F5F7"
+        android:pathData="M34,20 
+                           L64,20 
+                           L80,36 
+                           L80,86 
+                           C80,88.2 78.2,90 76,90 
+                           L34,90 
+                           C31.8,90 30,88.2 30,86 
+                           L30,24 
+                           C30,21.8 31.8,20 34,20 Z" />
+
+    <!-- Folded page corner -->
+    <path
+        android:fillColor="#D8D8DC"
+        android:pathData="M64,20 L64,32 C64,34.2 65.8,36 68,36 L80,36 Z" />
+
+    <!-- Stylized "P" mark for PDF, in brand red -->
+    <path
+        android:fillColor="#E4293B"
+        android:pathData="M42,46 L42,76 L49,76 L49,65 L57,65
+                           C64.2,65 69,60.4 69,54 
+                           C69,47.6 64.2,43 57,43 L45,43 
+                           C43.3,43 42,44.6 42,46 Z
+                           M49,50 L57,50 
+                           C60.3,50 62,51.6 62,54 
+                           C62,56.4 60.3,58 57,58 L49,58 Z" />
+
+    <!-- Small "+" creation badge, bottom-right -->
+    <path
+        android:fillColor="#E4293B"
+        android:pathData="M78,68 C86.8,68 94,75.2 94,84 
+                           C94,92.8 86.8,100 78,100 
+                           C69.2,100 62,92.8 62,84 
+                           C62,75.2 69.2,68 78,68 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M75.2,76 L80.8,76 L80.8,81.2 L86,81.2 L86,86.8 L80.8,86.8 L80.8,92 L75.2,92 L75.2,86.8 L70,86.8 L70,81.2 L75.2,81.2 Z" />
+</vector>

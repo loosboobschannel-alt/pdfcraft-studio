@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">PDFCraft Studio</string>
+    <string name="home_tagline">Create, edit and export beautiful PDFs</string>
+    <string name="create_pdf">Create PDF</string>
+    <string name="editor_title">New Document</string>
+    <string name="editor_empty_state">Your PDF canvas is empty.\nEditing tools arrive in the next stage.</string>
+    <string name="content_desc_app_icon">PDFCraft Studio icon</string>
+    <string name="content_desc_back">Back to Home</string>
+</resources>
