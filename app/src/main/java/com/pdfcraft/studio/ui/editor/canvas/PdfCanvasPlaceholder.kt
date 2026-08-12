@@ -2,8 +2,10 @@ package com.pdfcraft.studio.ui.editor.canvas
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,54 +31,89 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pdfcraft.studio.R
-import com.pdfcraft.studio.ui.editor.PdfPage
+import com.pdfcraft.studio.ui.editor.ImportedImage
+
+private const val ROWS_PER_PAGE = 4
 
 @Composable
-fun PdfPagesPreview(pages: List<PdfPage>, modifier: Modifier = Modifier) {
-    if (pages.isEmpty()) {
+fun PdfPagesPreview(
+    images: List<ImportedImage>,
+    imagesPerRow: Int,
+    modifier: Modifier = Modifier
+) {
+    if (images.isEmpty()) {
         EmptyStatePage(modifier = modifier)
         return
     }
 
+    val imagesPerPage = (imagesPerRow * ROWS_PER_PAGE).coerceAtLeast(1)
+    val pages = images.chunked(imagesPerPage)
+
     LazyColumn(
         modifier = modifier,
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        itemsIndexed(pages, key = { _, page -> page.id }) { index, page ->
+        itemsIndexed(pages, key = { index, _ -> index }) { pageIndex, pageImages ->
             Column {
                 Text(
-                    text = stringResource(R.string.page_label, index + 1),
+                    text = stringResource(R.string.page_label, pageIndex + 1),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier.padding(bottom = 6.dp)
                 )
                 PageCard {
-                    when {
-                        page.bitmap != null -> {
-                            Image(
-                                bitmap = page.bitmap.asImageBitmap(),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Fit
-                            )
-                        }
-                        else -> {
-                            CircularProgressIndicator(
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.height(32.dp)
-                            )
-                        }
-                    }
-                }
-                if (page.approxSizeBytes != null) {
-                    Text(
-                        text = stringResource(R.string.page_size_caption, page.approxSizeBytes / 1024),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
+                    ImageGrid(images = pageImages, imagesPerRow = imagesPerRow)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ImageGrid(images: List<ImportedImage>, imagesPerRow: Int) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        images.chunked(imagesPerRow).forEach { rowImages ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                rowImages.forEach { image ->
+                    ImageCell(image = image, modifier = Modifier.weight(1f))
+                }
+                repeat(imagesPerRow - rowImages.size) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ImageCell(image: ImportedImage, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center
+    ) {
+        if (image.bitmap != null) {
+            Image(
+                bitmap = image.bitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
+        } else {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.height(16.dp)
+            )
         }
     }
 }

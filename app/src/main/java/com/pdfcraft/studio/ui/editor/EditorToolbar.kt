@@ -35,6 +35,8 @@ fun EditorToolbar(
     onImportImagesClick: () -> Unit,
     selectedSizeOption: ImageSizeOption,
     onSizeOptionSelected: (ImageSizeOption) -> Unit,
+    imagesPerRow: Int,
+    onImagesPerRowSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -46,7 +48,9 @@ fun EditorToolbar(
             AllToolsMenu(
                 onImportImagesClick = onImportImagesClick,
                 selectedSizeOption = selectedSizeOption,
-                onSizeOptionSelected = onSizeOptionSelected
+                onSizeOptionSelected = onSizeOptionSelected,
+                imagesPerRow = imagesPerRow,
+                onImagesPerRowSelected = onImagesPerRowSelected
             )
         }
         HorizontalDivider()
@@ -57,7 +61,9 @@ fun EditorToolbar(
 private fun AllToolsMenu(
     onImportImagesClick: () -> Unit,
     selectedSizeOption: ImageSizeOption,
-    onSizeOptionSelected: (ImageSizeOption) -> Unit
+    onSizeOptionSelected: (ImageSizeOption) -> Unit,
+    imagesPerRow: Int,
+    onImagesPerRowSelected: (Int) -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -84,6 +90,14 @@ private fun AllToolsMenu(
                 selected = selectedSizeOption,
                 onOptionSelected = { option ->
                     onSizeOptionSelected(option)
+                    menuExpanded = false
+                }
+            )
+
+            ImagesPerRowMenuEntry(
+                currentValue = imagesPerRow,
+                onValueSelected = { value ->
+                    onImagesPerRowSelected(value)
                     menuExpanded = false
                 }
             )
@@ -214,6 +228,72 @@ private fun CustomSizeDialog(
         confirmButton = {
             TextButton(
                 onClick = { kbValue?.let(onConfirm) },
+                enabled = isValid
+            ) {
+                Text(stringResource(R.string.dialog_ok))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.dialog_cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun ImagesPerRowMenuEntry(
+    currentValue: Int,
+    onValueSelected: (Int) -> Unit
+) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    DropdownMenuItem(
+        text = {
+            Text(
+                text = stringResource(R.string.images_per_row_menu_entry, currentValue),
+                color = Color.Black
+            )
+        },
+        onClick = { showDialog = true }
+    )
+
+    if (showDialog) {
+        ImagesPerRowDialog(
+            currentValue = currentValue,
+            onDismiss = { showDialog = false },
+            onConfirm = { value ->
+                onValueSelected(value)
+                showDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun ImagesPerRowDialog(
+    currentValue: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    var input by remember { mutableStateOf(currentValue.toString()) }
+    val value = input.toIntOrNull()
+    val isValid = value != null && value in 1..20
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.images_per_row_dialog_title)) },
+        text = {
+            OutlinedTextField(
+                value = input,
+                onValueChange = { input = it.filter(Char::isDigit) },
+                label = { Text(stringResource(R.string.images_per_row_dialog_hint)) },
+                singleLine = true
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { value?.let(onConfirm) },
                 enabled = isValid
             ) {
                 Text(stringResource(R.string.dialog_ok))

@@ -15,7 +15,7 @@ import com.pdfcraft.studio.core.image.ImageHandler
 import com.pdfcraft.studio.core.image.ImageSizeOption
 import kotlinx.coroutines.launch
 
-data class PdfPage(
+data class ImportedImage(
     val id: String,
     val imageUri: Uri? = null,
     val bitmap: Bitmap? = null,
@@ -27,33 +27,40 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private val imageHandler = ImageHandler(application.contentResolver)
     private val imageCompressor = ImageCompressor()
 
-    val pages: SnapshotStateList<PdfPage> = mutableStateListOf()
+    val importedImages: SnapshotStateList<ImportedImage> = mutableStateListOf()
 
     var selectedImageSizeOption: ImageSizeOption by mutableStateOf(ImageSizeOption.Default)
+        private set
+
+    var imagesPerRow: Int by mutableStateOf(1)
         private set
 
     fun selectImageSizeOption(option: ImageSizeOption) {
         selectedImageSizeOption = option
     }
 
+    fun setImagesPerRow(count: Int) {
+        imagesPerRow = count.coerceIn(1, 20)
+    }
+
     fun importImages(uris: List<Uri>) {
         val targetBytes = selectedImageSizeOption.targetBytes
 
         uris.forEachIndexed { index, uri ->
-            val pageId = "${uri}_${pages.size + index}"
-            pages.add(PdfPage(id = pageId, imageUri = uri))
+            val imageId = "${uri}_${importedImages.size + index}"
+            importedImages.add(ImportedImage(id = imageId, imageUri = uri))
 
             viewModelScope.launch {
                 val decoded = imageHandler.decode(uri) ?: return@launch
 
-                val pageIndex = pages.indexOfFirst { it.id == pageId }
-                if (pageIndex < 0) return@launch
+                val imageIndex = importedImages.indexOfFirst { it.id == imageId }
+                if (imageIndex < 0) return@launch
 
                 if (targetBytes == null) {
-                    pages[pageIndex] = pages[pageIndex].copy(bitmap = decoded)
+                    importedImages[imageIndex] = importedImages[imageIndex].copy(bitmap = decoded)
                 } else {
                     val result = imageCompressor.compressToTarget(decoded, targetBytes)
-                    pages[pageIndex] = pages[pageIndex].copy(
+                    importedImages[imageIndex] = importedImages[imageIndex].copy(
                         bitmap = result.bitmap,
                         approxSizeBytes = result.approxSizeBytes
                     )

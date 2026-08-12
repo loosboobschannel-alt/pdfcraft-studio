@@ -85,7 +85,9 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     )
                 },
                 selectedSizeOption = viewModel.selectedImageSizeOption,
-                onSizeOptionSelected = viewModel::selectImageSizeOption
+                onSizeOptionSelected = viewModel::selectImageSizeOption,
+                imagesPerRow = viewModel.imagesPerRow,
+                onImagesPerRowSelected = viewModel::setImagesPerRow
             )
 
             Column(
@@ -94,7 +96,8 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     .padding(20.dp)
             ) {
                 PdfPagesPreview(
-                    pages = viewModel.pages,
+                    images = viewModel.importedImages,
+                    imagesPerRow = viewModel.imagesPerRow,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

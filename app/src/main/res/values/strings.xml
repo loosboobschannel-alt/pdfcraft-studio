@@ -17,6 +17,9 @@
     <string name="image_size_custom">Custom</string>
     <string name="image_size_custom_dialog_title">Custom Image Size</string>
     <string name="image_size_custom_dialog_hint">Max size in KB</string>
+    <string name="images_per_row_menu_entry">Images Per Row (%1$d)</string>
+    <string name="images_per_row_dialog_title">Images Per Row</string>
+    <string name="images_per_row_dialog_hint">Number from 1 to 20</string>
     <string name="dialog_ok">OK</string>
     <string name="dialog_cancel">Cancel</string>
 </resources>

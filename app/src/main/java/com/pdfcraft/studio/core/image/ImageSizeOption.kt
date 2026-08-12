@@ -20,6 +20,6 @@ sealed class ImageSizeOption {
         }
 
     companion object {
-        val presetsKb = listOf(10, 50, 94, 100, 500, 1000)
+        val presetsKb = listOf(20, 50, 100, 200)
     }
 }
