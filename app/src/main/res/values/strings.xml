@@ -6,11 +6,12 @@
     <string name="editor_empty_state">Import images to start building your PDF.</string>
     <string name="content_desc_app_icon">PDFCraft Studio icon</string>
     <string name="content_desc_back">Back to Home</string>
-    <string name="import_images">Import Image</string>
+    <string name="import_images">Import Images</string>
     <string name="no_images_selected">No images selected</string>
     <string name="page_label">Page %1$d</string>
     <string name="page_size_caption">~%1$d KB</string>
-    <string name="image_size_toolbar_label">Image Size: %1$s</string>
+    <string name="all_tools">All Tools</string>
+    <string name="image_size_menu_entry">Select Image Size in KBs (%1$s)</string>
     <string name="image_size_default">Default / Original Size</string>
     <string name="image_size_kb_value">%1$d KB</string>
     <string name="image_size_custom">Custom</string>

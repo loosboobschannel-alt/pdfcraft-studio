@@ -1,12 +1,12 @@
 package com.pdfcraft.studio.ui.editor
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -20,9 +20,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.pdfcraft.studio.R
 import com.pdfcraft.studio.core.image.ImageSizeOption
@@ -34,22 +37,16 @@ fun EditorToolbar(
     onSizeOptionSelected: (ImageSizeOption) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            ToolbarTextItem(
-                text = stringResource(R.string.import_images),
-                onClick = onImportImagesClick
-            )
-
-            Box(modifier = Modifier.width(24.dp))
-
-            ImageSizeMenu(
-                selected = selectedSizeOption,
-                onOptionSelected = onSizeOptionSelected
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color.White)
+    ) {
+        Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            AllToolsMenu(
+                onImportImagesClick = onImportImagesClick,
+                selectedSizeOption = selectedSizeOption,
+                onSizeOptionSelected = onSizeOptionSelected
             )
         }
         HorizontalDivider()
@@ -57,30 +54,18 @@ fun EditorToolbar(
 }
 
 @Composable
-private fun ToolbarTextItem(text: String, onClick: () -> Unit) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(vertical = 4.dp)
-    )
-}
-
-@Composable
-private fun ImageSizeMenu(
-    selected: ImageSizeOption,
-    onOptionSelected: (ImageSizeOption) -> Unit
+private fun AllToolsMenu(
+    onImportImagesClick: () -> Unit,
+    selectedSizeOption: ImageSizeOption,
+    onSizeOptionSelected: (ImageSizeOption) -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
-    var showCustomDialog by remember { mutableStateOf(false) }
 
     Box {
         Text(
-            text = stringResource(R.string.image_size_toolbar_label, selected.label),
+            text = stringResource(R.string.all_tools) + " \u25BE",
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
+            color = Color.Black,
             modifier = Modifier
                 .clickable { menuExpanded = true }
                 .padding(vertical = 4.dp)
@@ -88,19 +73,79 @@ private fun ImageSizeMenu(
 
         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
             DropdownMenuItem(
-                text = { SizeMenuLabel(stringResource(R.string.image_size_default), isSelected(selected, ImageSizeOption.Default)) },
+                text = { Text(stringResource(R.string.import_images), color = Color.Black) },
+                onClick = {
+                    menuExpanded = false
+                    onImportImagesClick()
+                }
+            )
+
+            ImageSizeSubmenuEntry(
+                selected = selectedSizeOption,
+                onOptionSelected = { option ->
+                    onSizeOptionSelected(option)
+                    menuExpanded = false
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ImageSizeSubmenuEntry(
+    selected: ImageSizeOption,
+    onOptionSelected: (ImageSizeOption) -> Unit
+) {
+    var submenuExpanded by remember { mutableStateOf(false) }
+    var showCustomDialog by remember { mutableStateOf(false) }
+
+    Box {
+        DropdownMenuItem(
+            text = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.image_size_menu_entry, selected.label),
+                        color = Color.Black,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Text(text = "\u203A", color = Color.Black)
+                }
+            },
+            onClick = { submenuExpanded = true }
+        )
+
+        DropdownMenu(
+            expanded = submenuExpanded,
+            onDismissRequest = { submenuExpanded = false },
+            offset = DpOffset(x = 200.dp, y = (-48).dp)
+        ) {
+            DropdownMenuItem(
+                text = {
+                    SizeMenuLabel(
+                        stringResource(R.string.image_size_default),
+                        isSelected(selected, ImageSizeOption.Default)
+                    )
+                },
                 onClick = {
                     onOptionSelected(ImageSizeOption.Default)
-                    menuExpanded = false
+                    submenuExpanded = false
                 }
             )
             ImageSizeOption.presetsKb.forEach { kb ->
                 val option = ImageSizeOption.Preset(kb)
                 DropdownMenuItem(
-                    text = { SizeMenuLabel(stringResource(R.string.image_size_kb_value, kb), isSelected(selected, option)) },
+                    text = {
+                        SizeMenuLabel(
+                            stringResource(R.string.image_size_kb_value, kb),
+                            isSelected(selected, option)
+                        )
+                    },
                     onClick = {
                         onOptionSelected(option)
-                        menuExpanded = false
+                        submenuExpanded = false
                     }
                 )
             }
@@ -112,7 +157,7 @@ private fun ImageSizeMenu(
                     )
                 },
                 onClick = {
-                    menuExpanded = false
+                    submenuExpanded = false
                     showCustomDialog = true
                 }
             )
@@ -141,8 +186,8 @@ private fun isSelected(current: ImageSizeOption, candidate: ImageSizeOption): Bo
 private fun SizeMenuLabel(text: String, isSelected: Boolean) {
     Text(
         text = text,
-        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+        color = Color.Black,
+        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
     )
 }
 
