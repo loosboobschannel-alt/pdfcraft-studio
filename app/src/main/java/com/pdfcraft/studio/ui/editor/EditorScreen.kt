@@ -87,7 +87,7 @@ fun EditorScreen(onBackClick: () -> Unit) {
                 selectedSizeOption = viewModel.selectedImageSizeOption,
                 onSizeOptionSelected = viewModel::selectImageSizeOption,
                 imagesPerRow = viewModel.imagesPerRow,
-                onImagesPerRowSelected = viewModel::setImagesPerRow
+                onImagesPerRowSelected = viewModel::updateImagesPerRow
             )
 
             Column(

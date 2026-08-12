@@ -39,7 +39,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         selectedImageSizeOption = option
     }
 
-    fun setImagesPerRow(count: Int) {
+    fun updateImagesPerRow(count: Int) {
         imagesPerRow = count.coerceIn(1, 20)
     }
 
