@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- No dangerous permissions requested yet.
-         Storage/media permissions will be declared here in a later stage
-         when export-to-device is implemented (see core/settings). -->
+    <!-- Intentionally no READ_MEDIA_IMAGES / READ_EXTERNAL_STORAGE here.
+         Image import uses the system Photo Picker (see EditorScreen),
+         which grants temporary read access to just the files the user
+         picks without any storage permission. Write/export permissions
+         will be declared here in a later stage when export-to-device is
+         implemented (see core/settings). -->
 
     <application
         android:name=".PdfCraftApplication"

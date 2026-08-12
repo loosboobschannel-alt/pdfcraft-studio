@@ -1,9 +1,12 @@
 package com.pdfcraft.studio.ui.editor
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -11,21 +14,45 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pdfcraft.studio.R
-import com.pdfcraft.studio.ui.editor.canvas.PdfCanvasPlaceholder
+import com.pdfcraft.studio.ui.editor.canvas.PdfPagesPreview
 import com.pdfcraft.studio.ui.theme.PDFCraftStudioTheme
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditorScreen(onBackClick: () -> Unit) {
+    val viewModel: EditorViewModel = viewModel()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    val noImagesSelectedMessage = stringResource(R.string.no_images_selected)
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia()
+    ) { uris ->
+        if (uris.isEmpty()) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(noImagesSelectedMessage)
+            }
+        } else {
+            viewModel.importImages(uris)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -42,15 +69,34 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(20.dp)
         ) {
-            PdfCanvasPlaceholder(modifier = Modifier.fillMaxWidth())
+            EditorToolbar(
+                onImportImagesClick = {
+                    imagePickerLauncher.launch(
+                        androidx.activity.result.PickVisualMediaRequest(
+                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                        )
+                    )
+                }
+            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(20.dp)
+            ) {
+                PdfPagesPreview(
+                    pages = viewModel.pages,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
