@@ -68,6 +68,14 @@ fun PdfPagesPreview(pages: List<PdfPage>, modifier: Modifier = Modifier) {
                         }
                     }
                 }
+                if (page.approxSizeBytes != null) {
+                    Text(
+                        text = stringResource(R.string.page_size_caption, page.approxSizeBytes / 1024),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
         }
     }
