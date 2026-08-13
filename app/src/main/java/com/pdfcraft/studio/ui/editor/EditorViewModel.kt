@@ -41,6 +41,15 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var imageCellAspectRatio: Float by mutableStateOf(0.526f)
         private set
 
+    var importTotalCount: Int by mutableStateOf(0)
+        private set
+
+    var importCompletedCount: Int by mutableStateOf(0)
+        private set
+
+    val isImporting: Boolean
+        get() = importCompletedCount < importTotalCount
+
     fun selectImageSizeOption(option: ImageSizeOption) {
         selectedImageSizeOption = option
     }
@@ -59,16 +68,25 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun importImages(uris: List<Uri>) {
         val targetBytes = selectedImageSizeOption.targetBytes
+        importTotalCount = uris.size
+        importCompletedCount = 0
 
         uris.forEachIndexed { index, uri ->
             val imageId = "${uri}_${importedImages.size + index}"
             importedImages.add(ImportedImage(id = imageId, imageUri = uri))
 
             viewModelScope.launch {
-                val decoded = imageHandler.decode(uri) ?: return@launch
+                val decoded = imageHandler.decode(uri)
+                if (decoded == null) {
+                    importCompletedCount += 1
+                    return@launch
+                }
 
                 val imageIndex = importedImages.indexOfFirst { it.id == imageId }
-                if (imageIndex < 0) return@launch
+                if (imageIndex < 0) {
+                    importCompletedCount += 1
+                    return@launch
+                }
 
                 if (targetBytes == null) {
                     importedImages[imageIndex] = importedImages[imageIndex].copy(bitmap = decoded)
@@ -79,6 +97,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                         approxSizeBytes = result.approxSizeBytes
                     )
                 }
+
+                importCompletedCount += 1
             }
         }
     }
