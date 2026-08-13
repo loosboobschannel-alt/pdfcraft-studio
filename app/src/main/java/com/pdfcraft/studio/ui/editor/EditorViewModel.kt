@@ -29,16 +29,16 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     val importedImages: SnapshotStateList<ImportedImage> = mutableStateListOf()
 
-    var selectedImageSizeOption: ImageSizeOption by mutableStateOf(ImageSizeOption.Default)
+    var selectedImageSizeOption: ImageSizeOption by mutableStateOf(ImageSizeOption.Preset(50))
         private set
 
-    var imagesPerRow: Int by mutableStateOf(1)
+    var imagesPerRow: Int by mutableStateOf(3)
         private set
 
     var imageSpacingDp: Int by mutableStateOf(6)
         private set
 
-    var imageCellAspectRatio: Float by mutableStateOf(1f)
+    var imageCellAspectRatio: Float by mutableStateOf(0.526f)
         private set
 
     fun selectImageSizeOption(option: ImageSizeOption) {

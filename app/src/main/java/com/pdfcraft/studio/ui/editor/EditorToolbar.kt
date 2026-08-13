@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -223,7 +224,14 @@ private fun AllToolsMenu(
 
         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.import_images), color = Color.Black) },
+                text = {
+                    Text(
+                        stringResource(R.string.import_images),
+                        color = Color.Black,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 onClick = {
                     menuExpanded = false
                     onImportImagesClick()
@@ -247,7 +255,14 @@ private fun AllToolsMenu(
             )
 
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.resize_images_tool), color = Color.Black) },
+                text = {
+                    Text(
+                        stringResource(R.string.resize_images_tool),
+                        color = Color.Black,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 onClick = {
                     menuExpanded = false
                     onResizeImagesClick()
@@ -255,7 +270,14 @@ private fun AllToolsMenu(
             )
 
             DropdownMenuItem(
-                text = { Text(stringResource(R.string.image_shape_tool), color = Color.Black) },
+                text = {
+                    Text(
+                        stringResource(R.string.image_shape_tool),
+                        color = Color.Black,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 onClick = {
                     menuExpanded = false
                     onAdjustImageShapeClick()
@@ -283,11 +305,13 @@ private fun ImageSizeSubmenuEntry(
                     Text(
                         text = stringResource(R.string.image_size_menu_entry, selected.label),
                         color = Color.Black,
+                        style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(end = 8.dp)
                     )
                     Text(text = "\u203A", color = Color.Black)
                 }
             },
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
             onClick = { submenuExpanded = true }
         )
 
@@ -303,6 +327,7 @@ private fun ImageSizeSubmenuEntry(
                         isSelected(selected, ImageSizeOption.Default)
                     )
                 },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 onClick = {
                     onOptionSelected(ImageSizeOption.Default)
                     submenuExpanded = false
@@ -317,6 +342,7 @@ private fun ImageSizeSubmenuEntry(
                             isSelected(selected, option)
                         )
                     },
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                     onClick = {
                         onOptionSelected(option)
                         submenuExpanded = false
@@ -330,6 +356,7 @@ private fun ImageSizeSubmenuEntry(
                         selected is ImageSizeOption.Custom
                     )
                 },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                 onClick = {
                     submenuExpanded = false
                     showCustomDialog = true
@@ -361,6 +388,7 @@ private fun SizeMenuLabel(text: String, isSelected: Boolean) {
     Text(
         text = text,
         color = Color.Black,
+        style = MaterialTheme.typography.bodyMedium,
         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
     )
 }
@@ -412,9 +440,11 @@ private fun ImageSpacingMenuEntry(
         text = {
             Text(
                 text = stringResource(R.string.image_spacing_menu_entry, currentValue),
-                color = Color.Black
+                color = Color.Black,
+                style = MaterialTheme.typography.bodyMedium
             )
         },
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
         onClick = { showDialog = true }
     )
 
