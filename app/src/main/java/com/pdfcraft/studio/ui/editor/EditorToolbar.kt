@@ -13,6 +13,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,6 +31,7 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.pdfcraft.studio.R
 import com.pdfcraft.studio.core.image.ImageSizeOption
+import kotlin.math.roundToInt
 
 @Composable
 fun EditorToolbar(
@@ -39,21 +42,69 @@ fun EditorToolbar(
     onImagesPerRowSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var resizeModeActive by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(Color.White)
     ) {
-        Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            AllToolsMenu(
-                onImportImagesClick = onImportImagesClick,
-                selectedSizeOption = selectedSizeOption,
-                onSizeOptionSelected = onSizeOptionSelected,
+        if (resizeModeActive) {
+            ResizeImagesSlider(
                 imagesPerRow = imagesPerRow,
-                onImagesPerRowSelected = onImagesPerRowSelected
+                onImagesPerRowChange = onImagesPerRowSelected,
+                onDone = { resizeModeActive = false }
             )
+        } else {
+            Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                AllToolsMenu(
+                    onImportImagesClick = onImportImagesClick,
+                    selectedSizeOption = selectedSizeOption,
+                    onSizeOptionSelected = onSizeOptionSelected,
+                    imagesPerRow = imagesPerRow,
+                    onImagesPerRowSelected = onImagesPerRowSelected,
+                    onResizeImagesClick = { resizeModeActive = true }
+                )
+            }
         }
         HorizontalDivider()
+    }
+}
+
+@Composable
+private fun ResizeImagesSlider(
+    imagesPerRow: Int,
+    onImagesPerRowChange: (Int) -> Unit,
+    onDone: () -> Unit
+) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.resize_images_tool),
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.Black
+            )
+            Text(
+                text = stringResource(R.string.resize_images_done),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable(onClick = onDone)
+            )
+        }
+        Slider(
+            value = imagesPerRow.toFloat(),
+            onValueChange = { onImagesPerRowChange(it.roundToInt()) },
+            valueRange = 1f..20f,
+            steps = 18,
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary
+            )
+        )
     }
 }
 
@@ -63,7 +114,8 @@ private fun AllToolsMenu(
     selectedSizeOption: ImageSizeOption,
     onSizeOptionSelected: (ImageSizeOption) -> Unit,
     imagesPerRow: Int,
-    onImagesPerRowSelected: (Int) -> Unit
+    onImagesPerRowSelected: (Int) -> Unit,
+    onResizeImagesClick: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -99,6 +151,14 @@ private fun AllToolsMenu(
                 onValueSelected = { value ->
                     onImagesPerRowSelected(value)
                     menuExpanded = false
+                }
+            )
+
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.resize_images_tool), color = Color.Black) },
+                onClick = {
+                    menuExpanded = false
+                    onResizeImagesClick()
                 }
             )
         }
