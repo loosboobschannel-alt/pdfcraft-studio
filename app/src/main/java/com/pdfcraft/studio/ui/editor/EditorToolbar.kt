@@ -2,11 +2,15 @@ package com.pdfcraft.studio.ui.editor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -84,6 +88,47 @@ fun EditorToolbar(
 }
 
 @Composable
+private fun SliderWithValueLabel(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    labelFormatter: (Float) -> String
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val trackInset = 14.dp
+        val usableWidth = (maxWidth - trackInset * 2)
+        val fraction = ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start))
+            .coerceIn(0f, 1f)
+        val bubbleCenterX = trackInset + usableWidth * fraction
+
+        Text(
+            text = labelFormatter(value),
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White,
+            modifier = Modifier
+                .offset(x = bubbleCenterX - 14.dp)
+                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(6.dp))
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+        )
+
+        Slider(
+            value = value,
+            onValueChange = onValueChange,
+            valueRange = valueRange,
+            steps = steps,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 28.dp),
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary
+            )
+        )
+    }
+}
+
+@Composable
 private fun ResizeImagesSlider(
     imagesPerRow: Int,
     onImagesPerRowChange: (Int) -> Unit,
@@ -92,7 +137,7 @@ private fun ResizeImagesSlider(
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -107,15 +152,12 @@ private fun ResizeImagesSlider(
                 modifier = Modifier.clickable(onClick = onDone)
             )
         }
-        Slider(
+        SliderWithValueLabel(
             value = imagesPerRow.toFloat(),
             onValueChange = { onImagesPerRowChange(it.roundToInt()) },
             valueRange = 1f..20f,
             steps = 18,
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary
-            )
+            labelFormatter = { it.roundToInt().toString() }
         )
     }
 }
@@ -129,7 +171,7 @@ private fun ImageShapeSlider(
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -144,14 +186,15 @@ private fun ImageShapeSlider(
                 modifier = Modifier.clickable(onClick = onDone)
             )
         }
-        Slider(
+        SliderWithValueLabel(
             value = aspectRatio,
             onValueChange = onAspectRatioChange,
             valueRange = 0.4f..2.5f,
-            colors = SliderDefaults.colors(
-                thumbColor = MaterialTheme.colorScheme.primary,
-                activeTrackColor = MaterialTheme.colorScheme.primary
-            )
+            steps = 0,
+            labelFormatter = { v ->
+                val percent = (((v - 0.4f) / (2.5f - 0.4f)) * 100f).roundToInt().coerceIn(1, 100)
+                "$percent%"
+            }
         )
     }
 }
