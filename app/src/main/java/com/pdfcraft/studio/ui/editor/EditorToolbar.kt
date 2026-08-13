@@ -40,6 +40,8 @@ fun EditorToolbar(
     onSizeOptionSelected: (ImageSizeOption) -> Unit,
     imagesPerRow: Int,
     onImagesPerRowSelected: (Int) -> Unit,
+    imageSpacingDp: Int,
+    onImageSpacingSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var resizeModeActive by remember { mutableStateOf(false) }
@@ -63,6 +65,8 @@ fun EditorToolbar(
                     onSizeOptionSelected = onSizeOptionSelected,
                     imagesPerRow = imagesPerRow,
                     onImagesPerRowSelected = onImagesPerRowSelected,
+                    imageSpacingDp = imageSpacingDp,
+                    onImageSpacingSelected = onImageSpacingSelected,
                     onResizeImagesClick = { resizeModeActive = true }
                 )
             }
@@ -115,6 +119,8 @@ private fun AllToolsMenu(
     onSizeOptionSelected: (ImageSizeOption) -> Unit,
     imagesPerRow: Int,
     onImagesPerRowSelected: (Int) -> Unit,
+    imageSpacingDp: Int,
+    onImageSpacingSelected: (Int) -> Unit,
     onResizeImagesClick: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -150,6 +156,14 @@ private fun AllToolsMenu(
                 currentValue = imagesPerRow,
                 onValueSelected = { value ->
                     onImagesPerRowSelected(value)
+                    menuExpanded = false
+                }
+            )
+
+            ImageSpacingMenuEntry(
+                currentValue = imageSpacingDp,
+                onValueSelected = { value ->
+                    onImageSpacingSelected(value)
                     menuExpanded = false
                 }
             )
@@ -288,6 +302,72 @@ private fun CustomSizeDialog(
         confirmButton = {
             TextButton(
                 onClick = { kbValue?.let(onConfirm) },
+                enabled = isValid
+            ) {
+                Text(stringResource(R.string.dialog_ok))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.dialog_cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun ImageSpacingMenuEntry(
+    currentValue: Int,
+    onValueSelected: (Int) -> Unit
+) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    DropdownMenuItem(
+        text = {
+            Text(
+                text = stringResource(R.string.image_spacing_menu_entry, currentValue),
+                color = Color.Black
+            )
+        },
+        onClick = { showDialog = true }
+    )
+
+    if (showDialog) {
+        ImageSpacingDialog(
+            currentValue = currentValue,
+            onDismiss = { showDialog = false },
+            onConfirm = { value ->
+                onValueSelected(value)
+                showDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun ImageSpacingDialog(
+    currentValue: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    var input by remember { mutableStateOf(currentValue.toString()) }
+    val value = input.toIntOrNull()
+    val isValid = value != null && value in 0..40
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.image_spacing_dialog_title)) },
+        text = {
+            OutlinedTextField(
+                value = input,
+                onValueChange = { input = it.filter(Char::isDigit) },
+                label = { Text(stringResource(R.string.image_spacing_dialog_hint)) },
+                singleLine = true
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { value?.let(onConfirm) },
                 enabled = isValid
             ) {
                 Text(stringResource(R.string.dialog_ok))
