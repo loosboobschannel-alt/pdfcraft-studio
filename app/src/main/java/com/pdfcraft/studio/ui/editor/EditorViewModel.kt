@@ -73,33 +73,30 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         importTotalCount = uris.size
         importCompletedCount = 0
 
-        uris.forEachIndexed { index, uri ->
+        val imageIds = uris.mapIndexed { index, uri ->
             val imageId = "${uri}_${importedImages.size + index}"
             importedImages.add(ImportedImage(id = imageId, imageUri = uri))
+            imageId
+        }
 
-            viewModelScope.launch {
+        viewModelScope.launch {
+            uris.forEachIndexed { index, uri ->
+                val imageId = imageIds[index]
                 val decoded = imageHandler.decode(uri)
-                if (decoded == null) {
-                    importCompletedCount += 1
-                    return@launch
-                }
-
                 val imageIndex = importedImages.indexOfFirst { it.id == imageId }
-                if (imageIndex < 0) {
-                    importCompletedCount += 1
-                    return@launch
-                }
 
-                if (targetBytes == null) {
-                    importedImages[imageIndex] = importedImages[imageIndex].copy(bitmap = decoded)
-                } else {
-                    val result = withContext(Dispatchers.Default) {
-                        imageCompressor.compressToTarget(decoded, targetBytes)
+                if (decoded != null && imageIndex >= 0) {
+                    if (targetBytes == null) {
+                        importedImages[imageIndex] = importedImages[imageIndex].copy(bitmap = decoded)
+                    } else {
+                        val result = withContext(Dispatchers.Default) {
+                            imageCompressor.compressToTarget(decoded, targetBytes)
+                        }
+                        importedImages[imageIndex] = importedImages[imageIndex].copy(
+                            bitmap = result.bitmap,
+                            approxSizeBytes = result.approxSizeBytes
+                        )
                     }
-                    importedImages[imageIndex] = importedImages[imageIndex].copy(
-                        bitmap = result.bitmap,
-                        approxSizeBytes = result.approxSizeBytes
-                    )
                 }
 
                 importCompletedCount += 1
