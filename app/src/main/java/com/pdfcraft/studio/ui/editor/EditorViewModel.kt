@@ -13,7 +13,9 @@ import androidx.lifecycle.viewModelScope
 import com.pdfcraft.studio.core.image.ImageCompressor
 import com.pdfcraft.studio.core.image.ImageHandler
 import com.pdfcraft.studio.core.image.ImageSizeOption
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class ImportedImage(
     val id: String,
@@ -91,7 +93,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 if (targetBytes == null) {
                     importedImages[imageIndex] = importedImages[imageIndex].copy(bitmap = decoded)
                 } else {
-                    val result = imageCompressor.compressToTarget(decoded, targetBytes)
+                    val result = withContext(Dispatchers.Default) {
+                        imageCompressor.compressToTarget(decoded, targetBytes)
+                    }
                     importedImages[imageIndex] = importedImages[imageIndex].copy(
                         bitmap = result.bitmap,
                         approxSizeBytes = result.approxSizeBytes
