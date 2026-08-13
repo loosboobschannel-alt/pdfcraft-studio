@@ -38,6 +38,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var imageSpacingDp: Int by mutableStateOf(6)
         private set
 
+    var imageCellAspectRatio: Float by mutableStateOf(1f)
+        private set
+
     fun selectImageSizeOption(option: ImageSizeOption) {
         selectedImageSizeOption = option
     }
@@ -48,6 +51,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun updateImageSpacing(dp: Int) {
         imageSpacingDp = dp.coerceIn(0, 40)
+    }
+
+    fun updateImageCellAspectRatio(ratio: Float) {
+        imageCellAspectRatio = ratio.coerceIn(0.4f, 2.5f)
     }
 
     fun importImages(uris: List<Uri>) {

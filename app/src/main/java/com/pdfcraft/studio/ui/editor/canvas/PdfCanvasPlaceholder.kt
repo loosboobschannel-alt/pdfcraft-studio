@@ -40,6 +40,7 @@ fun PdfPagesPreview(
     images: List<ImportedImage>,
     imagesPerRow: Int,
     imageSpacingDp: Int,
+    imageCellAspectRatio: Float,
     modifier: Modifier = Modifier
 ) {
     if (images.isEmpty()) {
@@ -66,7 +67,8 @@ fun PdfPagesPreview(
                     ImageGrid(
                         images = pageImages,
                         imagesPerRow = imagesPerRow,
-                        spacingDp = imageSpacingDp
+                        spacingDp = imageSpacingDp,
+                        cellAspectRatio = imageCellAspectRatio
                     )
                 }
             }
@@ -75,7 +77,12 @@ fun PdfPagesPreview(
 }
 
 @Composable
-private fun ImageGrid(images: List<ImportedImage>, imagesPerRow: Int, spacingDp: Int) {
+private fun ImageGrid(
+    images: List<ImportedImage>,
+    imagesPerRow: Int,
+    spacingDp: Int,
+    cellAspectRatio: Float
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -88,7 +95,11 @@ private fun ImageGrid(images: List<ImportedImage>, imagesPerRow: Int, spacingDp:
                 horizontalArrangement = Arrangement.spacedBy(spacingDp.dp)
             ) {
                 rowImages.forEach { image ->
-                    ImageCell(image = image, modifier = Modifier.weight(1f))
+                    ImageCell(
+                        image = image,
+                        aspectRatio = cellAspectRatio,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
                 repeat(imagesPerRow - rowImages.size) {
                     Spacer(modifier = Modifier.weight(1f))
@@ -99,10 +110,10 @@ private fun ImageGrid(images: List<ImportedImage>, imagesPerRow: Int, spacingDp:
 }
 
 @Composable
-private fun ImageCell(image: ImportedImage, modifier: Modifier = Modifier) {
+private fun ImageCell(image: ImportedImage, aspectRatio: Float, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .aspectRatio(1f)
+            .aspectRatio(aspectRatio)
             .clip(RoundedCornerShape(4.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant),
         contentAlignment = Alignment.Center
@@ -112,7 +123,7 @@ private fun ImageCell(image: ImportedImage, modifier: Modifier = Modifier) {
                 bitmap = image.bitmap.asImageBitmap(),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
+                contentScale = ContentScale.Crop
             )
         } else {
             CircularProgressIndicator(

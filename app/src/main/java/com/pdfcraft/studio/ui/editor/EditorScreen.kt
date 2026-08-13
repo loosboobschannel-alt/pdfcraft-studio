@@ -89,7 +89,9 @@ fun EditorScreen(onBackClick: () -> Unit) {
                 imagesPerRow = viewModel.imagesPerRow,
                 onImagesPerRowSelected = viewModel::updateImagesPerRow,
                 imageSpacingDp = viewModel.imageSpacingDp,
-                onImageSpacingSelected = viewModel::updateImageSpacing
+                onImageSpacingSelected = viewModel::updateImageSpacing,
+                imageCellAspectRatio = viewModel.imageCellAspectRatio,
+                onImageCellAspectRatioSelected = viewModel::updateImageCellAspectRatio
             )
 
             Column(
@@ -101,6 +103,7 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     images = viewModel.importedImages,
                     imagesPerRow = viewModel.imagesPerRow,
                     imageSpacingDp = viewModel.imageSpacingDp,
+                    imageCellAspectRatio = viewModel.imageCellAspectRatio,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

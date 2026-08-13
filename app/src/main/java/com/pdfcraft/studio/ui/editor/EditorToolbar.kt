@@ -42,9 +42,12 @@ fun EditorToolbar(
     onImagesPerRowSelected: (Int) -> Unit,
     imageSpacingDp: Int,
     onImageSpacingSelected: (Int) -> Unit,
+    imageCellAspectRatio: Float,
+    onImageCellAspectRatioSelected: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var resizeModeActive by remember { mutableStateOf(false) }
+    var shapeModeActive by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -57,6 +60,12 @@ fun EditorToolbar(
                 onImagesPerRowChange = onImagesPerRowSelected,
                 onDone = { resizeModeActive = false }
             )
+        } else if (shapeModeActive) {
+            ImageShapeSlider(
+                aspectRatio = imageCellAspectRatio,
+                onAspectRatioChange = onImageCellAspectRatioSelected,
+                onDone = { shapeModeActive = false }
+            )
         } else {
             Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                 AllToolsMenu(
@@ -65,7 +74,8 @@ fun EditorToolbar(
                     onSizeOptionSelected = onSizeOptionSelected,
                     imageSpacingDp = imageSpacingDp,
                     onImageSpacingSelected = onImageSpacingSelected,
-                    onResizeImagesClick = { resizeModeActive = true }
+                    onResizeImagesClick = { resizeModeActive = true },
+                    onAdjustImageShapeClick = { shapeModeActive = true }
                 )
             }
         }
@@ -111,13 +121,50 @@ private fun ResizeImagesSlider(
 }
 
 @Composable
+private fun ImageShapeSlider(
+    aspectRatio: Float,
+    onAspectRatioChange: (Float) -> Unit,
+    onDone: () -> Unit
+) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.image_shape_tool),
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.Black
+            )
+            Text(
+                text = stringResource(R.string.resize_images_done),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable(onClick = onDone)
+            )
+        }
+        Slider(
+            value = aspectRatio,
+            onValueChange = onAspectRatioChange,
+            valueRange = 0.4f..2.5f,
+            colors = SliderDefaults.colors(
+                thumbColor = MaterialTheme.colorScheme.primary,
+                activeTrackColor = MaterialTheme.colorScheme.primary
+            )
+        )
+    }
+}
+
+@Composable
 private fun AllToolsMenu(
     onImportImagesClick: () -> Unit,
     selectedSizeOption: ImageSizeOption,
     onSizeOptionSelected: (ImageSizeOption) -> Unit,
     imageSpacingDp: Int,
     onImageSpacingSelected: (Int) -> Unit,
-    onResizeImagesClick: () -> Unit
+    onResizeImagesClick: () -> Unit,
+    onAdjustImageShapeClick: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -161,6 +208,14 @@ private fun AllToolsMenu(
                 onClick = {
                     menuExpanded = false
                     onResizeImagesClick()
+                }
+            )
+
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.image_shape_tool), color = Color.Black) },
+                onClick = {
+                    menuExpanded = false
+                    onAdjustImageShapeClick()
                 }
             )
         }
