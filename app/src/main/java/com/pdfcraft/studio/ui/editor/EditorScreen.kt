@@ -87,7 +87,9 @@ fun EditorScreen(onBackClick: () -> Unit) {
                 selectedSizeOption = viewModel.selectedImageSizeOption,
                 onSizeOptionSelected = viewModel::selectImageSizeOption,
                 imagesPerRow = viewModel.imagesPerRow,
-                onImagesPerRowSelected = viewModel::updateImagesPerRow
+                onImagesPerRowSelected = viewModel::updateImagesPerRow,
+                imageSpacingDp = viewModel.imageSpacingDp,
+                onImageSpacingSelected = viewModel::updateImageSpacing
             )
 
             Column(
@@ -98,6 +100,7 @@ fun EditorScreen(onBackClick: () -> Unit) {
                 PdfPagesPreview(
                     images = viewModel.importedImages,
                     imagesPerRow = viewModel.imagesPerRow,
+                    imageSpacingDp = viewModel.imageSpacingDp,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

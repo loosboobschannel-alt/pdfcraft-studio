@@ -35,12 +35,19 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var imagesPerRow: Int by mutableStateOf(1)
         private set
 
+    var imageSpacingDp: Int by mutableStateOf(6)
+        private set
+
     fun selectImageSizeOption(option: ImageSizeOption) {
         selectedImageSizeOption = option
     }
 
     fun updateImagesPerRow(count: Int) {
         imagesPerRow = count.coerceIn(1, 20)
+    }
+
+    fun updateImageSpacing(dp: Int) {
+        imageSpacingDp = dp.coerceIn(0, 40)
     }
 
     fun importImages(uris: List<Uri>) {

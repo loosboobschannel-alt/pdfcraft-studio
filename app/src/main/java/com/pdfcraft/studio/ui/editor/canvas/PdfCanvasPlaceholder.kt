@@ -39,6 +39,7 @@ private const val ROWS_PER_PAGE = 4
 fun PdfPagesPreview(
     images: List<ImportedImage>,
     imagesPerRow: Int,
+    imageSpacingDp: Int,
     modifier: Modifier = Modifier
 ) {
     if (images.isEmpty()) {
@@ -62,7 +63,11 @@ fun PdfPagesPreview(
                     modifier = Modifier.padding(bottom = 6.dp)
                 )
                 PageCard {
-                    ImageGrid(images = pageImages, imagesPerRow = imagesPerRow)
+                    ImageGrid(
+                        images = pageImages,
+                        imagesPerRow = imagesPerRow,
+                        spacingDp = imageSpacingDp
+                    )
                 }
             }
         }
@@ -70,17 +75,17 @@ fun PdfPagesPreview(
 }
 
 @Composable
-private fun ImageGrid(images: List<ImportedImage>, imagesPerRow: Int) {
+private fun ImageGrid(images: List<ImportedImage>, imagesPerRow: Int, spacingDp: Int) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(spacingDp.dp)
     ) {
         images.chunked(imagesPerRow).forEach { rowImages ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(spacingDp.dp)
             ) {
                 rowImages.forEach { image ->
                     ImageCell(image = image, modifier = Modifier.weight(1f))
