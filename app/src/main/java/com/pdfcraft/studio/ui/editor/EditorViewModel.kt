@@ -43,14 +43,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var imageCellAspectRatio: Float by mutableStateOf(0.526f)
         private set
 
-    var importTotalCount: Int by mutableStateOf(0)
+    var isImporting: Boolean by mutableStateOf(false)
         private set
-
-    var importCompletedCount: Int by mutableStateOf(0)
-        private set
-
-    val isImporting: Boolean
-        get() = importCompletedCount < importTotalCount
 
     fun selectImageSizeOption(option: ImageSizeOption) {
         selectedImageSizeOption = option
@@ -70,8 +64,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun importImages(uris: List<Uri>) {
         val targetBytes = selectedImageSizeOption.targetBytes
-        importTotalCount = uris.size
-        importCompletedCount = 0
+        isImporting = true
 
         val imageIds = uris.mapIndexed { index, uri ->
             val imageId = "${uri}_${importedImages.size + index}"
@@ -98,9 +91,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                         )
                     }
                 }
-
-                importCompletedCount += 1
             }
+            isImporting = false
         }
     }
 }

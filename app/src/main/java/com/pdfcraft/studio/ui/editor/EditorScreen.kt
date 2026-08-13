@@ -30,12 +30,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pdfcraft.studio.R
+import com.pdfcraft.studio.core.image.ImageSizeOption
 import com.pdfcraft.studio.ui.editor.canvas.PdfPagesPreview
 import com.pdfcraft.studio.ui.theme.PDFCraftStudioTheme
 import kotlinx.coroutines.launch
@@ -119,16 +121,21 @@ fun EditorScreen(onBackClick: () -> Unit) {
         }
 
         if (viewModel.isImporting) {
-            ImportProgressDialog(
-                completed = viewModel.importCompletedCount,
-                total = viewModel.importTotalCount
-            )
+            val message = if (viewModel.selectedImageSizeOption is ImageSizeOption.Default) {
+                stringResource(R.string.import_progress_message_default)
+            } else {
+                stringResource(
+                    R.string.import_progress_message_compressing,
+                    viewModel.selectedImageSizeOption.label
+                )
+            }
+            ImportProgressDialog(message = message)
         }
     }
 }
 
 @Composable
-private fun ImportProgressDialog(completed: Int, total: Int) {
+private fun ImportProgressDialog(message: String) {
     Dialog(
         onDismissRequest = {},
         properties = DialogProperties(
@@ -138,7 +145,7 @@ private fun ImportProgressDialog(completed: Int, total: Int) {
     ) {
         Column(
             modifier = Modifier
-                .width(220.dp)
+                .width(240.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color.White)
                 .padding(24.dp),
@@ -146,16 +153,11 @@ private fun ImportProgressDialog(completed: Int, total: Int) {
         ) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             Text(
-                text = stringResource(R.string.import_progress_title),
-                style = MaterialTheme.typography.titleSmall,
-                color = Color.Black,
-                modifier = Modifier.padding(top = 16.dp)
-            )
-            Text(
-                text = stringResource(R.string.import_progress_count, completed, total),
+                text = message,
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Black,
-                modifier = Modifier.padding(top = 4.dp)
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 16.dp)
             )
         }
     }
