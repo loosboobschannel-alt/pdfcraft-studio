@@ -27,4 +27,15 @@
     <string name="dialog_cancel">Cancel</string>
     <string name="import_progress_message_compressing">Please wait, your images are compressing to %1$s\u2026</string>
     <string name="import_progress_message_default">Please wait, your images are importing\u2026</string>
+    <string name="change_position">Change Position</string>
+    <string name="cut_image">Cut</string>
+    <string name="copy_image">Copy</string>
+    <string name="paste_image">Paste</string>
+    <string name="save_in_gallery">Save in Gallery</string>
+    <string name="share_image">Share</string>
+    <string name="delete_image">Delete</string>
+    <string name="selection_done">Done</string>
+    <string name="selected_images_actions">Selected Images</string>
+    <string name="delete_all_images">Delete All</string>
+    <string name="image_saved_message">Image saved in Gallery</string>
 </resources>
