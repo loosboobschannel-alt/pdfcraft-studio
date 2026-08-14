@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import com.pdfcraft.studio.core.image.ImageCompressor
 import com.pdfcraft.studio.core.image.ImageHandler
 import com.pdfcraft.studio.core.image.ImageSizeOption
+import com.pdfcraft.studio.core.settings.ImageSizePreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -28,10 +29,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     private val imageHandler = ImageHandler(application.contentResolver)
     private val imageCompressor = ImageCompressor()
+    private val imageSizePreferences = ImageSizePreferences(application)
 
     val importedImages: SnapshotStateList<ImportedImage> = mutableStateListOf()
 
-    var selectedImageSizeOption: ImageSizeOption by mutableStateOf(ImageSizeOption.Preset(50))
+    var selectedImageSizeOption: ImageSizeOption by mutableStateOf(imageSizePreferences.getSavedOption())
         private set
 
     var imagesPerRow: Int by mutableStateOf(3)
@@ -66,6 +68,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun selectImageSizeOption(option: ImageSizeOption) {
         selectedImageSizeOption = option
+        imageSizePreferences.saveOption(option)
     }
 
     fun updateImagesPerRow(count: Int) {

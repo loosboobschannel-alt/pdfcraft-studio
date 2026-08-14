@@ -31,8 +31,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -50,6 +53,7 @@ fun EditorScreen(onBackClick: () -> Unit) {
     val viewModel: EditorViewModel = viewModel()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    var showImportSettings by remember { mutableStateOf(false) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -121,6 +125,22 @@ fun EditorScreen(onBackClick: () -> Unit) {
             )
         }
 
+        if (showImportSettings) {
+            ImportImagesDialog(
+                selectedOption = viewModel.selectedImageSizeOption,
+                onOptionSelected = viewModel::selectImageSizeOption,
+                onImportClick = {
+                    showImportSettings = false
+                    imagePickerLauncher.launch(
+                        androidx.activity.result.PickVisualMediaRequest(
+                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                        )
+                    )
+                },
+                onDismiss = { showImportSettings = false }
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -128,16 +148,8 @@ fun EditorScreen(onBackClick: () -> Unit) {
         ) {
             EditorToolbar(
                 onImportImagesClick = {
-                    imagePickerLauncher.launch(
-                        androidx.activity.result.PickVisualMediaRequest(
-                            ActivityResultContracts.PickVisualMedia.ImageOnly
-                        )
-                    )
+                    showImportSettings = true
                 },
-                selectedSizeOption =
-                    viewModel.selectedImageSizeOption,
-                onSizeOptionSelected =
-                    viewModel::selectImageSizeOption,
                 imagesPerRow =
                     viewModel.imagesPerRow,
                 onImagesPerRowSelected =
