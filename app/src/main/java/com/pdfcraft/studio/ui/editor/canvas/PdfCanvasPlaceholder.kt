@@ -7,6 +7,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -53,7 +54,8 @@ import androidx.compose.ui.unit.dp
 import com.pdfcraft.studio.R
 import com.pdfcraft.studio.ui.editor.ImportedImage
 
-private const val ROWS_PER_PAGE = 4
+private const val PAGE_ASPECT_RATIO = 0.707f
+private const val PAGE_INNER_PADDING_DP = 10f
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -95,14 +97,34 @@ fun PdfPagesPreview(
         return
     }
 
-    val imagesPerPage = (imagesPerRow * ROWS_PER_PAGE).coerceAtLeast(1)
-    val pages = images.chunked(imagesPerPage)
-
     val cellBounds = remember { mutableStateMapOf<String, Rect>() }
 
-    Box(
+    BoxWithConstraints(
         modifier = modifier.fillMaxSize()
     ) {
+        val pageWidthDp = maxWidth.value
+        val pageHeightDp = pageWidthDp / PAGE_ASPECT_RATIO
+
+        val gridWidthDp = pageWidthDp - (PAGE_INNER_PADDING_DP * 2)
+        val gridHeightDp = pageHeightDp - (PAGE_INNER_PADDING_DP * 2)
+        val spacing = imageSpacingDp.toFloat()
+
+        val cellWidthDp = (gridWidthDp - spacing * (imagesPerRow - 1)) / imagesPerRow
+        val cellHeightDp = if (imageCellAspectRatio > 0f) {
+            cellWidthDp / imageCellAspectRatio
+        } else {
+            cellWidthDp
+        }
+
+        val rowsPerPage = if (cellHeightDp > 0f) {
+            (((gridHeightDp + spacing) / (cellHeightDp + spacing)).toInt()).coerceAtLeast(1)
+        } else {
+            1
+        }
+
+        val imagesPerPage = (imagesPerRow * rowsPerPage).coerceAtLeast(1)
+        val pages = images.chunked(imagesPerPage)
+
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -586,7 +608,7 @@ private fun PageCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(0.707f)
+            .aspectRatio(PAGE_ASPECT_RATIO)
             .background(
                 MaterialTheme.colorScheme.surfaceVariant,
                 RoundedCornerShape(12.dp)
