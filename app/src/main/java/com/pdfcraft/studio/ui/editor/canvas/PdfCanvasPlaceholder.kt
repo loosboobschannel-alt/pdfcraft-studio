@@ -61,6 +61,7 @@ fun PdfPagesPreview(
     images: List<ImportedImage>,
     imagesPerRow: Int,
     imageSpacingDp: Int,
+    imageCellAspectRatio: Float = 1f,
     selectedImageIds: List<String> = emptyList(),
     selectionMode: Boolean = false,
     singleMenuImageId: String? = null,
@@ -127,6 +128,7 @@ fun PdfPagesPreview(
                             images = pageImages,
                             imagesPerRow = imagesPerRow,
                             spacingDp = imageSpacingDp,
+                            cellAspectRatio = imageCellAspectRatio,
                             selectedImageIds = selectedImageIds,
                             selectionMode = selectionMode,
                             singleMenuImageId = singleMenuImageId,
@@ -197,6 +199,7 @@ private fun ImageGrid(
     images: List<ImportedImage>,
     imagesPerRow: Int,
     spacingDp: Int,
+    cellAspectRatio: Float,
     selectedImageIds: List<String>,
     selectionMode: Boolean,
     singleMenuImageId: String?,
@@ -231,6 +234,7 @@ private fun ImageGrid(
                     ImageCell(
                         image = image,
                         modifier = Modifier.weight(1f),
+                        aspectRatio = cellAspectRatio,
                         selected = selectedImageIds.contains(image.id),
                         reorderMode = reorderMode,
                         showMenu = singleMenuImageId == image.id,
@@ -285,6 +289,7 @@ private fun ImageGrid(
 private fun ImageCell(
     image: ImportedImage,
     modifier: Modifier = Modifier,
+    aspectRatio: Float,
     selected: Boolean,
     reorderMode: Boolean,
     showMenu: Boolean,
@@ -307,7 +312,7 @@ private fun ImageCell(
 
     Box(
         modifier = modifier
-            .aspectRatio(1f)
+            .aspectRatio(aspectRatio)
             .onGloballyPositioned { coordinates ->
                 layoutCoordinates = coordinates
                 val position = coordinates.positionInRoot()

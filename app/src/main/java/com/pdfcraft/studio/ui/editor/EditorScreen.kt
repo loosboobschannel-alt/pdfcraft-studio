@@ -161,6 +161,7 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     images = viewModel.importedImages,
                     imagesPerRow = viewModel.imagesPerRow,
                     imageSpacingDp = viewModel.imageSpacingDp,
+                    imageCellAspectRatio = viewModel.imageCellAspectRatio,
 
                     selectedImageIds =
                         viewModel.selectedImageIds,
