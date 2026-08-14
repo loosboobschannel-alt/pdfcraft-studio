@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -52,6 +54,7 @@ fun EditorToolbar(
     modifier: Modifier = Modifier
 ) {
     var resizeModeActive by remember { mutableStateOf(false) }
+    var spacingModeActive by remember { mutableStateOf(false) }
     var shapeModeActive by remember { mutableStateOf(false) }
 
     Column(
@@ -60,10 +63,16 @@ fun EditorToolbar(
             .background(Color.White)
     ) {
         if (resizeModeActive) {
-            ResizeImagesSlider(
+            ImagesPerRowSlider(
                 imagesPerRow = imagesPerRow,
                 onImagesPerRowChange = onImagesPerRowSelected,
                 onDone = { resizeModeActive = false }
+            )
+        } else if (spacingModeActive) {
+            ImageSpacingSlider(
+                spacingDp = imageSpacingDp,
+                onSpacingChange = onImageSpacingSelected,
+                onDone = { spacingModeActive = false }
             )
         } else if (shapeModeActive) {
             ImageShapeSlider(
@@ -77,9 +86,8 @@ fun EditorToolbar(
                     onImportImagesClick = onImportImagesClick,
                     selectedSizeOption = selectedSizeOption,
                     onSizeOptionSelected = onSizeOptionSelected,
-                    imageSpacingDp = imageSpacingDp,
-                    onImageSpacingSelected = onImageSpacingSelected,
                     onResizeImagesClick = { resizeModeActive = true },
+                    onAdjustSpacingClick = { spacingModeActive = true },
                     onAdjustImageShapeClick = { shapeModeActive = true }
                 )
             }
@@ -94,9 +102,10 @@ private fun SliderWithValueLabel(
     onValueChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float>,
     steps: Int,
-    labelFormatter: (Float) -> String
+    labelFormatter: (Float) -> String,
+    modifier: Modifier = Modifier
 ) {
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         val trackInset = 14.dp
         val usableWidth = (maxWidth - trackInset * 2)
         val fraction = ((value - valueRange.start) / (valueRange.endInclusive - valueRange.start))
@@ -130,29 +139,34 @@ private fun SliderWithValueLabel(
 }
 
 @Composable
-private fun ResizeImagesSlider(
+private fun SliderToolHeader(title: String, onDone: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = Color.Black
+        )
+        Text(
+            text = stringResource(R.string.resize_images_done),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.clickable(onClick = onDone)
+        )
+    }
+}
+
+@Composable
+private fun ImagesPerRowSlider(
     imagesPerRow: Int,
     onImagesPerRowChange: (Int) -> Unit,
     onDone: () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(R.string.resize_images_tool),
-                style = MaterialTheme.typography.labelLarge,
-                color = Color.Black
-            )
-            Text(
-                text = stringResource(R.string.resize_images_done),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(onClick = onDone)
-            )
-        }
+        SliderToolHeader(title = stringResource(R.string.resize_images_tool), onDone = onDone)
         SliderWithValueLabel(
             value = imagesPerRow.toFloat(),
             onValueChange = { onImagesPerRowChange(it.roundToInt()) },
@@ -164,39 +178,76 @@ private fun ResizeImagesSlider(
 }
 
 @Composable
+private fun ImageSpacingSlider(
+    spacingDp: Int,
+    onSpacingChange: (Int) -> Unit,
+    onDone: () -> Unit
+) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        SliderToolHeader(title = stringResource(R.string.image_spacing_tool), onDone = onDone)
+        SliderWithValueLabel(
+            value = spacingDp.toFloat(),
+            onValueChange = { onSpacingChange(it.roundToInt()) },
+            valueRange = 0f..20f,
+            steps = 19,
+            labelFormatter = { "${it.roundToInt()} dp" }
+        )
+    }
+}
+
+private const val SHAPE_MIN_RATIO = 0.4f
+private const val SHAPE_MAX_RATIO = 2.5f
+
+private fun shapeRatioToPercent(ratio: Float): Int =
+    (((ratio - SHAPE_MIN_RATIO) / (SHAPE_MAX_RATIO - SHAPE_MIN_RATIO)) * 100f)
+        .roundToInt().coerceIn(0, 100)
+
+private fun shapePercentToRatio(percent: Int): Float =
+    SHAPE_MIN_RATIO + (percent.coerceIn(0, 100) / 100f) * (SHAPE_MAX_RATIO - SHAPE_MIN_RATIO)
+
+@Composable
 private fun ImageShapeSlider(
     aspectRatio: Float,
     onAspectRatioChange: (Float) -> Unit,
     onDone: () -> Unit
 ) {
+    var percentText by remember(aspectRatio) {
+        mutableStateOf(shapeRatioToPercent(aspectRatio).toString())
+    }
+
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        SliderToolHeader(title = stringResource(R.string.image_shape_tool), onDone = onDone)
+
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = stringResource(R.string.image_shape_tool),
-                style = MaterialTheme.typography.labelLarge,
-                color = Color.Black
+            SliderWithValueLabel(
+                value = aspectRatio,
+                onValueChange = onAspectRatioChange,
+                valueRange = SHAPE_MIN_RATIO..SHAPE_MAX_RATIO,
+                steps = 0,
+                labelFormatter = { "${shapeRatioToPercent(it)}%" },
+                modifier = Modifier.weight(1f)
             )
-            Text(
-                text = stringResource(R.string.resize_images_done),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(onClick = onDone)
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            OutlinedTextField(
+                value = percentText,
+                onValueChange = { input ->
+                    val filtered = input.filter(Char::isDigit).take(3)
+                    percentText = filtered
+                    val percent = filtered.toIntOrNull()
+                    if (percent != null && percent in 0..100) {
+                        onAspectRatioChange(shapePercentToRatio(percent))
+                    }
+                },
+                modifier = Modifier.width(64.dp),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium
             )
         }
-        SliderWithValueLabel(
-            value = aspectRatio,
-            onValueChange = onAspectRatioChange,
-            valueRange = 0.4f..2.5f,
-            steps = 0,
-            labelFormatter = { v ->
-                val percent = (((v - 0.4f) / (2.5f - 0.4f)) * 100f).roundToInt().coerceIn(1, 100)
-                "$percent%"
-            }
-        )
     }
 }
 
@@ -205,9 +256,8 @@ private fun AllToolsMenu(
     onImportImagesClick: () -> Unit,
     selectedSizeOption: ImageSizeOption,
     onSizeOptionSelected: (ImageSizeOption) -> Unit,
-    imageSpacingDp: Int,
-    onImageSpacingSelected: (Int) -> Unit,
     onResizeImagesClick: () -> Unit,
+    onAdjustSpacingClick: () -> Unit,
     onAdjustImageShapeClick: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -246,11 +296,18 @@ private fun AllToolsMenu(
                 }
             )
 
-            ImageSpacingMenuEntry(
-                currentValue = imageSpacingDp,
-                onValueSelected = { value ->
-                    onImageSpacingSelected(value)
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(R.string.image_spacing_tool),
+                        color = Color.Black,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                onClick = {
                     menuExpanded = false
+                    onAdjustSpacingClick()
                 }
             )
 
@@ -416,74 +473,6 @@ private fun CustomSizeDialog(
         confirmButton = {
             TextButton(
                 onClick = { kbValue?.let(onConfirm) },
-                enabled = isValid
-            ) {
-                Text(stringResource(R.string.dialog_ok))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.dialog_cancel))
-            }
-        }
-    )
-}
-
-@Composable
-private fun ImageSpacingMenuEntry(
-    currentValue: Int,
-    onValueSelected: (Int) -> Unit
-) {
-    var showDialog by remember { mutableStateOf(false) }
-
-    DropdownMenuItem(
-        text = {
-            Text(
-                text = stringResource(R.string.image_spacing_menu_entry, currentValue),
-                color = Color.Black,
-                style = MaterialTheme.typography.bodyMedium
-            )
-        },
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-        onClick = { showDialog = true }
-    )
-
-    if (showDialog) {
-        ImageSpacingDialog(
-            currentValue = currentValue,
-            onDismiss = { showDialog = false },
-            onConfirm = { value ->
-                onValueSelected(value)
-                showDialog = false
-            }
-        )
-    }
-}
-
-@Composable
-private fun ImageSpacingDialog(
-    currentValue: Int,
-    onDismiss: () -> Unit,
-    onConfirm: (Int) -> Unit
-) {
-    var input by remember { mutableStateOf(currentValue.toString()) }
-    val value = input.toIntOrNull()
-    val isValid = value != null && value in 0..40
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.image_spacing_dialog_title)) },
-        text = {
-            OutlinedTextField(
-                value = input,
-                onValueChange = { input = it.filter(Char::isDigit) },
-                label = { Text(stringResource(R.string.image_spacing_dialog_hint)) },
-                singleLine = true
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { value?.let(onConfirm) },
                 enabled = isValid
             ) {
                 Text(stringResource(R.string.dialog_ok))

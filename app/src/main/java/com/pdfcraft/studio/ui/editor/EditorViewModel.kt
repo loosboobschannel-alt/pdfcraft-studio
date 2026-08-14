@@ -73,7 +73,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun updateImageSpacing(dp: Int) {
-        imageSpacingDp = dp.coerceIn(0, 40)
+        imageSpacingDp = dp.coerceIn(0, 20)
     }
 
     fun updateImageCellAspectRatio(ratio: Float) {
