@@ -21,6 +21,7 @@
     <string name="resize_images_done">Done</string>
     <string name="image_shape_tool">Adjust Image Shape</string>
     <string name="image_spacing_tool">Image Spacing</string>
+    <string name="image_spacing_tool">Image Spacing</string>
     <string name="image_spacing_menu_entry">Image Spacing (%1$d dp)</string>
     <string name="image_spacing_dialog_title">Image Spacing</string>
     <string name="image_spacing_dialog_hint">Gap in dp (0 to 40)</string>
