@@ -33,4 +33,14 @@
     <string name="image_menu_change_position">Change Position</string>
     <string name="image_menu_save_gallery">Save in Gallery</string>
     <string name="image_menu_share">Share</string>
+    <string name="change_position">Change Position</string>
+    <string name="cut_image">Cut</string>
+    <string name="copy_image">Copy</string>
+    <string name="paste_image">Paste</string>
+    <string name="save_in_gallery">Save in Gallery</string>
+    <string name="share_image">Share</string>
+    <string name="delete_image">Delete</string>
+    <string name="delete_all_images">Delete All</string>
+    <string name="selection_done">Done</string>
+    <string name="selected_images_actions">Select an Action</string>
 </resources>
