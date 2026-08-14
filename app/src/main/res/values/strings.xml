@@ -43,4 +43,5 @@
     <string name="delete_all_images">Delete All</string>
     <string name="selection_done">Done</string>
     <string name="selected_images_actions">Select an Action</string>
+    <string name="image_saved_message">Image saved to gallery</string>
 </resources>
