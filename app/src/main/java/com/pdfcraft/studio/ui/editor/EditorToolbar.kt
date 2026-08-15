@@ -48,6 +48,7 @@ fun EditorToolbar(
     imageCornerRadiusPercent: Int,
     onImageCornerRadiusSelected: (Int) -> Unit,
     onAddTextClick: () -> Unit,
+    onBoldClick: () -> Unit,
     hasSelectedText: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -93,7 +94,8 @@ fun EditorToolbar(
                     onAdjustSpacingClick = { spacingModeActive = true },
                     onAdjustImageShapeClick = { shapeModeActive = true },
                     onAdjustCornersClick = { cornersModeActive = true },
-                    onAddTextClick = onAddTextClick,
+                    onEnterTextClick = onAddTextClick,
+                    onBoldClick = onBoldClick,
                     hasSelectedText = hasSelectedText
                 )
             }
@@ -308,7 +310,8 @@ private fun AllToolsMenu(
     onAdjustSpacingClick: () -> Unit,
     onAdjustImageShapeClick: () -> Unit,
     onAdjustCornersClick: () -> Unit,
-    onAddTextClick: () -> Unit,
+    onEnterTextClick: () -> Unit,
+    onBoldClick: () -> Unit,
     hasSelectedText: Boolean
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -339,24 +342,12 @@ private fun AllToolsMenu(
                 }
             )
 
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.add_text_tool),
-                        color = Color.Black,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                onClick = {
-                    menuExpanded = false
-                    onAddTextClick()
-                }
+            TextToolsSubmenuEntry(
+                hasSelectedText = hasSelectedText,
+                onEnterTextClick = onEnterTextClick,
+                onBoldClick = onBoldClick,
+                onCloseParentMenu = { menuExpanded = false }
             )
-
-            if (hasSelectedText) {
-                TextToolsSubmenuEntry()
-            }
 
             DropdownMenuItem(
                 text = {
@@ -422,7 +413,12 @@ private fun AllToolsMenu(
 }
 
 @Composable
-private fun TextToolsSubmenuEntry() {
+private fun TextToolsSubmenuEntry(
+    hasSelectedText: Boolean,
+    onEnterTextClick: () -> Unit,
+    onBoldClick: () -> Unit,
+    onCloseParentMenu: () -> Unit
+) {
     var submenuExpanded by remember { mutableStateOf(false) }
 
     Box {
@@ -450,35 +446,37 @@ private fun TextToolsSubmenuEntry() {
             onDismissRequest = { submenuExpanded = false },
             offset = DpOffset(x = 200.dp, y = (-48).dp)
         ) {
-            val textToolLabels = listOf(
-                R.string.text_tool_font,
-                R.string.text_tool_font_size,
-                R.string.text_tool_color,
-                R.string.text_tool_bold,
-                R.string.text_tool_italic,
-                R.string.text_tool_align_left,
-                R.string.text_tool_align_center,
-                R.string.text_tool_align_right,
-                R.string.text_tool_delete,
-                R.string.text_tool_rename,
-                R.string.text_tool_copy,
-                R.string.text_tool_cut,
-                R.string.text_tool_paste
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(R.string.text_tool_enter_text),
+                        color = Color.Black,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                onClick = {
+                    submenuExpanded = false
+                    onCloseParentMenu()
+                    onEnterTextClick()
+                }
             )
 
-            textToolLabels.forEach { labelRes ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            stringResource(labelRes),
-                            color = Color.Black,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    },
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                    onClick = { /* logic for this tool arrives in a future stage */ }
-                )
-            }
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(R.string.text_tool_bold),
+                        color = if (hasSelectedText) Color.Black else Color.Gray
+                    )
+                },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                enabled = hasSelectedText,
+                onClick = {
+                    submenuExpanded = false
+                    onCloseParentMenu()
+                    onBoldClick()
+                }
+            )
         }
     }
 }

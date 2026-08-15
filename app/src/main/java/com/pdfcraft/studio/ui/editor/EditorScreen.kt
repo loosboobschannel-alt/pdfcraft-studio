@@ -168,6 +168,7 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     viewModel::updateImageCornerRadiusPercent,
                 onAddTextClick =
                     viewModel::enterAddTextMode,
+                onBoldClick = viewModel::toggleBoldForSelectedText,
                 hasSelectedText =
                     viewModel.selectedTextId != null
             )

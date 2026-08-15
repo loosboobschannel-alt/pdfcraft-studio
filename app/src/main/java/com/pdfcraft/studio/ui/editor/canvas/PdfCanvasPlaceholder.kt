@@ -279,6 +279,7 @@ private fun PageTextOverlay(
                 text = textElement.text,
                 color = Color.Black,
                 style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (textElement.isBold) FontWeight.Bold else FontWeight.Normal,
                 modifier = Modifier
                     .offset {
                         IntOffset(

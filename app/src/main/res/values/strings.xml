@@ -51,6 +51,7 @@
     <string name="add_text_tool">Add Text</string>
     <string name="add_text_hint">Tap anywhere on the page to add text</string>
     <string name="text_tools_menu_entry">Text Tools</string>
+    <string name="text_tool_enter_text">Enter Text</string>
     <string name="text_tool_font">Font</string>
     <string name="text_tool_font_size">Font Size</string>
     <string name="text_tool_color">Text Color</string>

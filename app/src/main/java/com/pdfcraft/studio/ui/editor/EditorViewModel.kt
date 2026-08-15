@@ -30,7 +30,8 @@ data class TextElement(
     val pageIndex: Int,
     val text: String = "Text",
     val xFraction: Float = 0.1f,
-    val yFraction: Float = 0.1f
+    val yFraction: Float = 0.1f,
+    val isBold: Boolean = false
 )
 
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
@@ -118,6 +119,16 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             textElements[index] = textElements[index].copy(
                 xFraction = xFraction,
                 yFraction = yFraction
+            )
+        }
+    }
+
+    fun toggleBoldForSelectedText() {
+        val id = selectedTextId ?: return
+        val index = textElements.indexOfFirst { it.id == id }
+        if (index >= 0) {
+            textElements[index] = textElements[index].copy(
+                isBold = !textElements[index].isBold
             )
         }
     }
