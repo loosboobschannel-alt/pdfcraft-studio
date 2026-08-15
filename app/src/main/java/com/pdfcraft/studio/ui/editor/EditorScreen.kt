@@ -161,7 +161,11 @@ fun EditorScreen(onBackClick: () -> Unit) {
                 imageCellAspectRatio =
                     viewModel.imageCellAspectRatio,
                 onImageCellAspectRatioSelected =
-                    viewModel::updateImageCellAspectRatio
+                    viewModel::updateImageCellAspectRatio,
+                imageCornerRadiusPercent =
+                    viewModel.imageCornerRadiusPercent,
+                onImageCornerRadiusSelected =
+                    viewModel::updateImageCornerRadiusPercent
             )
 
             Column(
@@ -174,6 +178,7 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     imagesPerRow = viewModel.imagesPerRow,
                     imageSpacingDp = viewModel.imageSpacingDp,
                     imageCellAspectRatio = viewModel.imageCellAspectRatio,
+                    imageCornerRadiusPercent = viewModel.imageCornerRadiusPercent,
 
                     selectedImageIds =
                         viewModel.selectedImageIds,

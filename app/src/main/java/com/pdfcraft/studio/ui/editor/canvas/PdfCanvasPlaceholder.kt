@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -64,6 +65,7 @@ fun PdfPagesPreview(
     imagesPerRow: Int,
     imageSpacingDp: Int,
     imageCellAspectRatio: Float = 1f,
+    imageCornerRadiusPercent: Int = 0,
     selectedImageIds: List<String> = emptyList(),
     selectionMode: Boolean = false,
     singleMenuImageId: String? = null,
@@ -151,6 +153,7 @@ fun PdfPagesPreview(
                             imagesPerRow = imagesPerRow,
                             spacingDp = imageSpacingDp,
                             cellAspectRatio = imageCellAspectRatio,
+                            cellCornerRadiusPercent = imageCornerRadiusPercent,
                             selectedImageIds = selectedImageIds,
                             selectionMode = selectionMode,
                             singleMenuImageId = singleMenuImageId,
@@ -222,6 +225,7 @@ private fun ImageGrid(
     imagesPerRow: Int,
     spacingDp: Int,
     cellAspectRatio: Float,
+    cellCornerRadiusPercent: Int,
     selectedImageIds: List<String>,
     selectionMode: Boolean,
     singleMenuImageId: String?,
@@ -257,6 +261,7 @@ private fun ImageGrid(
                         image = image,
                         modifier = Modifier.weight(1f),
                         aspectRatio = cellAspectRatio,
+                        cornerRadiusPercent = cellCornerRadiusPercent,
                         selected = selectedImageIds.contains(image.id),
                         reorderMode = reorderMode,
                         showMenu = singleMenuImageId == image.id,
@@ -312,6 +317,7 @@ private fun ImageCell(
     image: ImportedImage,
     modifier: Modifier = Modifier,
     aspectRatio: Float,
+    cornerRadiusPercent: Int,
     selected: Boolean,
     reorderMode: Boolean,
     showMenu: Boolean,
@@ -346,10 +352,8 @@ private fun ImageCell(
                     bottom = position.y + coordinates.size.height
                 )
             }
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(6.dp)
-            )
+            .clip(RoundedCornerShape(percent = cornerRadiusPercent))
+            .background(color = MaterialTheme.colorScheme.surfaceVariant)
             .then(
                 if (reorderMode) {
                     Modifier.pointerInput(image.id) {
@@ -412,8 +416,7 @@ private fun ImageCell(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        shape = RoundedCornerShape(6.dp)
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                     )
             )
         }

@@ -45,6 +45,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var imageCellAspectRatio: Float by mutableStateOf(0.526f)
         private set
 
+    var imageCornerRadiusPercent: Int by mutableStateOf(0)
+        private set
+
     var isImporting: Boolean by mutableStateOf(false)
         private set
 
@@ -81,6 +84,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun updateImageCellAspectRatio(ratio: Float) {
         imageCellAspectRatio = ratio.coerceIn(0.4f, 2.5f)
+    }
+
+    fun updateImageCornerRadiusPercent(percent: Int) {
+        imageCornerRadiusPercent = percent.coerceIn(0, 100)
     }
 
     fun importImages(uris: List<Uri>) {

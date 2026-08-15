@@ -44,11 +44,14 @@ fun EditorToolbar(
     onImageSpacingSelected: (Int) -> Unit,
     imageCellAspectRatio: Float,
     onImageCellAspectRatioSelected: (Float) -> Unit,
+    imageCornerRadiusPercent: Int,
+    onImageCornerRadiusSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var resizeModeActive by remember { mutableStateOf(false) }
     var spacingModeActive by remember { mutableStateOf(false) }
     var shapeModeActive by remember { mutableStateOf(false) }
+    var cornersModeActive by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -73,13 +76,20 @@ fun EditorToolbar(
                 onAspectRatioChange = onImageCellAspectRatioSelected,
                 onDone = { shapeModeActive = false }
             )
+        } else if (cornersModeActive) {
+            RoundCornersSlider(
+                percent = imageCornerRadiusPercent,
+                onPercentChange = onImageCornerRadiusSelected,
+                onDone = { cornersModeActive = false }
+            )
         } else {
             Box(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                 AllToolsMenu(
                     onImportImagesClick = onImportImagesClick,
                     onResizeImagesClick = { resizeModeActive = true },
                     onAdjustSpacingClick = { spacingModeActive = true },
-                    onAdjustImageShapeClick = { shapeModeActive = true }
+                    onAdjustImageShapeClick = { shapeModeActive = true },
+                    onAdjustCornersClick = { cornersModeActive = true }
                 )
             }
         }
@@ -243,11 +253,56 @@ private fun ImageShapeSlider(
 }
 
 @Composable
+private fun RoundCornersSlider(
+    percent: Int,
+    onPercentChange: (Int) -> Unit,
+    onDone: () -> Unit
+) {
+    var percentText by remember(percent) { mutableStateOf(percent.toString()) }
+
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        SliderToolHeader(title = stringResource(R.string.round_corners_tool), onDone = onDone)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SliderWithValueLabel(
+                value = percent.toFloat(),
+                onValueChange = { onPercentChange(it.roundToInt()) },
+                valueRange = 0f..100f,
+                steps = 0,
+                labelFormatter = { "${it.roundToInt()}%" },
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            OutlinedTextField(
+                value = percentText,
+                onValueChange = { input ->
+                    val filtered = input.filter(Char::isDigit).take(3)
+                    percentText = filtered
+                    val value = filtered.toIntOrNull()
+                    if (value != null && value in 0..100) {
+                        onPercentChange(value)
+                    }
+                },
+                modifier = Modifier.width(64.dp),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+
+@Composable
 private fun AllToolsMenu(
     onImportImagesClick: () -> Unit,
     onResizeImagesClick: () -> Unit,
     onAdjustSpacingClick: () -> Unit,
-    onAdjustImageShapeClick: () -> Unit
+    onAdjustImageShapeClick: () -> Unit,
+    onAdjustCornersClick: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -319,6 +374,21 @@ private fun AllToolsMenu(
                 onClick = {
                     menuExpanded = false
                     onAdjustImageShapeClick()
+                }
+            )
+
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(R.string.round_corners_tool),
+                        color = Color.Black,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                onClick = {
+                    menuExpanded = false
+                    onAdjustCornersClick()
                 }
             )
         }
