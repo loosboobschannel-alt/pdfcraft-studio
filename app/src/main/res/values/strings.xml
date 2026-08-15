@@ -48,4 +48,20 @@
     <string name="image_saved_message">Image saved to gallery</string>
     <string name="image_import_instructions">Before importing, choose a size below to shrink your images and save space, or keep the original image size for the best quality.</string>
     <string name="original_image_size_label">Original Image Size</string>
+    <string name="add_text_tool">Add Text</string>
+    <string name="add_text_hint">Tap anywhere on the page to add text</string>
+    <string name="text_tools_menu_entry">Text Tools</string>
+    <string name="text_tool_font">Font</string>
+    <string name="text_tool_font_size">Font Size</string>
+    <string name="text_tool_color">Text Color</string>
+    <string name="text_tool_bold">Bold</string>
+    <string name="text_tool_italic">Italic</string>
+    <string name="text_tool_align_left">Left Alignment</string>
+    <string name="text_tool_align_center">Center Alignment</string>
+    <string name="text_tool_align_right">Right Alignment</string>
+    <string name="text_tool_delete">Delete</string>
+    <string name="text_tool_rename">Rename</string>
+    <string name="text_tool_copy">Copy</string>
+    <string name="text_tool_cut">Cut</string>
+    <string name="text_tool_paste">Paste</string>
 </resources>

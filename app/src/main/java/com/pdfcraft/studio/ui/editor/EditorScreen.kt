@@ -165,7 +165,11 @@ fun EditorScreen(onBackClick: () -> Unit) {
                 imageCornerRadiusPercent =
                     viewModel.imageCornerRadiusPercent,
                 onImageCornerRadiusSelected =
-                    viewModel::updateImageCornerRadiusPercent
+                    viewModel::updateImageCornerRadiusPercent,
+                onAddTextClick =
+                    viewModel::enterAddTextMode,
+                hasSelectedText =
+                    viewModel.selectedTextId != null
             )
 
             Column(
@@ -179,6 +183,31 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     imageSpacingDp = viewModel.imageSpacingDp,
                     imageCellAspectRatio = viewModel.imageCellAspectRatio,
                     imageCornerRadiusPercent = viewModel.imageCornerRadiusPercent,
+
+                    textElements =
+                        viewModel.textElements,
+
+                    addTextMode =
+                        viewModel.addTextMode,
+
+                    selectedTextId =
+                        viewModel.selectedTextId,
+
+                    onAddTextAt = { pageIndex, xFraction, yFraction ->
+                        viewModel.addTextAt(pageIndex, xFraction, yFraction)
+                    },
+
+                    onSelectText = { id ->
+                        viewModel.selectText(id)
+                    },
+
+                    onMoveText = { id, xFraction, yFraction ->
+                        viewModel.moveText(id, xFraction, yFraction)
+                    },
+
+                    onDeselectText = {
+                        viewModel.deselectText()
+                    },
 
                     selectedImageIds =
                         viewModel.selectedImageIds,

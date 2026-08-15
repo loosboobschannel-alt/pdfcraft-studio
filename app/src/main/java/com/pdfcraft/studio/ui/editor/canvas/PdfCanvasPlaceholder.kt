@@ -3,8 +3,10 @@ package com.pdfcraft.studio.ui.editor.canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -47,13 +50,17 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.pdfcraft.studio.R
 import com.pdfcraft.studio.ui.editor.ImportedImage
+import com.pdfcraft.studio.ui.editor.TextElement
 
 private const val PAGE_ASPECT_RATIO = 0.707f
 private const val PAGE_INNER_PADDING_DP = 10f
@@ -72,6 +79,13 @@ fun PdfPagesPreview(
     multipleActionsVisible: Boolean = false,
     reorderMode: Boolean = false,
     hasClipboardImages: Boolean = false,
+    textElements: List<TextElement> = emptyList(),
+    addTextMode: Boolean = false,
+    selectedTextId: String? = null,
+    onAddTextAt: (pageIndex: Int, xFraction: Float, yFraction: Float) -> Unit = { _, _, _ -> },
+    onSelectText: (String) -> Unit = {},
+    onMoveText: (id: String, xFraction: Float, yFraction: Float) -> Unit = { _, _, _ -> },
+    onDeselectText: () -> Unit = {},
     onImageClick: (String) -> Unit = {},
     onImageLongPress: (String) -> Unit = {},
     onChangePosition: (String) -> Unit = {},
@@ -148,31 +162,43 @@ fun PdfPagesPreview(
                     )
 
                     PageCard {
-                        ImageGrid(
-                            images = pageImages,
-                            imagesPerRow = imagesPerRow,
-                            spacingDp = imageSpacingDp,
-                            cellAspectRatio = imageCellAspectRatio,
-                            cellCornerRadiusPercent = imageCornerRadiusPercent,
-                            selectedImageIds = selectedImageIds,
-                            selectionMode = selectionMode,
-                            singleMenuImageId = singleMenuImageId,
-                            reorderMode = reorderMode,
-                            hasClipboardImages = hasClipboardImages,
-                            cellBounds = cellBounds,
-                            onImageClick = onImageClick,
-                            onImageLongPress = onImageLongPress,
-                            onChangePosition = onChangePosition,
-                            onCut = onCut,
-                            onCopy = onCopy,
-                            onPaste = onPaste,
-                            onSaveSingle = onSaveSingle,
-                            onShareSingle = onShareSingle,
-                            onDeleteSingle = onDeleteSingle,
-                            onMoveSingle = onMoveSingle,
-                            onMoveMultiple = onMoveMultiple,
-                            onFinishReorder = onFinishReorder
-                        )
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            ImageGrid(
+                                images = pageImages,
+                                imagesPerRow = imagesPerRow,
+                                spacingDp = imageSpacingDp,
+                                cellAspectRatio = imageCellAspectRatio,
+                                cellCornerRadiusPercent = imageCornerRadiusPercent,
+                                selectedImageIds = selectedImageIds,
+                                selectionMode = selectionMode,
+                                singleMenuImageId = singleMenuImageId,
+                                reorderMode = reorderMode,
+                                hasClipboardImages = hasClipboardImages,
+                                cellBounds = cellBounds,
+                                onImageClick = onImageClick,
+                                onImageLongPress = onImageLongPress,
+                                onChangePosition = onChangePosition,
+                                onCut = onCut,
+                                onCopy = onCopy,
+                                onPaste = onPaste,
+                                onSaveSingle = onSaveSingle,
+                                onShareSingle = onShareSingle,
+                                onDeleteSingle = onDeleteSingle,
+                                onMoveSingle = onMoveSingle,
+                                onMoveMultiple = onMoveMultiple,
+                                onFinishReorder = onFinishReorder
+                            )
+
+                            PageTextOverlay(
+                                texts = textElements.filter { it.pageIndex == pageIndex },
+                                addTextMode = addTextMode,
+                                selectedTextId = selectedTextId,
+                                onPageTap = { xFrac, yFrac -> onAddTextAt(pageIndex, xFrac, yFrac) },
+                                onTextSelect = onSelectText,
+                                onTextDrag = onMoveText,
+                                onDeselect = onDeselectText
+                            )
+                        }
                     }
                 }
             }
@@ -215,6 +241,76 @@ fun PdfPagesPreview(
             onDelete = onMultipleDelete,
             onDismiss = onCloseMultipleActions
         )
+    }
+}
+
+@Composable
+private fun PageTextOverlay(
+    texts: List<TextElement>,
+    addTextMode: Boolean,
+    selectedTextId: String?,
+    onPageTap: (xFraction: Float, yFraction: Float) -> Unit,
+    onTextSelect: (String) -> Unit,
+    onTextDrag: (id: String, xFraction: Float, yFraction: Float) -> Unit,
+    onDeselect: () -> Unit
+) {
+    var sizePx by remember { mutableStateOf(IntSize.Zero) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onSizeChanged { sizePx = it }
+            .pointerInput(addTextMode) {
+                detectTapGestures { offset ->
+                    if (sizePx.width > 0 && sizePx.height > 0) {
+                        if (addTextMode) {
+                            val xFraction = (offset.x / sizePx.width).coerceIn(0f, 1f)
+                            val yFraction = (offset.y / sizePx.height).coerceIn(0f, 1f)
+                            onPageTap(xFraction, yFraction)
+                        } else {
+                            onDeselect()
+                        }
+                    }
+                }
+            }
+    ) {
+        texts.forEach { textElement ->
+            Text(
+                text = textElement.text,
+                color = Color.Black,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+                    .offset {
+                        IntOffset(
+                            (textElement.xFraction * sizePx.width).toInt(),
+                            (textElement.yFraction * sizePx.height).toInt()
+                        )
+                    }
+                    .then(
+                        if (textElement.id == selectedTextId) {
+                            Modifier.border(1.dp, MaterialTheme.colorScheme.primary)
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .pointerInput(textElement.id) {
+                        var runningXFraction = textElement.xFraction
+                        var runningYFraction = textElement.yFraction
+                        detectDragGestures(
+                            onDragStart = { onTextSelect(textElement.id) },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                if (sizePx.width > 0 && sizePx.height > 0) {
+                                    runningXFraction = (runningXFraction + dragAmount.x / sizePx.width).coerceIn(0f, 1f)
+                                    runningYFraction = (runningYFraction + dragAmount.y / sizePx.height).coerceIn(0f, 1f)
+                                    onTextDrag(textElement.id, runningXFraction, runningYFraction)
+                                }
+                            }
+                        )
+                    }
+                    .padding(4.dp)
+            )
+        }
     }
 }
 

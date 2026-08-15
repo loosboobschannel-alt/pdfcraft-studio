@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.pdfcraft.studio.R
 import kotlin.math.roundToInt
@@ -46,6 +47,8 @@ fun EditorToolbar(
     onImageCellAspectRatioSelected: (Float) -> Unit,
     imageCornerRadiusPercent: Int,
     onImageCornerRadiusSelected: (Int) -> Unit,
+    onAddTextClick: () -> Unit,
+    hasSelectedText: Boolean,
     modifier: Modifier = Modifier
 ) {
     var resizeModeActive by remember { mutableStateOf(false) }
@@ -89,7 +92,9 @@ fun EditorToolbar(
                     onResizeImagesClick = { resizeModeActive = true },
                     onAdjustSpacingClick = { spacingModeActive = true },
                     onAdjustImageShapeClick = { shapeModeActive = true },
-                    onAdjustCornersClick = { cornersModeActive = true }
+                    onAdjustCornersClick = { cornersModeActive = true },
+                    onAddTextClick = onAddTextClick,
+                    hasSelectedText = hasSelectedText
                 )
             }
         }
@@ -302,7 +307,9 @@ private fun AllToolsMenu(
     onResizeImagesClick: () -> Unit,
     onAdjustSpacingClick: () -> Unit,
     onAdjustImageShapeClick: () -> Unit,
-    onAdjustCornersClick: () -> Unit
+    onAdjustCornersClick: () -> Unit,
+    onAddTextClick: () -> Unit,
+    hasSelectedText: Boolean
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -331,6 +338,25 @@ private fun AllToolsMenu(
                     onImportImagesClick()
                 }
             )
+
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(R.string.add_text_tool),
+                        color = Color.Black,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                onClick = {
+                    menuExpanded = false
+                    onAddTextClick()
+                }
+            )
+
+            if (hasSelectedText) {
+                TextToolsSubmenuEntry()
+            }
 
             DropdownMenuItem(
                 text = {
@@ -391,6 +417,68 @@ private fun AllToolsMenu(
                     onAdjustCornersClick()
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun TextToolsSubmenuEntry() {
+    var submenuExpanded by remember { mutableStateOf(false) }
+
+    Box {
+        DropdownMenuItem(
+            text = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.text_tools_menu_entry),
+                        color = Color.Black,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Text(text = "\u203A", color = Color.Black)
+                }
+            },
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+            onClick = { submenuExpanded = true }
+        )
+
+        DropdownMenu(
+            expanded = submenuExpanded,
+            onDismissRequest = { submenuExpanded = false },
+            offset = DpOffset(x = 200.dp, y = (-48).dp)
+        ) {
+            val textToolLabels = listOf(
+                R.string.text_tool_font,
+                R.string.text_tool_font_size,
+                R.string.text_tool_color,
+                R.string.text_tool_bold,
+                R.string.text_tool_italic,
+                R.string.text_tool_align_left,
+                R.string.text_tool_align_center,
+                R.string.text_tool_align_right,
+                R.string.text_tool_delete,
+                R.string.text_tool_rename,
+                R.string.text_tool_copy,
+                R.string.text_tool_cut,
+                R.string.text_tool_paste
+            )
+
+            textToolLabels.forEach { labelRes ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            stringResource(labelRes),
+                            color = Color.Black,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                    onClick = { /* logic for this tool arrives in a future stage */ }
+                )
+            }
         }
     }
 }

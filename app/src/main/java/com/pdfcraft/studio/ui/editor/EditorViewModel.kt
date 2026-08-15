@@ -25,6 +25,14 @@ data class ImportedImage(
     val approxSizeBytes: Int? = null
 )
 
+data class TextElement(
+    val id: String,
+    val pageIndex: Int,
+    val text: String = "Text",
+    val xFraction: Float = 0.1f,
+    val yFraction: Float = 0.1f
+)
+
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
 
     private val imageHandler = ImageHandler(application.contentResolver)
@@ -68,6 +76,51 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     val hasClipboardImages: Boolean
         get() = clipboardImages.isNotEmpty()
+
+    val textElements: SnapshotStateList<TextElement> = mutableStateListOf()
+
+    var addTextMode: Boolean by mutableStateOf(false)
+        private set
+
+    var selectedTextId: String? by mutableStateOf(null)
+        private set
+
+    fun enterAddTextMode() {
+        addTextMode = true
+        selectedTextId = null
+    }
+
+    fun addTextAt(pageIndex: Int, xFraction: Float, yFraction: Float) {
+        val id = "text_${System.currentTimeMillis()}_${textElements.size}"
+        textElements.add(
+            TextElement(
+                id = id,
+                pageIndex = pageIndex,
+                xFraction = xFraction,
+                yFraction = yFraction
+            )
+        )
+        selectedTextId = id
+        addTextMode = false
+    }
+
+    fun selectText(id: String) {
+        selectedTextId = id
+    }
+
+    fun deselectText() {
+        selectedTextId = null
+    }
+
+    fun moveText(id: String, xFraction: Float, yFraction: Float) {
+        val index = textElements.indexOfFirst { it.id == id }
+        if (index >= 0) {
+            textElements[index] = textElements[index].copy(
+                xFraction = xFraction,
+                yFraction = yFraction
+            )
+        }
+    }
 
     fun selectImageSizeOption(option: ImageSizeOption) {
         selectedImageSizeOption = option
