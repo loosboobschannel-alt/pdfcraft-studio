@@ -479,7 +479,7 @@ private fun PageTextOverlay(
                         italicRanges = textElement.italicRanges
                     ),
                     textStyle = TextStyle(
-                        color = Color(text.textColorArgb),
+                        color = Color(textElement.textColorArgb),
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                         fontSize = text.fontSizeSp.sp, fontFamily = fontFamily
                     ),
