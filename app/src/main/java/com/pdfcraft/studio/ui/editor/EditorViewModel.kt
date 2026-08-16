@@ -413,7 +413,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             toggleSelection(id)
         } else {
             // Toggle: same image click closes the menu (Windows-style)
-            singleMenuImageId = if (singleMenuImageId == id) null else id
+            singleMenuImageId = if (singleMenuImageId != null) null else id
         }
     }
 

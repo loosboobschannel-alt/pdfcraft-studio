@@ -79,7 +79,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
 import com.pdfcraft.studio.R
 import com.pdfcraft.studio.core.text.AppFont
 import com.pdfcraft.studio.core.text.FontCatalog
@@ -693,53 +692,48 @@ private fun ImageCell(
             }
         }
 
-        // Popup: visible above everything; outside tap dismisses via onDismissRequest
+        // Compact dropdown anchored to this image cell (same style as Image/Text Tools menus).
+        // Outside tap or any image click dismisses via onDismissRequest / openImageMenu logic.
         if (showMenu && !reorderMode) {
             var savedToGallery by remember(image.id) { mutableStateOf(false) }
-            Popup(
-                alignment = Alignment.TopCenter,
+            DropdownMenu(
+                expanded = true,
                 onDismissRequest = onClick
             ) {
-                Column(
-                    modifier = Modifier
-                        .padding(top = 6.dp)
-                        .background(Color.White, RoundedCornerShape(6.dp))
-                        .border(1.dp, Color.LightGray, RoundedCornerShape(6.dp))
-                ) {
-                    Text(
-                        text = if (savedToGallery) {
-                            "✓ " + stringResource(R.string.save_in_gallery)
-                        } else {
-                            stringResource(R.string.save_in_gallery)
-                        },
-                        color = Color.Black,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .clickable {
-                                onSave()
-                                savedToGallery = true
-                                onClick() // close menu after use
-                            }
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
-                    )
-                    HorizontalDivider()
-                    Text(
-                        text = stringResource(R.string.share_image),
-                        color = Color.Black,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        softWrap = false,
-                        modifier = Modifier
-                            .clickable {
-                                onShare()
-                                onClick() // close menu after use
-                            }
-                            .padding(horizontal = 16.dp, vertical = 10.dp)
-                    )
-                }
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = if (savedToGallery) {
+                                "✓ " + stringResource(R.string.save_in_gallery)
+                            } else {
+                                stringResource(R.string.save_in_gallery)
+                            },
+                            color = Color.Black,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    onClick = {
+                        onSave()
+                        savedToGallery = true
+                        onClick() // close after use
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.share_image),
+                            color = Color.Black,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    },
+                    onClick = {
+                        onShare()
+                        onClick() // close after use
+                    }
+                )
             }
         }
     }
