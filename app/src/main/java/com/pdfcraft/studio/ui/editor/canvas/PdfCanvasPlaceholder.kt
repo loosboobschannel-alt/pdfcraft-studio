@@ -151,16 +151,18 @@ fun PdfPagesPreview(
                         )
                         PageCard {
                             Box(modifier = Modifier.fillMaxSize()) {
-                                // Soft hint — does not block taps for adding text
-                                Text(
-                                    text = stringResource(R.string.editor_empty_state),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier
-                                        .align(Alignment.Center)
-                                        .padding(horizontal = 24.dp)
-                                )
+                                // Soft hint only while page has no text yet
+                                if (textElements.none { it.pageIndex == 0 }) {
+                                    Text(
+                                        text = stringResource(R.string.editor_empty_state),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier
+                                            .align(Alignment.Center)
+                                            .padding(horizontal = 24.dp)
+                                    )
+                                }
                                 PageTextOverlay(
                                     texts = textElements.filter { it.pageIndex == 0 },
                                     addTextMode = addTextMode,
@@ -678,17 +680,16 @@ private fun ImageCell(
         }
 
         if (showMenu && !reorderMode) {
+            var savedToGallery by remember(image.id) { mutableStateOf(false) }
             SingleImageActionsMenu(
                 expanded = true,
-                hasClipboardImages = hasClipboardImages,
-                onDismiss = {},
-                onChangePosition = onChangePosition,
-                onCut = onCut,
-                onCopy = onCopy,
-                onPaste = onPaste,
-                onSave = onSave,
-                onShare = onShare,
-                onDelete = onDelete
+                savedToGallery = savedToGallery,
+                onDismiss = onClick,
+                onSave = {
+                    onSave()
+                    savedToGallery = true
+                },
+                onShare = onShare
             )
         }
     }
@@ -697,66 +698,40 @@ private fun ImageCell(
 @Composable
 private fun SingleImageActionsMenu(
     expanded: Boolean,
-    hasClipboardImages: Boolean,
+    savedToGallery: Boolean,
     onDismiss: () -> Unit,
-    onChangePosition: () -> Unit,
-    onCut: () -> Unit,
-    onCopy: () -> Unit,
-    onPaste: () -> Unit,
     onSave: () -> Unit,
-    onShare: () -> Unit,
-    onDelete: () -> Unit
+    onShare: () -> Unit
 ) {
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss
     ) {
         DropdownMenuItem(
-            text = { Text(stringResource(R.string.change_position)) },
-            onClick = onChangePosition
+            text = {
+                Text(
+                    text = if (savedToGallery) {
+                        "✓ " + stringResource(R.string.save_in_gallery)
+                    } else {
+                        stringResource(R.string.save_in_gallery)
+                    },
+                    color = Color.Black
+                )
+            },
+            onClick = onSave
         )
-
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.cut_image)) },
-            onClick = onCut
-        )
-
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.copy_image)) },
-            onClick = onCopy
-        )
-
         DropdownMenuItem(
             text = {
                 Text(
-                    stringResource(R.string.paste_image),
-                    color = if (hasClipboardImages) {
-                        Color.Black
-                    } else {
-                        Color.Gray
-                    }
+                    text = stringResource(R.string.share_image),
+                    color = Color.Black
                 )
             },
-            onClick = onPaste,
-            enabled = hasClipboardImages
-        )
-
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.save_in_gallery)) },
-            onClick = onSave
-        )
-
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.share_image)) },
             onClick = onShare
-        )
-
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.delete_image)) },
-            onClick = onDelete
         )
     }
 }
+
 
 @Composable
 private fun MultipleActionsDialog(

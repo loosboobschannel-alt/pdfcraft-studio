@@ -404,8 +404,13 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         if (selectionMode) {
             toggleSelection(id)
         } else {
-            singleMenuImageId = id
+            // Toggle: same image click closes the menu (Windows-style)
+            singleMenuImageId = if (singleMenuImageId == id) null else id
         }
+    }
+
+    fun dismissImageMenu() {
+        singleMenuImageId = null
     }
 
     fun longPressImage(id: String) {
