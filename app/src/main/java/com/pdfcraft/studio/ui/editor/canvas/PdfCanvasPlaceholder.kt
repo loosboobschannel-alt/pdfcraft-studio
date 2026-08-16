@@ -480,8 +480,8 @@ private fun PageTextOverlay(
                     ),
                     textStyle = TextStyle(
                         color = Color(textElement.textColorArgb),
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                        fontSize = text.fontSizeSp.sp, fontFamily = fontFamily
+                        fontSize = textElement.fontSizeSp.sp,
+                        fontFamily = fontFamily
                     ),
                     cursorBrush = SolidColor(Color.Black),
                     modifier = Modifier
