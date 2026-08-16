@@ -96,6 +96,15 @@ fun EditorScreen(onBackClick: () -> Unit) {
             }
         }
 
+    val backgroundImagePickerLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.PickVisualMedia()
+        ) { uri ->
+            if (uri != null) {
+                viewModel.setPageBackgroundFromUri(uri)
+            }
+        }
+
     LaunchedEffect(viewModel.lastFontImportMessage) {
         val msg = viewModel.lastFontImportMessage
         if (msg != null) {
@@ -234,7 +243,44 @@ fun EditorScreen(onBackClick: () -> Unit) {
                 onDeleteTextClick =
                     viewModel::deleteSelectedText,
                 hasSelectedText =
-                    viewModel.focusedTextId != null || viewModel.selectedTextId != null
+                    viewModel.selectedTextId != null,
+                pageAspectRatio =
+                    viewModel.pageAspectRatio,
+                onPageAspectRatioChange =
+                    viewModel::setPageAspectRatio,
+                isPageLandscape =
+                    viewModel.isPageLandscape,
+                onPageOrientationChange =
+                    viewModel::setPageOrientation,
+                pageMarginDp =
+                    viewModel.pageMarginDp,
+                onPageMarginChange =
+                    viewModel::setPageMarginDp,
+                pageBackgroundColor =
+                    viewModel.pageBackgroundColor,
+                onPageBackgroundColorChange =
+                    viewModel::setPageBackgroundColor,
+                onPickBackgroundImage = {
+                    backgroundImagePickerLauncher.launch(
+                        ActivityResultContracts.PickVisualMedia.ImageOnly
+                    )
+                },
+                onClearBackgroundImage =
+                    viewModel::clearPageBackgroundImage,
+                hasBackgroundImage =
+                    viewModel.pageBackgroundImageUri != null,
+                pageNumberPosition =
+                    viewModel.pageNumberPosition,
+                onPageNumberPositionChange =
+                    viewModel::setPageNumberPosition,
+                pageNumberStyle =
+                    viewModel.pageNumberStyle,
+                onPageNumberStyleChange =
+                    viewModel::setPageNumberStyle,
+                onAddNewPage =
+                    viewModel::addNewPage,
+                onDeletePage =
+                    viewModel::deleteLastPage
             )
 
             Column(
@@ -248,6 +294,14 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     imageSpacingDp = viewModel.imageSpacingDp,
                     imageCellAspectRatio = viewModel.imageCellAspectRatio,
                     imageCornerRadiusPercent = viewModel.imageCornerRadiusPercent,
+
+                    pageAspectRatio = viewModel.pageAspectRatio,
+                    pageMarginDp = viewModel.pageMarginDp,
+                    pageBackgroundColor = viewModel.pageBackgroundColor,
+                    pageBackgroundBitmap = viewModel.pageBackgroundBitmap,
+                    pageNumberPosition = viewModel.pageNumberPosition,
+                    formatPageNumber = viewModel::formatPageNumber,
+                    minPageCount = viewModel.minPageCount,
 
                     textElements =
                         viewModel.textElements,

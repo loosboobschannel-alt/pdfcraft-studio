@@ -96,6 +96,14 @@ fun PdfPagesPreview(
     imageSpacingDp: Int,
     imageCellAspectRatio: Float = 1f,
     imageCornerRadiusPercent: Int = 0,
+    pageAspectRatio: Float = PAGE_ASPECT_RATIO,
+    pageMarginDp: Int = 10,
+    pageBackgroundColor: Long = 0xFFFFFFFF,
+    pageBackgroundBitmap: android.graphics.Bitmap? = null,
+    pageNumberPosition: com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition =
+        com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.NONE,
+    formatPageNumber: (Int) -> String = { (it + 1).toString() },
+    minPageCount: Int = 1,
     selectedImageIds: List<String> = emptyList(),
     selectionMode: Boolean = false,
     singleMenuImageId: String? = null,
@@ -152,7 +160,14 @@ fun PdfPagesPreview(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                             modifier = Modifier.padding(bottom = 6.dp)
                         )
-                        PageCard {
+                        PageCard(
+                            aspectRatio = pageAspectRatio,
+                            backgroundColor = pageBackgroundColor,
+                            backgroundBitmap = pageBackgroundBitmap,
+                            pageNumberText = if (pageNumberPosition != com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.NONE)
+                                formatPageNumber(0) else null,
+                            pageNumberPosition = pageNumberPosition
+                        ) {
                             Box(modifier = Modifier.fillMaxSize()) {
                                 // Soft hint only while page has no text yet
                                 if (textElements.none { it.pageIndex == 0 }) {
@@ -196,7 +211,7 @@ fun PdfPagesPreview(
         modifier = modifier.fillMaxSize()
     ) {
         val pageWidthDp = maxWidth.value
-        val pageHeightDp = pageWidthDp / PAGE_ASPECT_RATIO
+        val pageHeightDp = pageWidthDp / pageAspectRatio
 
         val gridWidthDp = pageWidthDp - (PAGE_INNER_PADDING_DP * 2)
         val gridHeightDp = pageHeightDp - (PAGE_INNER_PADDING_DP * 2)
@@ -216,7 +231,9 @@ fun PdfPagesPreview(
         }
 
         val imagesPerPage = (imagesPerRow * rowsPerPage).coerceAtLeast(1)
-        val pages = images.chunked(imagesPerPage)
+        val contentPages = images.chunked(imagesPerPage)
+        val pages = if (contentPages.size >= minPageCount) contentPages
+        else contentPages + List(minPageCount - contentPages.size) { emptyList() }
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -238,8 +255,15 @@ fun PdfPagesPreview(
                         modifier = Modifier.padding(bottom = 6.dp)
                     )
 
-                    PageCard {
-                        Box(modifier = Modifier.fillMaxSize()) {
+                    PageCard(
+                        aspectRatio = pageAspectRatio,
+                        backgroundColor = pageBackgroundColor,
+                        backgroundBitmap = pageBackgroundBitmap,
+                        pageNumberText = if (pageNumberPosition != com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.NONE)
+                            formatPageNumber(pageIndex) else null,
+                        pageNumberPosition = pageNumberPosition
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize().padding(pageMarginDp.dp)) {
                             ImageGrid(
                                 images = pageImages,
                                 imagesPerRow = imagesPerRow,
@@ -881,18 +905,48 @@ private fun EmptyStatePage(
 
 @Composable
 private fun PageCard(
+    aspectRatio: Float = PAGE_ASPECT_RATIO,
+    backgroundColor: Long = 0xFFFFFFFF,
+    backgroundBitmap: android.graphics.Bitmap? = null,
+    pageNumberText: String? = null,
+    pageNumberPosition: com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition =
+        com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.NONE,
     content: @Composable () -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(PAGE_ASPECT_RATIO)
-            .background(
-                MaterialTheme.colorScheme.surfaceVariant,
-                RoundedCornerShape(12.dp)
-            ),
+            .aspectRatio(aspectRatio)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(backgroundColor), RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center
     ) {
+        if (backgroundBitmap != null) {
+            Image(
+                bitmap = backgroundBitmap.asImageBitmap(),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
         content()
+        if (pageNumberText != null &&
+            pageNumberPosition != com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.NONE
+        ) {
+            val align = when (pageNumberPosition) {
+                com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.LEFT -> Alignment.BottomStart
+                com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.CENTER -> Alignment.BottomCenter
+                com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.RIGHT -> Alignment.BottomEnd
+                else -> Alignment.BottomCenter
+            }
+            Text(
+                text = pageNumberText,
+                color = Color.Black.copy(alpha = 0.55f),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier
+                    .align(align)
+                    .padding(10.dp)
+            )
+        }
     }
 }

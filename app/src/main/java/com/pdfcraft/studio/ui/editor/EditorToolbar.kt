@@ -7,16 +7,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -51,63 +51,107 @@ fun EditorToolbar(
     onFontClick: () -> Unit,
     onDeleteTextClick: () -> Unit,
     hasSelectedText: Boolean,
+    pageAspectRatio: Float,
+    onPageAspectRatioChange: (Float) -> Unit,
+    isPageLandscape: Boolean,
+    onPageOrientationChange: (Boolean) -> Unit,
+    pageMarginDp: Int,
+    onPageMarginChange: (Int) -> Unit,
+    pageBackgroundColor: Long,
+    onPageBackgroundColorChange: (Long) -> Unit,
+    onPickBackgroundImage: () -> Unit,
+    onClearBackgroundImage: () -> Unit,
+    hasBackgroundImage: Boolean,
+    pageNumberPosition: EditorViewModel.PageNumberPosition,
+    onPageNumberPositionChange: (EditorViewModel.PageNumberPosition) -> Unit,
+    pageNumberStyle: EditorViewModel.PageNumberStyle,
+    onPageNumberStyleChange: (EditorViewModel.PageNumberStyle) -> Unit,
+    onAddNewPage: () -> Unit,
+    onDeletePage: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var resizeModeActive by remember { mutableStateOf(false) }
     var spacingModeActive by remember { mutableStateOf(false) }
     var shapeModeActive by remember { mutableStateOf(false) }
     var cornersModeActive by remember { mutableStateOf(false) }
+    var pageSizeModeActive by remember { mutableStateOf(false) }
+    var pageMarginModeActive by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(Color.White)
     ) {
-        if (resizeModeActive) {
-            ImagesPerRowSlider(
+        when {
+            resizeModeActive -> ImagesPerRowSlider(
                 imagesPerRow = imagesPerRow,
                 onImagesPerRowChange = onImagesPerRowSelected,
                 onDone = { resizeModeActive = false }
             )
-        } else if (spacingModeActive) {
-            ImageSpacingSlider(
+            spacingModeActive -> ImageSpacingSlider(
                 spacingDp = imageSpacingDp,
                 onSpacingChange = onImageSpacingSelected,
                 onDone = { spacingModeActive = false }
             )
-        } else if (shapeModeActive) {
-            ImageShapeSlider(
+            shapeModeActive -> ImageShapeSlider(
                 aspectRatio = imageCellAspectRatio,
                 onAspectRatioChange = onImageCellAspectRatioSelected,
                 onDone = { shapeModeActive = false }
             )
-        } else if (cornersModeActive) {
-            RoundCornersSlider(
+            cornersModeActive -> RoundCornersSlider(
                 percent = imageCornerRadiusPercent,
                 onPercentChange = onImageCornerRadiusSelected,
                 onDone = { cornersModeActive = false }
             )
-        } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ImageToolsMenu(
-                    onImportImagesClick = onImportImagesClick,
-                    onResizeImagesClick = { resizeModeActive = true },
-                    onAdjustSpacingClick = { spacingModeActive = true },
-                    onAdjustImageShapeClick = { shapeModeActive = true },
-                    onAdjustCornersClick = { cornersModeActive = true }
-                )
-                TextToolsMenu(
-                    onEnterTextClick = onAddTextClick,
-                    onFontClick = onFontClick,
-                    onDeleteTextClick = onDeleteTextClick,
-                    hasSelectedText = hasSelectedText
-                )
+            pageSizeModeActive -> PageSizeSlider(
+                aspectRatio = pageAspectRatio,
+                onAspectRatioChange = onPageAspectRatioChange,
+                onDone = { pageSizeModeActive = false }
+            )
+            pageMarginModeActive -> PageMarginSlider(
+                marginDp = pageMarginDp,
+                onMarginChange = onPageMarginChange,
+                onDone = { pageMarginModeActive = false }
+            )
+            else -> {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ImageToolsMenu(
+                        onImportImagesClick = onImportImagesClick,
+                        onResizeImagesClick = { resizeModeActive = true },
+                        onAdjustSpacingClick = { spacingModeActive = true },
+                        onAdjustImageShapeClick = { shapeModeActive = true },
+                        onAdjustCornersClick = { cornersModeActive = true }
+                    )
+                    PageToolsMenu(
+                        onAddNewPage = onAddNewPage,
+                        onSetPageSize = { pageSizeModeActive = true },
+                        isPageLandscape = isPageLandscape,
+                        onPageOrientationChange = onPageOrientationChange,
+                        onSetPageMargin = { pageMarginModeActive = true },
+                        onDeletePage = onDeletePage,
+                        pageBackgroundColor = pageBackgroundColor,
+                        onPageBackgroundColorChange = onPageBackgroundColorChange,
+                        onPickBackgroundImage = onPickBackgroundImage,
+                        onClearBackgroundImage = onClearBackgroundImage,
+                        hasBackgroundImage = hasBackgroundImage,
+                        pageNumberPosition = pageNumberPosition,
+                        onPageNumberPositionChange = onPageNumberPositionChange,
+                        pageNumberStyle = pageNumberStyle,
+                        onPageNumberStyleChange = onPageNumberStyleChange
+                    )
+                    TextToolsMenu(
+                        onEnterTextClick = onAddTextClick,
+                        onFontClick = onFontClick,
+                        onDeleteTextClick = onDeleteTextClick,
+                        hasSelectedText = hasSelectedText
+                    )
+                }
             }
         }
         HorizontalDivider()
@@ -180,6 +224,193 @@ private fun ImageToolsMenu(
             ToolMenuItem(stringResource(R.string.round_corners_tool)) {
                 menuExpanded = false
                 onAdjustCornersClick()
+            }
+        }
+    }
+}
+
+@Composable
+private fun PageToolsMenu(
+    onAddNewPage: () -> Unit,
+    onSetPageSize: () -> Unit,
+    isPageLandscape: Boolean,
+    onPageOrientationChange: (Boolean) -> Unit,
+    onSetPageMargin: () -> Unit,
+    onDeletePage: () -> Unit,
+    pageBackgroundColor: Long,
+    onPageBackgroundColorChange: (Long) -> Unit,
+    onPickBackgroundImage: () -> Unit,
+    onClearBackgroundImage: () -> Unit,
+    hasBackgroundImage: Boolean,
+    pageNumberPosition: EditorViewModel.PageNumberPosition,
+    onPageNumberPositionChange: (EditorViewModel.PageNumberPosition) -> Unit,
+    pageNumberStyle: EditorViewModel.PageNumberStyle,
+    onPageNumberStyleChange: (EditorViewModel.PageNumberStyle) -> Unit
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    var orientationSub by remember { mutableStateOf(false) }
+    var backgroundSub by remember { mutableStateOf(false) }
+    var pageNumbersSub by remember { mutableStateOf(false) }
+
+    Box {
+        Text(
+            text = stringResource(R.string.page_tools_menu_entry) + " \u25BE",
+            style = MaterialTheme.typography.labelLarge,
+            color = Color.Black,
+            modifier = Modifier
+                .clickable { menuExpanded = true }
+                .padding(vertical = 4.dp)
+        )
+
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = {
+                menuExpanded = false
+                orientationSub = false
+                backgroundSub = false
+                pageNumbersSub = false
+            }
+        ) {
+            ToolMenuItem(stringResource(R.string.page_tool_add_new_page)) {
+                menuExpanded = false
+                onAddNewPage()
+            }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(stringResource(R.string.page_tool_set_page_size)) {
+                menuExpanded = false
+                onSetPageSize()
+            }
+            HorizontalDivider(color = Color.LightGray)
+
+            ToolMenuItem(stringResource(R.string.page_tool_orientation) + " ›") {
+                orientationSub = !orientationSub
+            }
+            if (orientationSub) {
+                ToolMenuItem(
+                    label = (if (!isPageLandscape) "✓ " else "") + stringResource(R.string.page_orientation_portrait)
+                ) {
+                    onPageOrientationChange(false)
+                    menuExpanded = false
+                    orientationSub = false
+                }
+                ToolMenuItem(
+                    label = (if (isPageLandscape) "✓ " else "") + stringResource(R.string.page_orientation_landscape)
+                ) {
+                    onPageOrientationChange(true)
+                    menuExpanded = false
+                    orientationSub = false
+                }
+            }
+
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(stringResource(R.string.page_tool_margin)) {
+                menuExpanded = false
+                onSetPageMargin()
+            }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(stringResource(R.string.page_tool_delete_page)) {
+                menuExpanded = false
+                onDeletePage()
+            }
+            HorizontalDivider(color = Color.LightGray)
+
+            ToolMenuItem(stringResource(R.string.page_tool_background_color) + " ›") {
+                backgroundSub = !backgroundSub
+            }
+            if (backgroundSub) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val colors = listOf(
+                        0xFFFFFFFFL,
+                        0xFFF5F5F5L,
+                        0xFFE0E0E0L,
+                        0xFFFFF8E1L,
+                        0xFFE3F2FDL,
+                        0xFFE8F5E9L,
+                        0xFFFFEBEEL,
+                        0xFF000000L
+                    )
+                    colors.forEach { c ->
+                        val selected = pageBackgroundColor == c && !hasBackgroundImage
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(Color(c), CircleShape)
+                                .border(
+                                    width = if (selected) 2.dp else 1.dp,
+                                    color = if (selected) MaterialTheme.colorScheme.primary else Color.LightGray,
+                                    shape = CircleShape
+                                )
+                                .clickable {
+                                    onPageBackgroundColorChange(c)
+                                    menuExpanded = false
+                                    backgroundSub = false
+                                }
+                        )
+                    }
+                }
+                ToolMenuItem(stringResource(R.string.page_bg_from_gallery)) {
+                    menuExpanded = false
+                    backgroundSub = false
+                    onPickBackgroundImage()
+                }
+                if (hasBackgroundImage) {
+                    ToolMenuItem(stringResource(R.string.page_bg_clear_image)) {
+                        menuExpanded = false
+                        backgroundSub = false
+                        onClearBackgroundImage()
+                    }
+                }
+            }
+
+            HorizontalDivider(color = Color.LightGray)
+
+            ToolMenuItem(stringResource(R.string.page_tool_page_numbers) + " ›") {
+                pageNumbersSub = !pageNumbersSub
+            }
+            if (pageNumbersSub) {
+                Text(
+                    text = stringResource(R.string.page_number_position),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+                listOf(
+                    EditorViewModel.PageNumberPosition.NONE to R.string.page_number_pos_none,
+                    EditorViewModel.PageNumberPosition.LEFT to R.string.page_number_pos_left,
+                    EditorViewModel.PageNumberPosition.CENTER to R.string.page_number_pos_center,
+                    EditorViewModel.PageNumberPosition.RIGHT to R.string.page_number_pos_right
+                ).forEach { (pos, res) ->
+                    ToolMenuItem(
+                        label = (if (pageNumberPosition == pos) "✓ " else "") + stringResource(res)
+                    ) {
+                        onPageNumberPositionChange(pos)
+                    }
+                }
+                HorizontalDivider(color = Color.LightGray)
+                Text(
+                    text = stringResource(R.string.page_number_style),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+                listOf(
+                    EditorViewModel.PageNumberStyle.ARABIC to R.string.page_number_style_1,
+                    EditorViewModel.PageNumberStyle.ROMAN_LOWER to R.string.page_number_style_i,
+                    EditorViewModel.PageNumberStyle.ROMAN_UPPER to R.string.page_number_style_I,
+                    EditorViewModel.PageNumberStyle.ALPHA_LOWER to R.string.page_number_style_a,
+                    EditorViewModel.PageNumberStyle.ALPHA_UPPER to R.string.page_number_style_A
+                ).forEach { (style, res) ->
+                    ToolMenuItem(
+                        label = (if (pageNumberStyle == style) "✓ " else "") + stringResource(res)
+                    ) {
+                        onPageNumberStyleChange(style)
+                    }
+                }
             }
         }
     }
@@ -302,10 +533,10 @@ private fun ImagesPerRowSlider(
         SliderToolHeader(title = stringResource(R.string.resize_images_tool), onDone = onDone)
         SliderWithValueLabel(
             value = imagesPerRow.toFloat(),
-            onValueChange = { onImagesPerRowChange(it.roundToInt()) },
-            valueRange = 1f..20f,
-            steps = 18,
-            labelFormatter = { it.roundToInt().toString() }
+            onValueChange = { onImagesPerRowChange(it.roundToInt().coerceIn(1, 6)) },
+            valueRange = 1f..6f,
+            steps = 4,
+            labelFormatter = { "${it.roundToInt()}" }
         )
     }
 }
@@ -320,23 +551,26 @@ private fun ImageSpacingSlider(
         SliderToolHeader(title = stringResource(R.string.image_spacing_tool), onDone = onDone)
         SliderWithValueLabel(
             value = spacingDp.toFloat(),
-            onValueChange = { onSpacingChange(it.roundToInt()) },
-            valueRange = 0f..20f,
-            steps = 19,
+            onValueChange = { onSpacingChange(it.roundToInt().coerceIn(0, 40)) },
+            valueRange = 0f..40f,
+            steps = 0,
             labelFormatter = { "${it.roundToInt()} dp" }
         )
     }
 }
 
-private const val SHAPE_MIN_RATIO = 0.4f
-private const val SHAPE_MAX_RATIO = 2.5f
+private const val SHAPE_MIN_RATIO = 0.3f
+private const val SHAPE_MAX_RATIO = 2.0f
 
-private fun shapeRatioToPercent(ratio: Float): Int =
-    (((ratio - SHAPE_MIN_RATIO) / (SHAPE_MAX_RATIO - SHAPE_MIN_RATIO)) * 100f)
-        .roundToInt().coerceIn(0, 100)
+private fun shapeRatioToPercent(ratio: Float): Int {
+    val t = ((ratio - SHAPE_MIN_RATIO) / (SHAPE_MAX_RATIO - SHAPE_MIN_RATIO)).coerceIn(0f, 1f)
+    return (t * 100f).roundToInt()
+}
 
-private fun shapePercentToRatio(percent: Int): Float =
-    SHAPE_MIN_RATIO + (percent.coerceIn(0, 100) / 100f) * (SHAPE_MAX_RATIO - SHAPE_MIN_RATIO)
+private fun shapePercentToRatio(percent: Int): Float {
+    val t = percent.coerceIn(0, 100) / 100f
+    return SHAPE_MIN_RATIO + t * (SHAPE_MAX_RATIO - SHAPE_MIN_RATIO)
+}
 
 @Composable
 private fun ImageShapeSlider(
@@ -425,5 +659,45 @@ private fun RoundCornersSlider(
                 textStyle = MaterialTheme.typography.bodyMedium
             )
         }
+    }
+}
+
+@Composable
+private fun PageSizeSlider(
+    aspectRatio: Float,
+    onAspectRatioChange: (Float) -> Unit,
+    onDone: () -> Unit
+) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        SliderToolHeader(title = stringResource(R.string.page_tool_set_page_size), onDone = onDone)
+        SliderWithValueLabel(
+            value = aspectRatio,
+            onValueChange = onAspectRatioChange,
+            valueRange = 0.4f..2.5f,
+            steps = 0,
+            labelFormatter = {
+                val w = 100
+                val h = (100f / it).roundToInt()
+                if (it >= 1f) "Landscape \( {w}: \){h}" else "Portrait \( {h}: \){w}"
+            }
+        )
+    }
+}
+
+@Composable
+private fun PageMarginSlider(
+    marginDp: Int,
+    onMarginChange: (Int) -> Unit,
+    onDone: () -> Unit
+) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        SliderToolHeader(title = stringResource(R.string.page_tool_margin), onDone = onDone)
+        SliderWithValueLabel(
+            value = marginDp.toFloat(),
+            onValueChange = { onMarginChange(it.roundToInt().coerceIn(0, 48)) },
+            valueRange = 0f..48f,
+            steps = 0,
+            labelFormatter = { "${it.roundToInt()} dp" }
+        )
     }
 }

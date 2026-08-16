@@ -123,6 +123,37 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var imageCornerRadiusPercent: Int by mutableStateOf(0)
         private set
 
+    // ---- Page Tools state ----
+    var pageAspectRatio: Float by mutableStateOf(9f / 16f)
+        private set
+
+    var isPageLandscape: Boolean by mutableStateOf(false)
+        private set
+
+    var pageMarginDp: Int by mutableStateOf(10)
+        private set
+
+    var pageBackgroundColor: Long by mutableStateOf(0xFFFFFFFF)
+        private set
+
+    var pageBackgroundImageUri: Uri? by mutableStateOf(null)
+        private set
+
+    var pageBackgroundBitmap: Bitmap? by mutableStateOf(null)
+        private set
+
+    enum class PageNumberPosition { NONE, LEFT, CENTER, RIGHT }
+    enum class PageNumberStyle { ARABIC, ROMAN_LOWER, ROMAN_UPPER, ALPHA_LOWER, ALPHA_UPPER }
+
+    var pageNumberPosition: PageNumberPosition by mutableStateOf(PageNumberPosition.NONE)
+        private set
+
+    var pageNumberStyle: PageNumberStyle by mutableStateOf(PageNumberStyle.ARABIC)
+        private set
+
+    var minPageCount: Int by mutableStateOf(1)
+        private set
+
     var isImporting: Boolean by mutableStateOf(false)
         private set
 
@@ -537,5 +568,100 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun finishReorder() {
         reorderMode = false
         cancelSelection()
+    }
+
+    // ---- Page Tools actions ----
+
+    fun addNewPage() {
+        minPageCount = minPageCount + 1
+    }
+
+    fun deleteLastPage() {
+        if (minPageCount <= 1) return
+        minPageCount = minPageCount - 1
+    }
+
+    fun setPageAspectRatio(ratio: Float) {
+        val r = ratio.coerceIn(0.4f, 2.5f)
+        pageAspectRatio = r
+        isPageLandscape = r > 1f
+    }
+
+    fun setPageOrientation(landscape: Boolean) {
+        isPageLandscape = landscape
+        val magnitude = if (pageAspectRatio >= 1f) pageAspectRatio else 1f / pageAspectRatio
+        pageAspectRatio = if (landscape) magnitude else 1f / magnitude
+    }
+
+    fun setPageMarginDp(dp: Int) {
+        pageMarginDp = dp.coerceIn(0, 48)
+    }
+
+    fun setPageBackgroundColor(colorArgb: Long) {
+        pageBackgroundColor = colorArgb
+    }
+
+    fun setPageBackgroundFromUri(uri: Uri?) {
+        pageBackgroundImageUri = uri
+        if (uri == null) {
+            pageBackgroundBitmap = null
+            return
+        }
+        viewModelScope.launch {
+            val bmp = withContext(Dispatchers.IO) {
+                imageHandler.decode(uri, maxDimensionPx = 1600)
+            }
+            pageBackgroundBitmap = bmp
+        }
+    }
+
+    fun clearPageBackgroundImage() {
+        pageBackgroundImageUri = null
+        pageBackgroundBitmap = null
+    }
+
+    fun setPageNumberPosition(pos: PageNumberPosition) {
+        pageNumberPosition = pos
+    }
+
+    fun setPageNumberStyle(style: PageNumberStyle) {
+        pageNumberStyle = style
+    }
+
+    fun formatPageNumber(pageIndexZeroBased: Int): String {
+        val n = pageIndexZeroBased + 1
+        return when (pageNumberStyle) {
+            PageNumberStyle.ARABIC -> n.toString()
+            PageNumberStyle.ROMAN_LOWER -> toRoman(n).lowercase()
+            PageNumberStyle.ROMAN_UPPER -> toRoman(n)
+            PageNumberStyle.ALPHA_LOWER -> toAlpha(n).lowercase()
+            PageNumberStyle.ALPHA_UPPER -> toAlpha(n)
+        }
+    }
+
+    private fun toRoman(num: Int): String {
+        if (num <= 0) return ""
+        val values = listOf(1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1)
+        val symbols = listOf("M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I")
+        var n = num
+        val sb = StringBuilder()
+        for (i in values.indices) {
+            while (n >= values[i]) {
+                sb.append(symbols[i])
+                n -= values[i]
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun toAlpha(num: Int): String {
+        var n = num
+        val sb = StringBuilder()
+        while (n > 0) {
+            n--
+            sb.insert(0, ('A' + (n % 26)).toChar())
+            n /= 26
+        }
+        return sb.toString()
     }
 }
