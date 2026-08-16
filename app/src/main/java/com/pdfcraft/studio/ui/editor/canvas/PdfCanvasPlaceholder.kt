@@ -374,20 +374,24 @@ private fun PageTextOverlay(
         modifier = Modifier
             .fillMaxSize()
             .onSizeChanged { sizePx = it }
-            .pointerInput(addTextMode) {
-                detectTapGestures { offset ->
-                    if (sizePx.width > 0 && sizePx.height > 0) {
-                        if (addTextMode) {
-                            val xFraction = (offset.x / sizePx.width).coerceIn(0f, 1f)
-                            val yFraction = (offset.y / sizePx.height).coerceIn(0f, 1f)
-                            onPageTap(xFraction, yFraction)
-                        } else {
-                            focusManager.clearFocus()
-                            onDeselect()
+            // IMPORTANT: only intercept taps while placing new text.
+            // Otherwise this full-size layer steals clicks from images underneath
+            // and the Save/Share menu never opens.
+            .then(
+                if (addTextMode) {
+                    Modifier.pointerInput(Unit) {
+                        detectTapGestures { offset ->
+                            if (sizePx.width > 0 && sizePx.height > 0) {
+                                val xFraction = (offset.x / sizePx.width).coerceIn(0f, 1f)
+                                val yFraction = (offset.y / sizePx.height).coerceIn(0f, 1f)
+                                onPageTap(xFraction, yFraction)
+                            }
                         }
                     }
+                } else {
+                    Modifier
                 }
-            }
+            )
     ) {
         texts.forEach { textElement ->
             var fieldValue by remember(textElement.id) {
