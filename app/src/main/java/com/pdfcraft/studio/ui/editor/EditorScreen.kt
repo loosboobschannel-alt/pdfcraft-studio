@@ -262,7 +262,9 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     viewModel::setPageBackgroundColor,
                 onPickBackgroundImage = {
                     backgroundImagePickerLauncher.launch(
-                        ActivityResultContracts.PickVisualMedia.ImageOnly
+                        androidx.activity.result.PickVisualMediaRequest(
+                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                        )
                     )
                 },
                 onClearBackgroundImage =
