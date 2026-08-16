@@ -610,75 +610,82 @@ private fun ImageCell(
                     bottom = position.y + coordinates.size.height
                 )
             }
-            .clip(RoundedCornerShape(percent = cornerRadiusPercent))
-            .background(color = MaterialTheme.colorScheme.surfaceVariant)
-            .then(
-                if (reorderMode) {
-                    Modifier.pointerInput(image.id) {
-                        detectDragGestures(
-                            onDragStart = {},
-                            onDrag = { change, _ ->
-                                change.consume()
-                            },
-                            onDragEnd = {
-                                val coordinates = layoutCoordinates
-                                    ?: return@detectDragGestures
-
-                                val center =
-                                    coordinates.localToRoot(
-                                        Offset(
-                                            coordinates.size.width / 2f,
-                                            coordinates.size.height / 2f
-                                        )
-                                    )
-
-                                val target = cellBounds.entries
-                                    .firstOrNull { entry ->
-                                        entry.key != image.id &&
-                                            entry.value.contains(center)
-                                    }
-
-                                if (target != null) {
-                                    onDropOnTarget(target.key)
-                                }
-                            },
-                            onDragCancel = {}
-                        )
-                    }
-                } else {
-                    Modifier
-                }
-            )
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongPress
-            ),
-        contentAlignment = Alignment.Center
     ) {
-        if (image.bitmap != null) {
-            Image(
-                bitmap = image.bitmap.asImageBitmap(),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit
-            )
-        } else {
-            CircularProgressIndicator(
-                modifier = Modifier.height(16.dp),
-                color = MaterialTheme.colorScheme.primary
-            )
+        // Clip only the image content — NOT the dropdown menu
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(percent = cornerRadiusPercent))
+                .background(color = MaterialTheme.colorScheme.surfaceVariant)
+                .then(
+                    if (reorderMode) {
+                        Modifier.pointerInput(image.id) {
+                            detectDragGestures(
+                                onDragStart = {},
+                                onDrag = { change, _ ->
+                                    change.consume()
+                                },
+                                onDragEnd = {
+                                    val coordinates = layoutCoordinates
+                                        ?: return@detectDragGestures
+
+                                    val center =
+                                        coordinates.localToRoot(
+                                            Offset(
+                                                coordinates.size.width / 2f,
+                                                coordinates.size.height / 2f
+                                            )
+                                        )
+
+                                    val target = cellBounds.entries
+                                        .firstOrNull { entry ->
+                                            entry.key != image.id &&
+                                                entry.value.contains(center)
+                                        }
+
+                                    if (target != null) {
+                                        onDropOnTarget(target.key)
+                                    }
+                                },
+                                onDragCancel = {}
+                            )
+                        }
+                    } else {
+                        Modifier
+                    }
+                )
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongPress
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (image.bitmap != null) {
+                Image(
+                    bitmap = image.bitmap.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            } else {
+                CircularProgressIndicator(
+                    modifier = Modifier.height(16.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        )
+                )
+            }
         }
 
-        if (selected) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                    )
-            )
-        }
-
+        // Menu outside clipped box so it is visible above the image
         if (showMenu && !reorderMode) {
             var savedToGallery by remember(image.id) { mutableStateOf(false) }
             SingleImageActionsMenu(

@@ -320,6 +320,14 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         return textElements[index].fontId
     }
 
+    fun deleteSelectedText() {
+        val id = focusedTextId ?: selectedTextId ?: return
+        textElements.removeAll { it.id == id }
+        if (focusedTextId == id) focusedTextId = null
+        if (selectedTextId == id) selectedTextId = null
+        pendingFocusTextId = null
+    }
+
     fun applyFontToSelectedText(font: AppFont) {
         val index = activeTextIndex()
         if (index < 0) return

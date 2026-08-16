@@ -48,6 +48,7 @@ fun EditorToolbar(
     onImageCornerRadiusSelected: (Int) -> Unit,
     onAddTextClick: () -> Unit,
     onFontClick: () -> Unit,
+    onDeleteTextClick: () -> Unit,
     hasSelectedText: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -103,6 +104,7 @@ fun EditorToolbar(
                 TextToolsMenu(
                     onEnterTextClick = onAddTextClick,
                     onFontClick = onFontClick,
+                    onDeleteTextClick = onDeleteTextClick,
                     hasSelectedText = hasSelectedText
                 )
             }

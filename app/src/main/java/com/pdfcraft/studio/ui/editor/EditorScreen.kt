@@ -231,6 +231,8 @@ fun EditorScreen(onBackClick: () -> Unit) {
                 onFontClick = {
                     showFontTools = true
                 },
+                onDeleteTextClick =
+                    viewModel::deleteSelectedText,
                 hasSelectedText =
                     viewModel.focusedTextId != null || viewModel.selectedTextId != null
             )

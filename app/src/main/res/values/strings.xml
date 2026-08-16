@@ -62,7 +62,7 @@
     <string name="text_tool_align_left">Left Alignment</string>
     <string name="text_tool_align_center">Center Alignment</string>
     <string name="text_tool_align_right">Right Alignment</string>
-    <string name="text_tool_delete">Delete</string>
+    <string name="text_tool_delete">3. Delete</string>
     <string name="text_tool_rename">Rename</string>
     <string name="text_tool_copy">Copy</string>
     <string name="text_tool_cut">Cut</string>
