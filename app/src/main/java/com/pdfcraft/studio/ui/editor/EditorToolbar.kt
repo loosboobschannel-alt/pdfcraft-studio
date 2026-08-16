@@ -51,6 +51,12 @@ fun EditorToolbar(
     onFontClick: () -> Unit,
     onDeleteTextClick: () -> Unit,
     hasSelectedText: Boolean,
+    onTextColorClick: () -> Unit = {},
+    onTextBgColorClick: () -> Unit = {},
+    onTextShadowClick: () -> Unit = {},
+    textSizeSp: Float = 16f,
+    onTextSizeClick: () -> Unit = {},
+    onTextSizeChange: (Float) -> Unit = {},
     pageAspectRatio: Float,
     onPageAspectRatioChange: (Float) -> Unit,
     isPageLandscape: Boolean,
@@ -76,6 +82,7 @@ fun EditorToolbar(
     var cornersModeActive by remember { mutableStateOf(false) }
     var pageSizeModeActive by remember { mutableStateOf(false) }
     var pageMarginModeActive by remember { mutableStateOf(false) }
+    var textSizeModeActive by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -102,6 +109,11 @@ fun EditorToolbar(
                 percent = imageCornerRadiusPercent,
                 onPercentChange = onImageCornerRadiusSelected,
                 onDone = { cornersModeActive = false }
+            )
+            textSizeModeActive -> TextSizeSlider(
+                sizeSp = textSizeSp,
+                onSizeChange = onTextSizeChange,
+                onDone = { textSizeModeActive = false }
             )
             pageSizeModeActive -> PageSizeSlider(
                 aspectRatio = pageAspectRatio,
@@ -148,6 +160,13 @@ fun EditorToolbar(
                     TextToolsMenu(
                         onEnterTextClick = onAddTextClick,
                         onFontClick = onFontClick,
+                        onTextColorClick = onTextColorClick,
+                        onTextBgColorClick = onTextBgColorClick,
+                        onTextShadowClick = onTextShadowClick,
+                        onTextSizeClick = {
+                            if (hasSelectedText) textSizeModeActive = true
+                            else onTextSizeClick()
+                        },
                         onDeleteTextClick = onDeleteTextClick,
                         hasSelectedText = hasSelectedText
                     )
@@ -400,6 +419,10 @@ private fun PageToolsMenu(
 private fun TextToolsMenu(
     onEnterTextClick: () -> Unit,
     onFontClick: () -> Unit,
+    onTextSizeClick: () -> Unit,
+    onTextColorClick: () -> Unit,
+    onTextBgColorClick: () -> Unit,
+    onTextShadowClick: () -> Unit,
     onDeleteTextClick: () -> Unit,
     hasSelectedText: Boolean
 ) {
@@ -429,9 +452,42 @@ private fun TextToolsMenu(
                 onFontClick()
             }
             HorizontalDivider(color = Color.LightGray)
+            
+            ToolMenuItem(
+                label = stringResource(R.string.text_tool_text_color),
+                enabled = hasSelectedText
+            ) {
+                menuExpanded = false
+                onTextColorClick()
+            }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(
+                label = stringResource(R.string.text_tool_bg_color),
+                enabled = hasSelectedText
+            ) {
+                menuExpanded = false
+                onTextBgColorClick()
+            }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(
+                label = stringResource(R.string.text_tool_shadow),
+                enabled = hasSelectedText
+            ) {
+                menuExpanded = false
+                onTextShadowClick()
+            }
+            HorizontalDivider(color = Color.LightGray)
+ToolMenuItem(
+                label = stringResource(R.string.text_tool_text_size),
+                enabled = hasSelectedText
+            ) {
+                menuExpanded = false
+                onTextSizeClick()
+            }
+            HorizontalDivider(color = Color.LightGray)
             Text(
                 text = stringResource(R.string.text_tool_delete),
-                color = Color.White,
+                color = Color.Black,
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 softWrap = false,
@@ -731,5 +787,52 @@ private fun PageMarginSlider(
             steps = 0,
             labelFormatter = { "${it.roundToInt()} dp" }
         )
+    }
+}
+
+@Composable
+private fun TextSizeSlider(
+    sizeSp: Float,
+    onSizeChange: (Float) -> Unit,
+    onDone: () -> Unit
+) {
+    var sizeText by remember(sizeSp) { mutableStateOf(sizeSp.roundToInt().toString()) }
+
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        SliderToolHeader(title = stringResource(R.string.text_tool_text_size), onDone = onDone)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SliderWithValueLabel(
+                value = sizeSp,
+                onValueChange = {
+                    onSizeChange(it)
+                    sizeText = it.roundToInt().toString()
+                },
+                valueRange = 8f..72f,
+                steps = 0,
+                labelFormatter = { "${it.roundToInt()} sp" },
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            OutlinedTextField(
+                value = sizeText,
+                onValueChange = { input ->
+                    val filtered = input.filter(Char::isDigit).take(3)
+                    sizeText = filtered
+                    val v = filtered.toIntOrNull()
+                    if (v != null && v in 8..72) {
+                        onSizeChange(v.toFloat())
+                    }
+                },
+                modifier = Modifier.width(64.dp),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium
+            )
+        }
     }
 }

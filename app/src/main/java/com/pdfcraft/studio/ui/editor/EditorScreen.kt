@@ -55,6 +55,9 @@ fun EditorScreen(onBackClick: () -> Unit) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showImportSettings by remember { mutableStateOf(false) }
+    var showTextColorPicker by remember { mutableStateOf(false) }
+    var showTextBgColorPicker by remember { mutableStateOf(false) }
+    var showTextShadowPanel by remember { mutableStateOf(false) }
     var showFontTools by remember { mutableStateOf(false) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -210,7 +213,29 @@ fun EditorScreen(onBackClick: () -> Unit) {
             )
         }
 
-        Column(
+        
+    if (showTextColorPicker) {
+        ColorPickerDialog(
+            initialColor = viewModel.selectedTextColorArgb(),
+            onConfirm = {
+                viewModel.updateSelectedTextColor(it)
+                showTextColorPicker = false
+            },
+            onDismiss = { showTextColorPicker = false }
+        )
+    }
+    if (showTextBgColorPicker) {
+        ColorPickerDialog(
+            initialColor = viewModel.selectedTextBgColorArgb() ?: 0xFFFFFF00,
+            onConfirm = {
+                viewModel.updateSelectedTextBgColor(it)
+                showTextBgColorPicker = false
+            },
+            onDismiss = { showTextBgColorPicker = false }
+        )
+    }
+
+Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
@@ -244,6 +269,14 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     viewModel::deleteSelectedText,
                 hasSelectedText =
                     viewModel.selectedTextId != null,
+                onTextColorClick = { if (viewModel.selectedTextId != null) showTextColorPicker = true },
+                onTextBgColorClick = { if (viewModel.selectedTextId != null) showTextBgColorPicker = true },
+                onTextShadowClick = { if (viewModel.selectedTextId != null) showTextShadowPanel = true },
+                textSizeSp =
+                    viewModel.selectedTextSizeSp(),
+                onTextSizeClick = { },
+                onTextSizeChange =
+                    viewModel::updateSelectedTextSize,
                 pageAspectRatio =
                     viewModel.pageAspectRatio,
                 onPageAspectRatioChange =

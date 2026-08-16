@@ -101,4 +101,16 @@
     <string name="page_added_message">New page added</string>
     <string name="page_deleted_message">Page deleted</string>
     <string name="page_cannot_delete_last">Cannot delete the last remaining page</string>
+    <string name="text_tool_text_size">Text Size</string>
+
+    <string name="text_tool_text_color">Text Color</string>
+    <string name="text_tool_bg_color">Background Color</string>
+    <string name="text_tool_shadow">Shadow</string>
+    <string name="color_picker_title">Select Color</string>
+    <string name="color_picker_hue">Hue</string>
+    <string name="color_picker_sat">Saturation</string>
+    <string name="color_picker_value">Brightness</string>
+    <string name="shadow_offset">Offset</string>
+    <string name="shadow_blur">Blur</string>
+    <string name="shadow_color">Shadow Color</string>
 </resources>

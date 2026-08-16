@@ -479,9 +479,9 @@ private fun PageTextOverlay(
                         italicRanges = textElement.italicRanges
                     ),
                     textStyle = TextStyle(
-                        color = Color.Black,
+                        color = Color(text.textColorArgb),
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                        fontFamily = fontFamily
+                        fontSize = text.fontSizeSp.sp, fontFamily = fontFamily
                     ),
                     cursorBrush = SolidColor(Color.Black),
                     modifier = Modifier

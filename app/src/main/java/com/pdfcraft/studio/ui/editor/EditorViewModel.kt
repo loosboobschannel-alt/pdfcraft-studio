@@ -36,7 +36,13 @@ data class TextElement(
     val yFraction: Float = 0.1f,
     val boldRanges: List<IntRange> = emptyList(),
     val italicRanges: List<IntRange> = emptyList(),
-    val fontId: String = FontCatalog.ID_DEFAULT
+    val fontId: String = FontCatalog.ID_DEFAULT,
+    val fontSizeSp: Float = 16f,
+    val textColorArgb: Long = 0xFF000000,
+    val bgColorArgb: Long? = null,
+    val shadowColorArgb: Long = 0x80000000,
+    val shadowOffsetPx: Float = 0f,
+    val shadowBlurPx: Float = 0f
 )
 
 private fun adjustRangesForEdit(
@@ -664,5 +670,54 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             n /= 26
         }
         return sb.toString()
+    }
+
+    fun updateSelectedTextSize(sizeSp: Float) {
+        val id = focusedTextId ?: selectedTextId ?: return
+        val index = textElements.indexOfFirst { it.id == id }
+        if (index < 0) return
+        val clamped = sizeSp.coerceIn(8f, 72f)
+        textElements[index] = textElements[index].copy(fontSizeSp = clamped)
+    }
+
+    fun selectedTextSizeSp(): Float {
+        val id = focusedTextId ?: selectedTextId ?: return 16f
+        return textElements.firstOrNull { it.id == id }?.fontSizeSp ?: 16f
+    }
+
+    fun updateSelectedTextColor(colorArgb: Long) {
+        val id = focusedTextId ?: selectedTextId ?: return
+        val index = textElements.indexOfFirst { it.id == id }
+        if (index < 0) return
+        textElements[index] = textElements[index].copy(textColorArgb = colorArgb)
+    }
+
+    fun updateSelectedTextBgColor(colorArgb: Long?) {
+        val id = focusedTextId ?: selectedTextId ?: return
+        val index = textElements.indexOfFirst { it.id == id }
+        if (index < 0) return
+        textElements[index] = textElements[index].copy(bgColorArgb = colorArgb)
+    }
+
+    fun updateSelectedTextShadow(colorArgb: Long? = null, offsetPx: Float? = null, blurPx: Float? = null) {
+        val id = focusedTextId ?: selectedTextId ?: return
+        val index = textElements.indexOfFirst { it.id == id }
+        if (index < 0) return
+        val cur = textElements[index]
+        textElements[index] = cur.copy(
+            shadowColorArgb = colorArgb ?: cur.shadowColorArgb,
+            shadowOffsetPx = offsetPx ?: cur.shadowOffsetPx,
+            shadowBlurPx = blurPx ?: cur.shadowBlurPx
+        )
+    }
+
+    fun selectedTextColorArgb(): Long {
+        val id = focusedTextId ?: selectedTextId ?: return 0xFF000000
+        return textElements.firstOrNull { it.id == id }?.textColorArgb ?: 0xFF000000
+    }
+
+    fun selectedTextBgColorArgb(): Long? {
+        val id = focusedTextId ?: selectedTextId ?: return null
+        return textElements.firstOrNull { it.id == id }?.bgColorArgb
     }
 }
