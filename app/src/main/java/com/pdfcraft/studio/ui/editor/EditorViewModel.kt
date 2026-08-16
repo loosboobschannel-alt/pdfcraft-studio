@@ -181,7 +181,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun addTextAt(pageIndex: Int, xFraction: Float, yFraction: Float) {
-        val id = "text_\( {System.currentTimeMillis()}_ \){textElements.size}"
+        val id = "text_" + System.currentTimeMillis() + "_" + textElements.size
         textElements.add(
             TextElement(
                 id = id,
@@ -371,7 +371,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         isImporting = true
 
         val imageIds = uris.mapIndexed { index, uri ->
-            val imageId = "\( {uri}_ \){importedImages.size + index}"
+            val imageId = "" + uri + "_" + (importedImages.size + index)
             importedImages.add(ImportedImage(id = imageId, imageUri = uri))
             imageId
         }
