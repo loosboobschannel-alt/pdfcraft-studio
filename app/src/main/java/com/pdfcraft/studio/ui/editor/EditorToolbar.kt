@@ -215,13 +215,14 @@ private fun ImageToolsMenu(
 private fun TextToolsMenu(
     onEnterTextClick: () -> Unit,
     onFontClick: () -> Unit,
+    onDeleteTextClick: () -> Unit,
     hasSelectedText: Boolean
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
     Box {
         Text(
-            text = stringResource(R.string.text_tools_menu_entry) + " \u25BE",
+            text = stringResource(R.string.text_tools_menu_entry) + " ▾",
             style = MaterialTheme.typography.labelLarge,
             color = Color.Black,
             modifier = Modifier
@@ -261,9 +262,25 @@ private fun TextToolsMenu(
                     onFontClick()
                 }
             )
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        stringResource(R.string.text_tool_delete),
+                        color = if (hasSelectedText) Color.Black else Color.Gray,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                enabled = hasSelectedText,
+                onClick = {
+                    menuExpanded = false
+                    onDeleteTextClick()
+                }
+            )
         }
     }
 }
+
 
 @Composable
 private fun SliderWithValueLabel(
