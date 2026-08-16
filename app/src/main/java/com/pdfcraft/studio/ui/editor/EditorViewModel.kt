@@ -133,7 +133,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var pageMarginDp: Int by mutableStateOf(10)
         private set
 
-    var pageBackgroundColor: Long by mutableStateOf(0xFFFFFFFF)
+    var pageBackgroundColor: Long by mutableStateOf(imageSizePreferences.getPageBackgroundColor())
         private set
 
     var pageBackgroundImageUri: Uri? by mutableStateOf(null)
@@ -599,6 +599,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun updatePageBackgroundColor(colorArgb: Long) {
         pageBackgroundColor = colorArgb
+        imageSizePreferences.savePageBackgroundColor(colorArgb)
     }
 
     fun setPageBackgroundFromUri(uri: Uri?) {

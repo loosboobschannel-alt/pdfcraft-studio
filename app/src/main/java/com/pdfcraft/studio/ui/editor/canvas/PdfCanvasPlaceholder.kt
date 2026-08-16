@@ -146,7 +146,7 @@ fun PdfPagesPreview(
     modifier: Modifier = Modifier
 ) {
     // Always show at least one page so text can be added before any images.
-    if (images.isEmpty()) {
+    if (images.isEmpty() && minPageCount <= 1) {
         BoxWithConstraints(modifier = modifier.fillMaxSize()) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -170,7 +170,7 @@ fun PdfPagesPreview(
                         ) {
                             Box(modifier = Modifier.fillMaxSize()) {
                                 // Soft hint only while page has no text yet
-                                if (textElements.none { it.pageIndex == 0 }) {
+                                if (textElements.none { it.pageIndex == 0 } && minPageCount <= 1) {
                                     Text(
                                         text = stringResource(R.string.editor_empty_state),
                                         style = MaterialTheme.typography.bodyMedium,

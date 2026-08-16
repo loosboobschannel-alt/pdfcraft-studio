@@ -31,9 +31,21 @@ class ImageSizePreferences(context: Context) {
         }.apply()
     }
 
+    fun getPageBackgroundColor(): Long {
+        return prefs.getLong(KEY_PAGE_BG_COLOR, DEFAULT_PAGE_BG_COLOR)
+    }
+
+    fun savePageBackgroundColor(colorArgb: Long) {
+        prefs.edit().putLong(KEY_PAGE_BG_COLOR, colorArgb).apply()
+    }
+
     private companion object {
         const val PREFS_NAME = "pdfcraft_settings"
         const val KEY_KB = "selected_image_size_kb"
         const val KEY_IS_CUSTOM = "selected_image_size_is_custom"
+        const val KEY_PAGE_BG_COLOR = "page_background_color"
+        // 3rd swatch default (medium light gray)
+        const val DEFAULT_PAGE_BG_COLOR = 0xFFE0E0E0
     }
 }
+

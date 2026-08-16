@@ -250,7 +250,26 @@ private fun PageToolsMenu(
     var menuExpanded by remember { mutableStateOf(false) }
     var orientationSub by remember { mutableStateOf(false) }
     var backgroundSub by remember { mutableStateOf(false) }
-    var pageNumbersSub by remember { mutableStateOf(false) }
+    var moreColors by remember { mutableStateOf(false) }
+
+    // Default / primary palette (3rd item = light gray 0xFFE0E0E0 is default selected in ViewModel)
+    val primaryColors = listOf(
+        0xFFFFFFFFL, // 1 white
+        0xFFF5F5F5L, // 2 light gray
+        0xFFE0E0E0L, // 3 medium light gray (DEFAULT)
+        0xFFFFF8E1L, // 4 warm
+        0xFFE3F2FDL, // 5 light blue
+        0xFFE8F5E9L, // 6 light green
+        0xFFFFEBEEL, // 7 light pink
+        0xFF000000L  // 8 black
+    )
+    val extraColors = listOf(
+        0xFFFFCDD2L, 0xFFF8BBD0L, 0xFFE1BEE7L, 0xFFD1C4E9L,
+        0xFFC5CAE9L, 0xFFBBDEFBL, 0xFFB3E5FCL, 0xFFB2EBFL2L,
+        0xFFB2DFDBL, 0xFFC8E6C9L, 0xFFDCEDC8L, 0xFFF0F4C3L,
+        0xFFFFF9C4L, 0xFFFFECB3L, 0xFFFFE0B2L, 0xFFFFCCBCL,
+        0xFFD7CCC8L, 0xFFCFD8DCL, 0xFF90A4AEL, 0xFF607D8BL
+    )
 
     Box {
         Text(
@@ -268,7 +287,7 @@ private fun PageToolsMenu(
                 menuExpanded = false
                 orientationSub = false
                 backgroundSub = false
-                pageNumbersSub = false
+                moreColors = false
             }
         ) {
             ToolMenuItem(stringResource(R.string.page_tool_add_new_page)) {
@@ -282,22 +301,26 @@ private fun PageToolsMenu(
             }
             HorizontalDivider(color = Color.LightGray)
 
+            // ---- Orientation (closes background sub) ----
             ToolMenuItem(stringResource(R.string.page_tool_orientation) + " ›") {
                 orientationSub = !orientationSub
+                if (orientationSub) {
+                    backgroundSub = false
+                    moreColors = false
+                }
             }
             if (orientationSub) {
                 ToolMenuItem(
                     label = (if (!isPageLandscape) "✓ " else "") + stringResource(R.string.page_orientation_portrait)
                 ) {
                     onPageOrientationChange(false)
-                    menuExpanded = false
+                    // keep menu open; only close this sub
                     orientationSub = false
                 }
                 ToolMenuItem(
                     label = (if (isPageLandscape) "✓ " else "") + stringResource(R.string.page_orientation_landscape)
                 ) {
                     onPageOrientationChange(true)
-                    menuExpanded = false
                     orientationSub = false
                 }
             }
@@ -314,101 +337,58 @@ private fun PageToolsMenu(
             }
             HorizontalDivider(color = Color.LightGray)
 
+            // ---- Background Color (closes orientation sub) ----
             ToolMenuItem(stringResource(R.string.page_tool_background_color) + " ›") {
                 backgroundSub = !backgroundSub
+                if (backgroundSub) {
+                    orientationSub = false
+                } else {
+                    moreColors = false
+                }
             }
             if (backgroundSub) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val colors = listOf(
-                        0xFFFFFFFFL,
-                        0xFFF5F5F5L,
-                        0xFFE0E0E0L,
-                        0xFFFFF8E1L,
-                        0xFFE3F2FDL,
-                        0xFFE8F5E9L,
-                        0xFFFFEBEEL,
-                        0xFF000000L
-                    )
-                    colors.forEach { c ->
-                        val selected = pageBackgroundColor == c && !hasBackgroundImage
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .background(Color(c), CircleShape)
-                                .border(
-                                    width = if (selected) 2.dp else 1.dp,
-                                    color = if (selected) MaterialTheme.colorScheme.primary else Color.LightGray,
-                                    shape = CircleShape
-                                )
-                                .clickable {
-                                    onPageBackgroundColorChange(c)
-                                    menuExpanded = false
-                                    backgroundSub = false
-                                }
-                        )
+                val shown = if (moreColors) primaryColors + extraColors else primaryColors
+                // rows of 8 swatches
+                shown.chunked(8).forEach { row ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        row.forEach { c ->
+                            val selected = pageBackgroundColor == c && !hasBackgroundImage
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(Color(c), CircleShape)
+                                    .border(
+                                        width = if (selected) 2.dp else 1.dp,
+                                        color = if (selected) MaterialTheme.colorScheme.primary else Color.LightGray,
+                                        shape = CircleShape
+                                    )
+                                    .clickable {
+                                        // Do NOT close Page Tools menu
+                                        onPageBackgroundColorChange(c)
+                                    }
+                            )
+                        }
                     }
                 }
-                ToolMenuItem(stringResource(R.string.page_bg_from_gallery)) {
+                // More colors toggle (text glyph, no Material Icon)
+                ToolMenuItem(if (moreColors) "▴ Fewer Colors" else "▾ More Colors") {
+                    moreColors = !moreColors
+                }
+                ToolMenuItem("Import From Gallery") {
+                    // gallery pick can close menu
                     menuExpanded = false
                     backgroundSub = false
+                    moreColors = false
                     onPickBackgroundImage()
                 }
                 if (hasBackgroundImage) {
                     ToolMenuItem(stringResource(R.string.page_bg_clear_image)) {
-                        menuExpanded = false
-                        backgroundSub = false
                         onClearBackgroundImage()
-                    }
-                }
-            }
-
-            HorizontalDivider(color = Color.LightGray)
-
-            ToolMenuItem(stringResource(R.string.page_tool_page_numbers) + " ›") {
-                pageNumbersSub = !pageNumbersSub
-            }
-            if (pageNumbersSub) {
-                Text(
-                    text = stringResource(R.string.page_number_position),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-                listOf(
-                    EditorViewModel.PageNumberPosition.NONE to R.string.page_number_pos_none,
-                    EditorViewModel.PageNumberPosition.LEFT to R.string.page_number_pos_left,
-                    EditorViewModel.PageNumberPosition.CENTER to R.string.page_number_pos_center,
-                    EditorViewModel.PageNumberPosition.RIGHT to R.string.page_number_pos_right
-                ).forEach { (pos, res) ->
-                    ToolMenuItem(
-                        label = (if (pageNumberPosition == pos) "✓ " else "") + stringResource(res)
-                    ) {
-                        onPageNumberPositionChange(pos)
-                    }
-                }
-                HorizontalDivider(color = Color.LightGray)
-                Text(
-                    text = stringResource(R.string.page_number_style),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-                listOf(
-                    EditorViewModel.PageNumberStyle.ARABIC to R.string.page_number_style_1,
-                    EditorViewModel.PageNumberStyle.ROMAN_LOWER to R.string.page_number_style_i,
-                    EditorViewModel.PageNumberStyle.ROMAN_UPPER to R.string.page_number_style_I,
-                    EditorViewModel.PageNumberStyle.ALPHA_LOWER to R.string.page_number_style_a,
-                    EditorViewModel.PageNumberStyle.ALPHA_UPPER to R.string.page_number_style_A
-                ).forEach { (style, res) ->
-                    ToolMenuItem(
-                        label = (if (pageNumberStyle == style) "✓ " else "") + stringResource(res)
-                    ) {
-                        onPageNumberStyleChange(style)
                     }
                 }
             }
@@ -449,13 +429,20 @@ private fun TextToolsMenu(
                 onFontClick()
             }
             HorizontalDivider(color = Color.LightGray)
-            ToolMenuItem(
-                label = stringResource(R.string.text_tool_delete),
-                enabled = hasSelectedText
-            ) {
-                menuExpanded = false
-                onDeleteTextClick()
-            }
+            Text(
+                text = stringResource(R.string.text_tool_delete),
+                color = Color.White,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = hasSelectedText) {
+                        menuExpanded = false
+                        onDeleteTextClick()
+                    }
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            )
         }
     }
 }
@@ -533,9 +520,9 @@ private fun ImagesPerRowSlider(
         SliderToolHeader(title = stringResource(R.string.resize_images_tool), onDone = onDone)
         SliderWithValueLabel(
             value = imagesPerRow.toFloat(),
-            onValueChange = { onImagesPerRowChange(it.roundToInt().coerceIn(1, 6)) },
-            valueRange = 1f..6f,
-            steps = 4,
+            onValueChange = { onImagesPerRowChange(it.roundToInt().coerceIn(1, 29)) },
+            valueRange = 1f..29f,
+            steps = 27,
             labelFormatter = { "${it.roundToInt()}" }
         )
     }
@@ -551,8 +538,8 @@ private fun ImageSpacingSlider(
         SliderToolHeader(title = stringResource(R.string.image_spacing_tool), onDone = onDone)
         SliderWithValueLabel(
             value = spacingDp.toFloat(),
-            onValueChange = { onSpacingChange(it.roundToInt().coerceIn(0, 40)) },
-            valueRange = 0f..40f,
+            onValueChange = { onSpacingChange(it.roundToInt().coerceIn(0, 20)) },
+            valueRange = 0f..20f,
             steps = 0,
             labelFormatter = { "${it.roundToInt()} dp" }
         )
