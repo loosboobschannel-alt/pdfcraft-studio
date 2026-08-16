@@ -75,9 +75,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import com.pdfcraft.studio.R
 import com.pdfcraft.studio.core.text.AppFont
 import com.pdfcraft.studio.core.text.FontCatalog
@@ -691,40 +693,53 @@ private fun ImageCell(
             }
         }
 
-        // Menu outside clipped box so it is visible above the image
+        // Popup: visible above everything; outside tap dismisses via onDismissRequest
         if (showMenu && !reorderMode) {
             var savedToGallery by remember(image.id) { mutableStateOf(false) }
-            Column(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 6.dp)
-                    .background(Color.White, RoundedCornerShape(6.dp))
-                    .border(1.dp, Color.LightGray, RoundedCornerShape(6.dp))
+            Popup(
+                alignment = Alignment.TopCenter,
+                onDismissRequest = onClick
             ) {
-                Text(
-                    text = if (savedToGallery) {
-                        "✓ " + stringResource(R.string.save_in_gallery)
-                    } else {
-                        stringResource(R.string.save_in_gallery)
-                    },
-                    color = Color.Black,
-                    style = MaterialTheme.typography.bodyMedium,
+                Column(
                     modifier = Modifier
-                        .clickable {
-                            onSave()
-                            savedToGallery = true
-                        }
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                )
-                HorizontalDivider()
-                Text(
-                    text = stringResource(R.string.share_image),
-                    color = Color.Black,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier
-                        .clickable(onClick = onShare)
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                )
+                        .padding(top = 6.dp)
+                        .background(Color.White, RoundedCornerShape(6.dp))
+                        .border(1.dp, Color.LightGray, RoundedCornerShape(6.dp))
+                ) {
+                    Text(
+                        text = if (savedToGallery) {
+                            "✓ " + stringResource(R.string.save_in_gallery)
+                        } else {
+                            stringResource(R.string.save_in_gallery)
+                        },
+                        color = Color.Black,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .clickable {
+                                onSave()
+                                savedToGallery = true
+                                onClick() // close menu after use
+                            }
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    )
+                    HorizontalDivider()
+                    Text(
+                        text = stringResource(R.string.share_image),
+                        color = Color.Black,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier
+                            .clickable {
+                                onShare()
+                                onClick() // close menu after use
+                            }
+                            .padding(horizontal = 16.dp, vertical = 10.dp)
+                    )
+                }
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.pdfcraft.studio.ui.editor
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -114,6 +115,25 @@ fun EditorToolbar(
 }
 
 @Composable
+private fun ToolMenuItem(
+    label: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Text(
+        text = label,
+        color = if (enabled) Color.Black else Color.Gray,
+        style = MaterialTheme.typography.bodyMedium,
+        maxLines = 1,
+        softWrap = false,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+    )
+}
+
+@Composable
 private fun ImageToolsMenu(
     onImportImagesClick: () -> Unit,
     onResizeImagesClick: () -> Unit,
@@ -135,78 +155,34 @@ private fun ImageToolsMenu(
 
         DropdownMenu(
             expanded = menuExpanded,
-            onDismissRequest = { menuExpanded = false }
+            onDismissRequest = { menuExpanded = false },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(6.dp)
         ) {
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.import_images),
-                        color = Color.Black,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                onClick = {
-                    menuExpanded = false
-                    onImportImagesClick()
-                }
-            )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.resize_images_tool),
-                        color = Color.Black,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                onClick = {
-                    menuExpanded = false
-                    onResizeImagesClick()
-                }
-            )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.image_spacing_tool),
-                        color = Color.Black,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                onClick = {
-                    menuExpanded = false
-                    onAdjustSpacingClick()
-                }
-            )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.image_shape_tool),
-                        color = Color.Black,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                onClick = {
-                    menuExpanded = false
-                    onAdjustImageShapeClick()
-                }
-            )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.round_corners_tool),
-                        color = Color.Black,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                onClick = {
-                    menuExpanded = false
-                    onAdjustCornersClick()
-                }
-            )
+            ToolMenuItem(stringResource(R.string.import_images)) {
+                menuExpanded = false
+                onImportImagesClick()
+            }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(stringResource(R.string.resize_images_tool)) {
+                menuExpanded = false
+                onResizeImagesClick()
+            }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(stringResource(R.string.image_spacing_tool)) {
+                menuExpanded = false
+                onAdjustSpacingClick()
+            }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(stringResource(R.string.image_shape_tool)) {
+                menuExpanded = false
+                onAdjustImageShapeClick()
+            }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(stringResource(R.string.round_corners_tool)) {
+                menuExpanded = false
+                onAdjustCornersClick()
+            }
         }
     }
 }
@@ -222,7 +198,7 @@ private fun TextToolsMenu(
 
     Box {
         Text(
-            text = stringResource(R.string.text_tools_menu_entry) + " ▾",
+            text = stringResource(R.string.text_tools_menu_entry) + " \u25BE",
             style = MaterialTheme.typography.labelLarge,
             color = Color.Black,
             modifier = Modifier
@@ -232,55 +208,30 @@ private fun TextToolsMenu(
 
         DropdownMenu(
             expanded = menuExpanded,
-            onDismissRequest = { menuExpanded = false }
+            onDismissRequest = { menuExpanded = false },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(6.dp)
         ) {
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.text_tool_enter_text),
-                        color = Color.Black,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                onClick = {
-                    menuExpanded = false
-                    onEnterTextClick()
-                }
-            )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.text_tool_font),
-                        color = Color.Black,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                onClick = {
-                    menuExpanded = false
-                    onFontClick()
-                }
-            )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.text_tool_delete),
-                        color = if (hasSelectedText) Color.Black else Color.Gray,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                enabled = hasSelectedText,
-                onClick = {
-                    menuExpanded = false
-                    onDeleteTextClick()
-                }
-            )
+            ToolMenuItem(stringResource(R.string.text_tool_enter_text)) {
+                menuExpanded = false
+                onEnterTextClick()
+            }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(stringResource(R.string.text_tool_font)) {
+                menuExpanded = false
+                onFontClick()
+            }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(
+                label = stringResource(R.string.text_tool_delete),
+                enabled = hasSelectedText
+            ) {
+                menuExpanded = false
+                onDeleteTextClick()
+            }
         }
     }
 }
-
 
 @Composable
 private fun SliderWithValueLabel(
