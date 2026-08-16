@@ -54,6 +54,7 @@ fun EditorScreen(onBackClick: () -> Unit) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showImportSettings by remember { mutableStateOf(false) }
+    var showFontTools by remember { mutableStateOf(false) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -168,9 +169,11 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     viewModel::updateImageCornerRadiusPercent,
                 onAddTextClick =
                     viewModel::enterAddTextMode,
-                onBoldClick = viewModel::toggleBoldForSelection,
+                onFontClick = {
+                    showFontTools = true
+                },
                 hasSelectedText =
-                    viewModel.focusedTextId != null && !viewModel.currentSelection.collapsed
+                    viewModel.focusedTextId != null || viewModel.selectedTextId != null
             )
 
             Column(
