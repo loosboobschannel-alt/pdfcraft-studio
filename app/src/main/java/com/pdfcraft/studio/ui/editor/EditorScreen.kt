@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,6 +79,30 @@ fun EditorScreen(onBackClick: () -> Unit) {
                 viewModel.importImages(uris)
             }
         }
+
+    val fontPickerLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument()
+        ) { uri ->
+            if (uri != null) {
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                } catch (_: Exception) {
+                }
+                viewModel.importFontFromUri(uri)
+            }
+        }
+
+    LaunchedEffect(viewModel.lastFontImportMessage) {
+        val msg = viewModel.lastFontImportMessage
+        if (msg != null) {
+            snackbarHostState.showSnackbar(msg)
+            viewModel.consumeFontImportMessage()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -139,6 +164,40 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     )
                 },
                 onDismiss = { showImportSettings = false }
+            )
+        }
+
+        if (showFontTools) {
+            val hasSelection =
+                viewModel.focusedTextId != null && !viewModel.currentSelection.collapsed
+            FontToolsDialog(
+                fonts = viewModel.availableFonts.toList(),
+                selectedFontId = viewModel.currentTextFontId(),
+                isBoldActive = viewModel.isSelectionBold(),
+                isItalicActive = viewModel.isSelectionItalic(),
+                hasTextSelection = hasSelection,
+                onFontSelected = { font ->
+                    viewModel.applyFontToSelectedText(font)
+                },
+                onBoldClick = {
+                    viewModel.toggleBoldForSelection()
+                },
+                onItalicClick = {
+                    viewModel.toggleItalicForSelection()
+                },
+                onImportFontClick = {
+                    fontPickerLauncher.launch(
+                        arrayOf(
+                            "font/ttf",
+                            "font/otf",
+                            "application/x-font-ttf",
+                            "application/x-font-otf",
+                            "application/font-sfnt",
+                            "*/*"
+                        )
+                    )
+                },
+                onDismiss = { showFontTools = false }
             )
         }
 
@@ -367,6 +426,8 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     onFinishReorder = {
                         viewModel.finishReorder()
                     },
+
+                    customFonts = viewModel.availableFonts.filter { it.isCustom },
 
                     modifier = Modifier.fillMaxWidth()
                 )
