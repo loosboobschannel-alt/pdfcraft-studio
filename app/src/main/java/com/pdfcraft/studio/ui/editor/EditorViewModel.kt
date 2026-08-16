@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.text.TextRange
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pdfcraft.studio.core.image.ImageCompressor
@@ -28,11 +29,72 @@ data class ImportedImage(
 data class TextElement(
     val id: String,
     val pageIndex: Int,
-    val text: String = "Text",
+    val text: String = "",
     val xFraction: Float = 0.1f,
     val yFraction: Float = 0.1f,
-    val isBold: Boolean = false
+    val boldRanges: List<IntRange> = emptyList()
 )
+
+private fun adjustRangesForEdit(
+    oldText: String,
+    newText: String,
+    ranges: List<IntRange>
+): List<IntRange> {
+    var prefix = 0
+    val minLen = minOf(oldText.length, newText.length)
+    while (prefix < minLen && oldText[prefix] == newText[prefix]) prefix++
+
+    var suffix = 0
+    while (
+        suffix < (minLen - prefix) &&
+        oldText[oldText.length - 1 - suffix] == newText[newText.length - 1 - suffix]
+    ) suffix++
+
+    val oldEditEnd = oldText.length - suffix
+    val lengthDelta = newText.length - oldText.length
+
+    return ranges.mapNotNull { range ->
+        when {
+            range.last < prefix -> range
+            range.first >= oldEditEnd -> (range.first + lengthDelta)..(range.last + lengthDelta)
+            else -> null
+        }
+    }
+}
+
+private fun toggleBoldRange(
+    existing: List<IntRange>,
+    start: Int,
+    end: Int,
+    textLength: Int
+): List<IntRange> {
+    if (textLength <= 0) return existing
+
+    val flags = BooleanArray(textLength)
+    existing.forEach { range ->
+        for (i in range.first.coerceAtLeast(0)..range.last.coerceAtMost(textLength - 1)) {
+            flags[i] = true
+        }
+    }
+
+    val allBold = (start until end).all { flags.getOrElse(it) { false } }
+    for (i in start until end) {
+        if (i in flags.indices) flags[i] = !allBold
+    }
+
+    val result = mutableListOf<IntRange>()
+    var rangeStart = -1
+    for (i in flags.indices) {
+        if (flags[i]) {
+            if (rangeStart == -1) rangeStart = i
+        } else if (rangeStart != -1) {
+            result.add(rangeStart until i)
+            rangeStart = -1
+        }
+    }
+    if (rangeStart != -1) result.add(rangeStart until flags.size)
+    return result
+}
 
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -86,10 +148,13 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var selectedTextId: String? by mutableStateOf(null)
         private set
 
-    var editingTextId: String? by mutableStateOf(null)
+    var focusedTextId: String? by mutableStateOf(null)
         private set
 
-    var movingTextId: String? by mutableStateOf(null)
+    var pendingFocusTextId: String? by mutableStateOf(null)
+        private set
+
+    var currentSelection: TextRange by mutableStateOf(TextRange.Zero)
         private set
 
     fun enterAddTextMode() {
@@ -109,7 +174,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         )
         selectedTextId = id
         addTextMode = false
-        editingTextId = id
+        pendingFocusTextId = id
     }
 
     fun selectText(id: String) {
@@ -120,29 +185,33 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         selectedTextId = null
     }
 
-    fun openTextEditor(id: String) {
+    fun consumePendingFocus() {
+        pendingFocusTextId = null
+    }
+
+    fun onTextFocused(id: String) {
+        focusedTextId = id
         selectedTextId = id
-        editingTextId = id
     }
 
-    fun closeTextEditor() {
-        editingTextId = null
-    }
-
-    fun updateTextContent(id: String, newText: String) {
-        val index = textElements.indexOfFirst { it.id == id }
-        if (index >= 0) {
-            textElements[index] = textElements[index].copy(text = newText)
+    fun onTextUnfocused(id: String) {
+        if (focusedTextId == id) {
+            focusedTextId = null
         }
     }
 
-    fun startMovingText(id: String) {
-        selectedTextId = id
-        movingTextId = id
-    }
-
-    fun finishMovingText() {
-        movingTextId = null
+    fun updateTextValue(id: String, newText: String, newSelection: TextRange) {
+        val index = textElements.indexOfFirst { it.id == id }
+        if (index >= 0) {
+            val current = textElements[index]
+            val adjustedRanges = if (newText != current.text) {
+                adjustRangesForEdit(current.text, newText, current.boldRanges)
+            } else {
+                current.boldRanges
+            }
+            textElements[index] = current.copy(text = newText, boldRanges = adjustedRanges)
+        }
+        currentSelection = newSelection
     }
 
     fun moveText(id: String, xFraction: Float, yFraction: Float) {
@@ -155,14 +224,21 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun toggleBoldForSelectedText() {
-        val id = selectedTextId ?: return
+    fun toggleBoldForSelection() {
+        val id = focusedTextId ?: return
+        val selection = currentSelection
+        if (selection.collapsed) return
+
         val index = textElements.indexOfFirst { it.id == id }
-        if (index >= 0) {
-            textElements[index] = textElements[index].copy(
-                isBold = !textElements[index].isBold
-            )
-        }
+        if (index < 0) return
+
+        val element = textElements[index]
+        val start = selection.min.coerceIn(0, element.text.length)
+        val end = selection.max.coerceIn(0, element.text.length)
+        if (start >= end) return
+
+        val newRanges = toggleBoldRange(element.boldRanges, start, end, element.text.length)
+        textElements[index] = element.copy(boldRanges = newRanges)
     }
 
     fun selectImageSizeOption(option: ImageSizeOption) {

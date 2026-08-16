@@ -19,10 +19,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -34,6 +36,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -42,9 +45,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -52,8 +59,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -82,13 +98,14 @@ fun PdfPagesPreview(
     textElements: List<TextElement> = emptyList(),
     addTextMode: Boolean = false,
     selectedTextId: String? = null,
-    movingTextId: String? = null,
+    pendingFocusTextId: String? = null,
     onAddTextAt: (pageIndex: Int, xFraction: Float, yFraction: Float) -> Unit = { _, _, _ -> },
     onSelectText: (String) -> Unit = {},
-    onTextTap: (String) -> Unit = {},
-    onTextLongPress: (String) -> Unit = {},
     onMoveText: (id: String, xFraction: Float, yFraction: Float) -> Unit = { _, _, _ -> },
-    onFinishMovingText: () -> Unit = {},
+    onTextValueChange: (id: String, newText: String, newSelection: TextRange) -> Unit = { _, _, _ -> },
+    onTextFocused: (String) -> Unit = {},
+    onTextUnfocused: (String) -> Unit = {},
+    onConsumePendingFocus: () -> Unit = {},
     onDeselectText: () -> Unit = {},
     onImageClick: (String) -> Unit = {},
     onImageLongPress: (String) -> Unit = {},
@@ -197,12 +214,14 @@ fun PdfPagesPreview(
                                 texts = textElements.filter { it.pageIndex == pageIndex },
                                 addTextMode = addTextMode,
                                 selectedTextId = selectedTextId,
-                                movingTextId = movingTextId,
+                                pendingFocusTextId = pendingFocusTextId,
                                 onPageTap = { xFrac, yFrac -> onAddTextAt(pageIndex, xFrac, yFrac) },
-                                onTextTap = onTextTap,
-                                onTextLongPress = onTextLongPress,
+                                onTextSelect = onSelectText,
                                 onTextDrag = onMoveText,
-                                onFinishMovingText = onFinishMovingText,
+                                onTextValueChange = onTextValueChange,
+                                onTextFocused = onTextFocused,
+                                onTextUnfocused = onTextUnfocused,
+                                onConsumePendingFocus = onConsumePendingFocus,
                                 onDeselect = onDeselectText
                             )
                         }
@@ -251,21 +270,40 @@ fun PdfPagesPreview(
     }
 }
 
+private class BoldRangesVisualTransformation(
+    private val boldRanges: List<IntRange>
+) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val builder = AnnotatedString.Builder(text.text)
+        boldRanges.forEach { range ->
+            val start = range.first.coerceIn(0, text.text.length)
+            val end = (range.last + 1).coerceIn(0, text.text.length)
+            if (start < end) {
+                builder.addStyle(SpanStyle(fontWeight = FontWeight.Bold), start, end)
+            }
+        }
+        return TransformedText(builder.toAnnotatedString(), OffsetMapping.Identity)
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PageTextOverlay(
     texts: List<TextElement>,
     addTextMode: Boolean,
     selectedTextId: String?,
-    movingTextId: String?,
+    pendingFocusTextId: String?,
     onPageTap: (xFraction: Float, yFraction: Float) -> Unit,
-    onTextTap: (String) -> Unit,
-    onTextLongPress: (String) -> Unit,
+    onTextSelect: (String) -> Unit,
     onTextDrag: (id: String, xFraction: Float, yFraction: Float) -> Unit,
-    onFinishMovingText: () -> Unit,
+    onTextValueChange: (id: String, newText: String, newSelection: TextRange) -> Unit,
+    onTextFocused: (String) -> Unit,
+    onTextUnfocused: (String) -> Unit,
+    onConsumePendingFocus: () -> Unit,
     onDeselect: () -> Unit
 ) {
     var sizePx by remember { mutableStateOf(IntSize.Zero) }
+    val focusManager = LocalFocusManager.current
 
     Box(
         modifier = Modifier
@@ -279,6 +317,7 @@ private fun PageTextOverlay(
                             val yFraction = (offset.y / sizePx.height).coerceIn(0f, 1f)
                             onPageTap(xFraction, yFraction)
                         } else {
+                            focusManager.clearFocus()
                             onDeselect()
                         }
                     }
@@ -286,13 +325,13 @@ private fun PageTextOverlay(
             }
     ) {
         texts.forEach { textElement ->
-            val isMoving = textElement.id == movingTextId
+            var fieldValue by remember(textElement.id) {
+                mutableStateOf(TextFieldValue(text = textElement.text))
+            }
+            val focusRequester = remember { FocusRequester() }
 
-            Text(
-                text = textElement.text,
-                color = Color.Black,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = if (textElement.isBold) FontWeight.Bold else FontWeight.Normal,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .offset {
                         IntOffset(
@@ -307,34 +346,61 @@ private fun PageTextOverlay(
                             Modifier
                         }
                     )
-                    .combinedClickable(
-                        onClick = { onTextTap(textElement.id) },
-                        onLongClick = { onTextLongPress(textElement.id) }
-                    )
-                    .then(
-                        if (isMoving) {
-                            Modifier.pointerInput(textElement.id) {
-                                var runningXFraction = textElement.xFraction
-                                var runningYFraction = textElement.yFraction
-                                detectDragGestures(
-                                    onDrag = { change, dragAmount ->
-                                        change.consume()
-                                        if (sizePx.width > 0 && sizePx.height > 0) {
-                                            runningXFraction = (runningXFraction + dragAmount.x / sizePx.width).coerceIn(0f, 1f)
-                                            runningYFraction = (runningYFraction + dragAmount.y / sizePx.height).coerceIn(0f, 1f)
-                                            onTextDrag(textElement.id, runningXFraction, runningYFraction)
-                                        }
-                                    },
-                                    onDragEnd = { onFinishMovingText() },
-                                    onDragCancel = { onFinishMovingText() }
-                                )
-                            }
-                        } else {
-                            Modifier
-                        }
-                    )
                     .padding(4.dp)
-            )
+            ) {
+                Text(
+                    text = "\u28FF",
+                    color = Color.Gray,
+                    modifier = Modifier
+                        .padding(end = 4.dp)
+                        .pointerInput(textElement.id) {
+                            var runningXFraction = textElement.xFraction
+                            var runningYFraction = textElement.yFraction
+                            detectDragGestures(
+                                onDragStart = { onTextSelect(textElement.id) },
+                                onDrag = { change, dragAmount ->
+                                    change.consume()
+                                    if (sizePx.width > 0 && sizePx.height > 0) {
+                                        runningXFraction = (runningXFraction + dragAmount.x / sizePx.width).coerceIn(0f, 1f)
+                                        runningYFraction = (runningYFraction + dragAmount.y / sizePx.height).coerceIn(0f, 1f)
+                                        onTextDrag(textElement.id, runningXFraction, runningYFraction)
+                                    }
+                                }
+                            )
+                        }
+                )
+
+                BasicTextField(
+                    value = fieldValue,
+                    onValueChange = { newValue ->
+                        fieldValue = newValue
+                        onTextValueChange(textElement.id, newValue.text, newValue.selection)
+                    },
+                    visualTransformation = BoldRangesVisualTransformation(textElement.boldRanges),
+                    textStyle = TextStyle(
+                        color = Color.Black,
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize
+                    ),
+                    cursorBrush = SolidColor(Color.Black),
+                    modifier = Modifier
+                        .widthIn(min = 24.dp)
+                        .focusRequester(focusRequester)
+                        .onFocusChanged { state ->
+                            if (state.isFocused) {
+                                onTextFocused(textElement.id)
+                            } else {
+                                onTextUnfocused(textElement.id)
+                            }
+                        }
+                )
+            }
+
+            LaunchedEffect(pendingFocusTextId, textElement.id) {
+                if (pendingFocusTextId == textElement.id) {
+                    focusRequester.requestFocus()
+                    onConsumePendingFocus()
+                }
+            }
         }
     }
 }

@@ -141,46 +141,6 @@ fun EditorScreen(onBackClick: () -> Unit) {
             )
         }
 
-        val editingTextId = viewModel.editingTextId
-        if (editingTextId != null) {
-            val currentTextElement = viewModel.textElements.firstOrNull { it.id == editingTextId }
-            var draftText by remember(editingTextId) {
-                mutableStateOf(currentTextElement?.text.orEmpty())
-            }
-
-            AlertDialog(
-                onDismissRequest = { viewModel.closeTextEditor() },
-                title = {
-                    Text(stringResource(R.string.edit_text_dialog_title))
-                },
-                text = {
-                    androidx.compose.material3.OutlinedTextField(
-                        value = draftText,
-                        onValueChange = { draftText = it },
-                        singleLine = false,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
-                confirmButton = {
-                    androidx.compose.material3.TextButton(
-                        onClick = {
-                            viewModel.updateTextContent(editingTextId, draftText)
-                            viewModel.closeTextEditor()
-                        }
-                    ) {
-                        Text(stringResource(R.string.dialog_ok))
-                    }
-                },
-                dismissButton = {
-                    androidx.compose.material3.TextButton(
-                        onClick = { viewModel.closeTextEditor() }
-                    ) {
-                        Text(stringResource(R.string.dialog_cancel))
-                    }
-                }
-            )
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -208,9 +168,9 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     viewModel::updateImageCornerRadiusPercent,
                 onAddTextClick =
                     viewModel::enterAddTextMode,
-                onBoldClick = viewModel::toggleBoldForSelectedText,
+                onBoldClick = viewModel::toggleBoldForSelection,
                 hasSelectedText =
-                    viewModel.selectedTextId != null
+                    viewModel.focusedTextId != null && !viewModel.currentSelection.collapsed
             )
 
             Column(
@@ -234,8 +194,8 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     selectedTextId =
                         viewModel.selectedTextId,
 
-                    movingTextId =
-                        viewModel.movingTextId,
+                    pendingFocusTextId =
+                        viewModel.pendingFocusTextId,
 
                     onAddTextAt = { pageIndex, xFraction, yFraction ->
                         viewModel.addTextAt(pageIndex, xFraction, yFraction)
@@ -245,20 +205,24 @@ fun EditorScreen(onBackClick: () -> Unit) {
                         viewModel.selectText(id)
                     },
 
-                    onTextTap = { id ->
-                        viewModel.openTextEditor(id)
-                    },
-
-                    onTextLongPress = { id ->
-                        viewModel.startMovingText(id)
-                    },
-
                     onMoveText = { id, xFraction, yFraction ->
                         viewModel.moveText(id, xFraction, yFraction)
                     },
 
-                    onFinishMovingText = {
-                        viewModel.finishMovingText()
+                    onTextValueChange = { id, newText, newSelection ->
+                        viewModel.updateTextValue(id, newText, newSelection)
+                    },
+
+                    onTextFocused = { id ->
+                        viewModel.onTextFocused(id)
+                    },
+
+                    onTextUnfocused = { id ->
+                        viewModel.onTextUnfocused(id)
+                    },
+
+                    onConsumePendingFocus = {
+                        viewModel.consumePendingFocus()
                     },
 
                     onDeselectText = {
