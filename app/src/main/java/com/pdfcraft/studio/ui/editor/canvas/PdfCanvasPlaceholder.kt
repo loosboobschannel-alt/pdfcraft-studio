@@ -82,9 +82,13 @@ fun PdfPagesPreview(
     textElements: List<TextElement> = emptyList(),
     addTextMode: Boolean = false,
     selectedTextId: String? = null,
+    movingTextId: String? = null,
     onAddTextAt: (pageIndex: Int, xFraction: Float, yFraction: Float) -> Unit = { _, _, _ -> },
     onSelectText: (String) -> Unit = {},
+    onTextTap: (String) -> Unit = {},
+    onTextLongPress: (String) -> Unit = {},
     onMoveText: (id: String, xFraction: Float, yFraction: Float) -> Unit = { _, _, _ -> },
+    onFinishMovingText: () -> Unit = {},
     onDeselectText: () -> Unit = {},
     onImageClick: (String) -> Unit = {},
     onImageLongPress: (String) -> Unit = {},
@@ -193,9 +197,12 @@ fun PdfPagesPreview(
                                 texts = textElements.filter { it.pageIndex == pageIndex },
                                 addTextMode = addTextMode,
                                 selectedTextId = selectedTextId,
+                                movingTextId = movingTextId,
                                 onPageTap = { xFrac, yFrac -> onAddTextAt(pageIndex, xFrac, yFrac) },
-                                onTextSelect = onSelectText,
+                                onTextTap = onTextTap,
+                                onTextLongPress = onTextLongPress,
                                 onTextDrag = onMoveText,
+                                onFinishMovingText = onFinishMovingText,
                                 onDeselect = onDeselectText
                             )
                         }
@@ -244,14 +251,18 @@ fun PdfPagesPreview(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PageTextOverlay(
     texts: List<TextElement>,
     addTextMode: Boolean,
     selectedTextId: String?,
+    movingTextId: String?,
     onPageTap: (xFraction: Float, yFraction: Float) -> Unit,
-    onTextSelect: (String) -> Unit,
+    onTextTap: (String) -> Unit,
+    onTextLongPress: (String) -> Unit,
     onTextDrag: (id: String, xFraction: Float, yFraction: Float) -> Unit,
+    onFinishMovingText: () -> Unit,
     onDeselect: () -> Unit
 ) {
     var sizePx by remember { mutableStateOf(IntSize.Zero) }
@@ -275,6 +286,8 @@ private fun PageTextOverlay(
             }
     ) {
         texts.forEach { textElement ->
+            val isMoving = textElement.id == movingTextId
+
             Text(
                 text = textElement.text,
                 color = Color.Black,
@@ -294,21 +307,32 @@ private fun PageTextOverlay(
                             Modifier
                         }
                     )
-                    .pointerInput(textElement.id) {
-                        var runningXFraction = textElement.xFraction
-                        var runningYFraction = textElement.yFraction
-                        detectDragGestures(
-                            onDragStart = { onTextSelect(textElement.id) },
-                            onDrag = { change, dragAmount ->
-                                change.consume()
-                                if (sizePx.width > 0 && sizePx.height > 0) {
-                                    runningXFraction = (runningXFraction + dragAmount.x / sizePx.width).coerceIn(0f, 1f)
-                                    runningYFraction = (runningYFraction + dragAmount.y / sizePx.height).coerceIn(0f, 1f)
-                                    onTextDrag(textElement.id, runningXFraction, runningYFraction)
-                                }
+                    .combinedClickable(
+                        onClick = { onTextTap(textElement.id) },
+                        onLongClick = { onTextLongPress(textElement.id) }
+                    )
+                    .then(
+                        if (isMoving) {
+                            Modifier.pointerInput(textElement.id) {
+                                var runningXFraction = textElement.xFraction
+                                var runningYFraction = textElement.yFraction
+                                detectDragGestures(
+                                    onDrag = { change, dragAmount ->
+                                        change.consume()
+                                        if (sizePx.width > 0 && sizePx.height > 0) {
+                                            runningXFraction = (runningXFraction + dragAmount.x / sizePx.width).coerceIn(0f, 1f)
+                                            runningYFraction = (runningYFraction + dragAmount.y / sizePx.height).coerceIn(0f, 1f)
+                                            onTextDrag(textElement.id, runningXFraction, runningYFraction)
+                                        }
+                                    },
+                                    onDragEnd = { onFinishMovingText() },
+                                    onDragCancel = { onFinishMovingText() }
+                                )
                             }
-                        )
-                    }
+                        } else {
+                            Modifier
+                        }
+                    )
                     .padding(4.dp)
             )
         }

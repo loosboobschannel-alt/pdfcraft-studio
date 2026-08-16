@@ -86,6 +86,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var selectedTextId: String? by mutableStateOf(null)
         private set
 
+    var editingTextId: String? by mutableStateOf(null)
+        private set
+
+    var movingTextId: String? by mutableStateOf(null)
+        private set
+
     fun enterAddTextMode() {
         addTextMode = true
         selectedTextId = null
@@ -103,6 +109,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         )
         selectedTextId = id
         addTextMode = false
+        editingTextId = id
     }
 
     fun selectText(id: String) {
@@ -111,6 +118,31 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun deselectText() {
         selectedTextId = null
+    }
+
+    fun openTextEditor(id: String) {
+        selectedTextId = id
+        editingTextId = id
+    }
+
+    fun closeTextEditor() {
+        editingTextId = null
+    }
+
+    fun updateTextContent(id: String, newText: String) {
+        val index = textElements.indexOfFirst { it.id == id }
+        if (index >= 0) {
+            textElements[index] = textElements[index].copy(text = newText)
+        }
+    }
+
+    fun startMovingText(id: String) {
+        selectedTextId = id
+        movingTextId = id
+    }
+
+    fun finishMovingText() {
+        movingTextId = null
     }
 
     fun moveText(id: String, xFraction: Float, yFraction: Float) {
