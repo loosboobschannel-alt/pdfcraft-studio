@@ -620,11 +620,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         pageBackgroundBitmap = null
     }
 
-    fun setPageNumberPosition(pos: PageNumberPosition) {
+    fun updatePageNumberPosition(pos: PageNumberPosition) {
         pageNumberPosition = pos
     }
 
-    fun setPageNumberStyle(style: PageNumberStyle) {
+    fun updatePageNumberStyle(style: PageNumberStyle) {
         pageNumberStyle = style
     }
 

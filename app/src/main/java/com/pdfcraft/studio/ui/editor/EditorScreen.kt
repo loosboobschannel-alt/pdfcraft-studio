@@ -274,11 +274,11 @@ fun EditorScreen(onBackClick: () -> Unit) {
                 pageNumberPosition =
                     viewModel.pageNumberPosition,
                 onPageNumberPositionChange =
-                    viewModel::setPageNumberPosition,
+                    viewModel::updatePageNumberPosition,
                 pageNumberStyle =
                     viewModel.pageNumberStyle,
                 onPageNumberStyleChange =
-                    viewModel::setPageNumberStyle,
+                    viewModel::updatePageNumberStyle,
                 onAddNewPage =
                     viewModel::addNewPage,
                 onDeletePage =
