@@ -28,6 +28,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -688,16 +689,38 @@ private fun ImageCell(
         // Menu outside clipped box so it is visible above the image
         if (showMenu && !reorderMode) {
             var savedToGallery by remember(image.id) { mutableStateOf(false) }
-            SingleImageActionsMenu(
-                expanded = true,
-                savedToGallery = savedToGallery,
-                onDismiss = onClick,
-                onSave = {
-                    onSave()
-                    savedToGallery = true
-                },
-                onShare = onShare
-            )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 6.dp)
+                    .background(Color.White, RoundedCornerShape(6.dp))
+                    .border(1.dp, Color.LightGray, RoundedCornerShape(6.dp))
+            ) {
+                Text(
+                    text = if (savedToGallery) {
+                        "✓ " + stringResource(R.string.save_in_gallery)
+                    } else {
+                        stringResource(R.string.save_in_gallery)
+                    },
+                    color = Color.Black,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .clickable {
+                            onSave()
+                            savedToGallery = true
+                        }
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                )
+                HorizontalDivider()
+                Text(
+                    text = stringResource(R.string.share_image),
+                    color = Color.Black,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .clickable(onClick = onShare)
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                )
+            }
         }
     }
 }
