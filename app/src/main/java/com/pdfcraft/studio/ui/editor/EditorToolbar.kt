@@ -48,7 +48,7 @@ fun EditorToolbar(
     imageCornerRadiusPercent: Int,
     onImageCornerRadiusSelected: (Int) -> Unit,
     onAddTextClick: () -> Unit,
-    onBoldClick: () -> Unit,
+    onFontClick: () -> Unit,
     hasSelectedText: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -95,7 +95,7 @@ fun EditorToolbar(
                     onAdjustImageShapeClick = { shapeModeActive = true },
                     onAdjustCornersClick = { cornersModeActive = true },
                     onEnterTextClick = onAddTextClick,
-                    onBoldClick = onBoldClick,
+                    onFontClick = onFontClick,
                     hasSelectedText = hasSelectedText
                 )
             }
@@ -311,7 +311,7 @@ private fun AllToolsMenu(
     onAdjustImageShapeClick: () -> Unit,
     onAdjustCornersClick: () -> Unit,
     onEnterTextClick: () -> Unit,
-    onBoldClick: () -> Unit,
+    onFontClick: () -> Unit,
     hasSelectedText: Boolean
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -345,7 +345,7 @@ private fun AllToolsMenu(
             TextToolsSubmenuEntry(
                 hasSelectedText = hasSelectedText,
                 onEnterTextClick = onEnterTextClick,
-                onBoldClick = onBoldClick,
+                onFontClick = onFontClick,
                 onCloseParentMenu = { menuExpanded = false }
             )
 
@@ -416,7 +416,7 @@ private fun AllToolsMenu(
 private fun TextToolsSubmenuEntry(
     hasSelectedText: Boolean,
     onEnterTextClick: () -> Unit,
-    onBoldClick: () -> Unit,
+    onFontClick: () -> Unit,
     onCloseParentMenu: () -> Unit
 ) {
     var submenuExpanded by remember { mutableStateOf(false) }
@@ -465,8 +465,9 @@ private fun TextToolsSubmenuEntry(
             DropdownMenuItem(
                 text = {
                     Text(
-                        stringResource(R.string.text_tool_bold),
-                        color = if (hasSelectedText) Color.Black else Color.Gray
+                        stringResource(R.string.text_tool_font),
+                        color = if (hasSelectedText) Color.Black else Color.Gray,
+                        style = MaterialTheme.typography.bodyMedium
                     )
                 },
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
@@ -474,7 +475,7 @@ private fun TextToolsSubmenuEntry(
                 onClick = {
                     submenuExpanded = false
                     onCloseParentMenu()
-                    onBoldClick()
+                    onFontClick()
                 }
             )
         }

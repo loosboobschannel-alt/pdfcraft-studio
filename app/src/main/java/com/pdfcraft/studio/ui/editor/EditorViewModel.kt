@@ -15,6 +15,8 @@ import com.pdfcraft.studio.core.image.ImageCompressor
 import com.pdfcraft.studio.core.image.ImageHandler
 import com.pdfcraft.studio.core.image.ImageSizeOption
 import com.pdfcraft.studio.core.settings.ImageSizePreferences
+import com.pdfcraft.studio.core.text.AppFont
+import com.pdfcraft.studio.core.text.FontCatalog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -32,7 +34,9 @@ data class TextElement(
     val text: String = "",
     val xFraction: Float = 0.1f,
     val yFraction: Float = 0.1f,
-    val boldRanges: List<IntRange> = emptyList()
+    val boldRanges: List<IntRange> = emptyList(),
+    val italicRanges: List<IntRange> = emptyList(),
+    val fontId: String = FontCatalog.ID_DEFAULT
 )
 
 private fun adjustRangesForEdit(
@@ -62,7 +66,7 @@ private fun adjustRangesForEdit(
     }
 }
 
-private fun toggleBoldRange(
+private fun toggleStyleRange(
     existing: List<IntRange>,
     start: Int,
     end: Int,
@@ -77,9 +81,9 @@ private fun toggleBoldRange(
         }
     }
 
-    val allBold = (start until end).all { flags.getOrElse(it) { false } }
+    val allOn = (start until end).all { flags.getOrElse(it) { false } }
     for (i in start until end) {
-        if (i in flags.indices) flags[i] = !allBold
+        if (i in flags.indices) flags[i] = !allOn
     }
 
     val result = mutableListOf<IntRange>()
@@ -157,13 +161,27 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var currentSelection: TextRange by mutableStateOf(TextRange.Zero)
         private set
 
+    val availableFonts: SnapshotStateList<AppFont> = mutableStateListOf()
+
+    var lastFontImportMessage: String? by mutableStateOf(null)
+        private set
+
+    init {
+        refreshAvailableFonts()
+    }
+
+    fun refreshAvailableFonts() {
+        availableFonts.clear()
+        availableFonts.addAll(FontCatalog.allFonts(getApplication()))
+    }
+
     fun enterAddTextMode() {
         addTextMode = true
         selectedTextId = null
     }
 
     fun addTextAt(pageIndex: Int, xFraction: Float, yFraction: Float) {
-        val id = "text_${System.currentTimeMillis()}_${textElements.size}"
+        val id = "text_\( {System.currentTimeMillis()}_ \){textElements.size}"
         textElements.add(
             TextElement(
                 id = id,
@@ -204,12 +222,21 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         val index = textElements.indexOfFirst { it.id == id }
         if (index >= 0) {
             val current = textElements[index]
-            val adjustedRanges = if (newText != current.text) {
+            val adjustedBold = if (newText != current.text) {
                 adjustRangesForEdit(current.text, newText, current.boldRanges)
             } else {
                 current.boldRanges
             }
-            textElements[index] = current.copy(text = newText, boldRanges = adjustedRanges)
+            val adjustedItalic = if (newText != current.text) {
+                adjustRangesForEdit(current.text, newText, current.italicRanges)
+            } else {
+                current.italicRanges
+            }
+            textElements[index] = current.copy(
+                text = newText,
+                boldRanges = adjustedBold,
+                italicRanges = adjustedItalic
+            )
         }
         currentSelection = newSelection
     }
@@ -224,21 +251,98 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    private fun activeTextIndex(): Int {
+        val id = focusedTextId ?: selectedTextId ?: return -1
+        return textElements.indexOfFirst { it.id == id }
+    }
+
     fun toggleBoldForSelection() {
-        val id = focusedTextId ?: return
+        val index = activeTextIndex()
+        if (index < 0) return
         val selection = currentSelection
         if (selection.collapsed) return
-
-        val index = textElements.indexOfFirst { it.id == id }
-        if (index < 0) return
 
         val element = textElements[index]
         val start = selection.min.coerceIn(0, element.text.length)
         val end = selection.max.coerceIn(0, element.text.length)
         if (start >= end) return
 
-        val newRanges = toggleBoldRange(element.boldRanges, start, end, element.text.length)
+        val newRanges = toggleStyleRange(element.boldRanges, start, end, element.text.length)
         textElements[index] = element.copy(boldRanges = newRanges)
+    }
+
+    fun toggleItalicForSelection() {
+        val index = activeTextIndex()
+        if (index < 0) return
+        val selection = currentSelection
+        if (selection.collapsed) return
+
+        val element = textElements[index]
+        val start = selection.min.coerceIn(0, element.text.length)
+        val end = selection.max.coerceIn(0, element.text.length)
+        if (start >= end) return
+
+        val newRanges = toggleStyleRange(element.italicRanges, start, end, element.text.length)
+        textElements[index] = element.copy(italicRanges = newRanges)
+    }
+
+    fun isSelectionBold(): Boolean {
+        val index = activeTextIndex()
+        if (index < 0) return false
+        val selection = currentSelection
+        if (selection.collapsed) return false
+        val element = textElements[index]
+        val start = selection.min.coerceIn(0, element.text.length)
+        val end = selection.max.coerceIn(0, element.text.length)
+        if (start >= end) return false
+        return (start until end).all { i ->
+            element.boldRanges.any { i in it }
+        }
+    }
+
+    fun isSelectionItalic(): Boolean {
+        val index = activeTextIndex()
+        if (index < 0) return false
+        val selection = currentSelection
+        if (selection.collapsed) return false
+        val element = textElements[index]
+        val start = selection.min.coerceIn(0, element.text.length)
+        val end = selection.max.coerceIn(0, element.text.length)
+        if (start >= end) return false
+        return (start until end).all { i ->
+            element.italicRanges.any { i in it }
+        }
+    }
+
+    fun currentTextFontId(): String {
+        val index = activeTextIndex()
+        if (index < 0) return FontCatalog.ID_DEFAULT
+        return textElements[index].fontId
+    }
+
+    fun applyFontToSelectedText(font: AppFont) {
+        val index = activeTextIndex()
+        if (index < 0) return
+        textElements[index] = textElements[index].copy(fontId = font.id)
+    }
+
+    fun importFontFromUri(uri: Uri) {
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                FontCatalog.importFont(getApplication(), uri)
+            }
+            if (result != null) {
+                refreshAvailableFonts()
+                applyFontToSelectedText(result)
+                lastFontImportMessage = "Imported: ${result.displayName}"
+            } else {
+                lastFontImportMessage = "Could not import font"
+            }
+        }
+    }
+
+    fun consumeFontImportMessage() {
+        lastFontImportMessage = null
     }
 
     fun selectImageSizeOption(option: ImageSizeOption) {
@@ -267,7 +371,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         isImporting = true
 
         val imageIds = uris.mapIndexed { index, uri ->
-            val imageId = "${uri}_${importedImages.size + index}"
+            val imageId = "\( {uri}_ \){importedImages.size + index}"
             importedImages.add(ImportedImage(id = imageId, imageUri = uri))
             imageId
         }

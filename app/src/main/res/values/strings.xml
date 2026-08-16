@@ -9,7 +9,7 @@
     <string name="import_images">Import Images</string>
     <string name="no_images_selected">No images selected</string>
     <string name="page_label">Page %1$d</string>
-    <string name="page_size_caption">~%1$d KB</string>
+    <string name="page_size_caption">\~%1$d KB</string>
     <string name="all_tools">All Tools</string>
     <string name="image_size_menu_entry">Select Image Size in KBs (%1$s)</string>
     <string name="image_size_default">Default / Original Size</string>
@@ -66,4 +66,9 @@
     <string name="text_tool_copy">Copy</string>
     <string name="text_tool_cut">Cut</string>
     <string name="text_tool_paste">Paste</string>
+    <string name="import_font">Import Font</string>
+    <string name="font_tools_instructions">Select text on the page first, then choose Bold, Italic, or a font below. You can also import your own .ttf / .otf fonts from device storage.</string>
+    <string name="font_style_section">Style</string>
+    <string name="font_list_section">Fonts</string>
+    <string name="font_imported_label">Imported</string>
 </resources>

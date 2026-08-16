@@ -65,6 +65,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
@@ -75,6 +77,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.pdfcraft.studio.R
+import com.pdfcraft.studio.core.text.AppFont
+import com.pdfcraft.studio.core.text.FontCatalog
 import com.pdfcraft.studio.ui.editor.ImportedImage
 import com.pdfcraft.studio.ui.editor.TextElement
 
@@ -112,10 +116,10 @@ fun PdfPagesPreview(
     onChangePosition: (String) -> Unit = {},
     onCut: (String) -> Unit = {},
     onCopy: (String) -> Unit = {},
+    onDeleteSingle: (String) -> Unit = {},
     onPaste: () -> Unit = {},
     onSaveSingle: (String) -> Unit = {},
     onShareSingle: (String) -> Unit = {},
-    onDeleteSingle: (String) -> Unit = {},
     onFinishMultipleSelection: () -> Unit = {},
     onMultipleChangePosition: () -> Unit = {},
     onMultipleCut: () -> Unit = {},
@@ -127,6 +131,7 @@ fun PdfPagesPreview(
     onMoveSingle: (String, String) -> Unit = { _, _ -> },
     onMoveMultiple: (String) -> Unit = {},
     onFinishReorder: () -> Unit = {},
+    customFonts: List<AppFont> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     if (images.isEmpty()) {
@@ -215,6 +220,7 @@ fun PdfPagesPreview(
                                 addTextMode = addTextMode,
                                 selectedTextId = selectedTextId,
                                 pendingFocusTextId = pendingFocusTextId,
+                                customFonts = customFonts,
                                 onPageTap = { xFrac, yFrac -> onAddTextAt(pageIndex, xFrac, yFrac) },
                                 onTextSelect = onSelectText,
                                 onTextDrag = onMoveText,
@@ -270,8 +276,9 @@ fun PdfPagesPreview(
     }
 }
 
-private class BoldRangesVisualTransformation(
-    private val boldRanges: List<IntRange>
+private class TextStyleRangesVisualTransformation(
+    private val boldRanges: List<IntRange>,
+    private val italicRanges: List<IntRange>
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val builder = AnnotatedString.Builder(text.text)
@@ -280,6 +287,13 @@ private class BoldRangesVisualTransformation(
             val end = (range.last + 1).coerceIn(0, text.text.length)
             if (start < end) {
                 builder.addStyle(SpanStyle(fontWeight = FontWeight.Bold), start, end)
+            }
+        }
+        italicRanges.forEach { range ->
+            val start = range.first.coerceIn(0, text.text.length)
+            val end = (range.last + 1).coerceIn(0, text.text.length)
+            if (start < end) {
+                builder.addStyle(SpanStyle(fontStyle = FontStyle.Italic), start, end)
             }
         }
         return TransformedText(builder.toAnnotatedString(), OffsetMapping.Identity)
@@ -293,6 +307,7 @@ private fun PageTextOverlay(
     addTextMode: Boolean,
     selectedTextId: String?,
     pendingFocusTextId: String?,
+    customFonts: List<AppFont>,
     onPageTap: (xFraction: Float, yFraction: Float) -> Unit,
     onTextSelect: (String) -> Unit,
     onTextDrag: (id: String, xFraction: Float, yFraction: Float) -> Unit,
@@ -370,16 +385,24 @@ private fun PageTextOverlay(
                         }
                 )
 
+                val fontFamily = FontCatalog.resolveComposeFontFamily(
+                    textElement.fontId,
+                    customFonts
+                )
                 BasicTextField(
                     value = fieldValue,
                     onValueChange = { newValue ->
                         fieldValue = newValue
                         onTextValueChange(textElement.id, newValue.text, newValue.selection)
                     },
-                    visualTransformation = BoldRangesVisualTransformation(textElement.boldRanges),
+                    visualTransformation = TextStyleRangesVisualTransformation(
+                        boldRanges = textElement.boldRanges,
+                        italicRanges = textElement.italicRanges
+                    ),
                     textStyle = TextStyle(
                         color = Color.Black,
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                        fontFamily = fontFamily
                     ),
                     cursorBrush = SolidColor(Color.Black),
                     modifier = Modifier
