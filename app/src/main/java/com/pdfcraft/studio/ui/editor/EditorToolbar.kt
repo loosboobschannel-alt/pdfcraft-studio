@@ -520,9 +520,9 @@ private fun ImagesPerRowSlider(
         SliderToolHeader(title = stringResource(R.string.resize_images_tool), onDone = onDone)
         SliderWithValueLabel(
             value = imagesPerRow.toFloat(),
-            onValueChange = { onImagesPerRowChange(it.roundToInt().coerceIn(1, 29)) },
-            valueRange = 1f..29f,
-            steps = 27,
+            onValueChange = { onImagesPerRowChange(it.roundToInt().coerceIn(1, 20)) },
+            valueRange = 1f..20f,
+            steps = 18,
             labelFormatter = { "${it.roundToInt()}" }
         )
     }
@@ -655,23 +655,64 @@ private fun PageSizeSlider(
     onAspectRatioChange: (Float) -> Unit,
     onDone: () -> Unit
 ) {
+    // percent 0..100 maps to ratio 0.4..2.5 (same range as slider)
+    fun ratioToPercent(ratio: Float): Int {
+        val t = ((ratio - 0.4f) / (2.5f - 0.4f)).coerceIn(0f, 1f)
+        return (t * 100f).roundToInt()
+    }
+    fun percentToRatio(percent: Int): Float {
+        val t = percent.coerceIn(0, 100) / 100f
+        return 0.4f + t * (2.5f - 0.4f)
+    }
+
+    var percentText by remember(aspectRatio) {
+        mutableStateOf(ratioToPercent(aspectRatio).toString())
+    }
+
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         SliderToolHeader(title = stringResource(R.string.page_tool_set_page_size), onDone = onDone)
-        SliderWithValueLabel(
-            value = aspectRatio,
-            onValueChange = onAspectRatioChange,
-            valueRange = 0.4f..2.5f,
-            steps = 0,
-            labelFormatter = { ratio ->
-                val w = 100
-                val h = (100f / ratio).roundToInt()
-                if (ratio >= 1f) {
-                    "Landscape " + w + ":" + h
-                } else {
-                    "Portrait " + h + ":" + w
-                }
-            }
-        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SliderWithValueLabel(
+                value = aspectRatio,
+                onValueChange = { newRatio ->
+                    onAspectRatioChange(newRatio)
+                    percentText = ratioToPercent(newRatio).toString()
+                },
+                valueRange = 0.4f..2.5f,
+                steps = 0,
+                labelFormatter = { ratio ->
+                    val w = 100
+                    val h = (100f / ratio).roundToInt()
+                    if (ratio >= 1f) {
+                        "Landscape " + w + ":" + h
+                    } else {
+                        "Portrait " + h + ":" + w
+                    }
+                },
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            OutlinedTextField(
+                value = percentText,
+                onValueChange = { input ->
+                    val filtered = input.filter(Char::isDigit).take(3)
+                    percentText = filtered
+                    val percent = filtered.toIntOrNull()
+                    if (percent != null && percent in 0..100) {
+                        onAspectRatioChange(percentToRatio(percent))
+                    }
+                },
+                modifier = Modifier.width(64.dp),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium
+            )
+        }
     }
 }
 
