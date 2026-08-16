@@ -79,6 +79,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pdfcraft.studio.R
 import com.pdfcraft.studio.core.text.AppFont
 import com.pdfcraft.studio.core.text.FontCatalog
