@@ -581,23 +581,23 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         minPageCount = minPageCount - 1
     }
 
-    fun setPageAspectRatio(ratio: Float) {
+    fun updatePageAspectRatio(ratio: Float) {
         val r = ratio.coerceIn(0.4f, 2.5f)
         pageAspectRatio = r
         isPageLandscape = r > 1f
     }
 
-    fun setPageOrientation(landscape: Boolean) {
+    fun updatePageOrientation(landscape: Boolean) {
         isPageLandscape = landscape
         val magnitude = if (pageAspectRatio >= 1f) pageAspectRatio else 1f / pageAspectRatio
         pageAspectRatio = if (landscape) magnitude else 1f / magnitude
     }
 
-    fun setPageMarginDp(dp: Int) {
+    fun updatePageMarginDp(dp: Int) {
         pageMarginDp = dp.coerceIn(0, 48)
     }
 
-    fun setPageBackgroundColor(colorArgb: Long) {
+    fun updatePageBackgroundColor(colorArgb: Long) {
         pageBackgroundColor = colorArgb
     }
 

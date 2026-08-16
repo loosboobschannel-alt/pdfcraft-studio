@@ -247,19 +247,19 @@ fun EditorScreen(onBackClick: () -> Unit) {
                 pageAspectRatio =
                     viewModel.pageAspectRatio,
                 onPageAspectRatioChange =
-                    viewModel::setPageAspectRatio,
+                    viewModel::updatePageAspectRatio,
                 isPageLandscape =
                     viewModel.isPageLandscape,
                 onPageOrientationChange =
-                    viewModel::setPageOrientation,
+                    viewModel::updatePageOrientation,
                 pageMarginDp =
                     viewModel.pageMarginDp,
                 onPageMarginChange =
-                    viewModel::setPageMarginDp,
+                    viewModel::updatePageMarginDp,
                 pageBackgroundColor =
                     viewModel.pageBackgroundColor,
                 onPageBackgroundColorChange =
-                    viewModel::setPageBackgroundColor,
+                    viewModel::updatePageBackgroundColor,
                 onPickBackgroundImage = {
                     backgroundImagePickerLauncher.launch(
                         androidx.activity.result.PickVisualMediaRequest(
