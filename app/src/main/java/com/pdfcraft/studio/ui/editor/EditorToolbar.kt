@@ -249,12 +249,11 @@ private fun TextToolsMenu(
                 text = {
                     Text(
                         stringResource(R.string.text_tool_font),
-                        color = if (hasSelectedText) Color.Black else Color.Gray,
+                        color = Color.Black,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 },
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                enabled = hasSelectedText,
                 onClick = {
                     menuExpanded = false
                     onFontClick()

@@ -82,7 +82,7 @@ import com.pdfcraft.studio.core.text.FontCatalog
 import com.pdfcraft.studio.ui.editor.ImportedImage
 import com.pdfcraft.studio.ui.editor.TextElement
 
-private const val PAGE_ASPECT_RATIO = 0.707f
+private const val PAGE_ASPECT_RATIO = 9f / 16f
 private const val PAGE_INNER_PADDING_DP = 10f
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -134,8 +134,54 @@ fun PdfPagesPreview(
     customFonts: List<AppFont> = emptyList(),
     modifier: Modifier = Modifier
 ) {
+    // Always show at least one page so text can be added before any images.
     if (images.isEmpty()) {
-        EmptyStatePage(modifier = modifier)
+        BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                item {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.page_label, 1),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(bottom = 6.dp)
+                        )
+                        PageCard {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                // Soft hint — does not block taps for adding text
+                                Text(
+                                    text = stringResource(R.string.editor_empty_state),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .padding(horizontal = 24.dp)
+                                )
+                                PageTextOverlay(
+                                    texts = textElements.filter { it.pageIndex == 0 },
+                                    addTextMode = addTextMode,
+                                    selectedTextId = selectedTextId,
+                                    pendingFocusTextId = pendingFocusTextId,
+                                    customFonts = customFonts,
+                                    onPageTap = { xFrac, yFrac -> onAddTextAt(0, xFrac, yFrac) },
+                                    onTextSelect = onSelectText,
+                                    onTextDrag = onMoveText,
+                                    onTextValueChange = onTextValueChange,
+                                    onTextFocused = onTextFocused,
+                                    onTextUnfocused = onTextUnfocused,
+                                    onConsumePendingFocus = onConsumePendingFocus,
+                                    onDeselect = onDeselectText
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
         return
     }
 
