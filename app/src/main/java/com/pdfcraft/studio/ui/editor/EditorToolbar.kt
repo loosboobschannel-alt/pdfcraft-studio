@@ -155,9 +155,7 @@ private fun ImageToolsMenu(
 
         DropdownMenu(
             expanded = menuExpanded,
-            onDismissRequest = { menuExpanded = false },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(6.dp)
+            onDismissRequest = { menuExpanded = false }
         ) {
             ToolMenuItem(stringResource(R.string.import_images)) {
                 menuExpanded = false
@@ -208,9 +206,7 @@ private fun TextToolsMenu(
 
         DropdownMenu(
             expanded = menuExpanded,
-            onDismissRequest = { menuExpanded = false },
-            containerColor = Color.White,
-            shape = RoundedCornerShape(6.dp)
+            onDismissRequest = { menuExpanded = false }
         ) {
             ToolMenuItem(stringResource(R.string.text_tool_enter_text)) {
                 menuExpanded = false
