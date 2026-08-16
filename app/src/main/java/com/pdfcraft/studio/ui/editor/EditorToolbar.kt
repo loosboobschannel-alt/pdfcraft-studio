@@ -675,10 +675,14 @@ private fun PageSizeSlider(
             onValueChange = onAspectRatioChange,
             valueRange = 0.4f..2.5f,
             steps = 0,
-            labelFormatter = {
+            labelFormatter = { ratio ->
                 val w = 100
-                val h = (100f / it).roundToInt()
-                if (it >= 1f) "Landscape \( {w}: \){h}" else "Portrait \( {h}: \){w}"
+                val h = (100f / ratio).roundToInt()
+                if (ratio >= 1f) {
+                    "Landscape " + w + ":" + h
+                } else {
+                    "Portrait " + h + ":" + w
+                }
             }
         )
     }
