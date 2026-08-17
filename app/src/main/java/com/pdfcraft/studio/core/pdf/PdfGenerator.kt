@@ -4,7 +4,6 @@ import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
@@ -16,9 +15,9 @@ import com.pdfcraft.studio.ui.editor.TextElement
 import java.io.OutputStream
 
 /**
- * Builds a PDF from the current editor pages (images + text) and saves it
- * into Documents/PDFCraftStudio/ using MediaStore (no storage permission
- * needed on Android 10+).
+ * Builds a PDF from the current editor pages (images + text).
+ * Page grid math MUST match the editor preview (PdfPagesPreview)
+ * so images never crop at the bottom of a page.
  */
 object PdfGenerator {
 
@@ -35,68 +34,91 @@ object PdfGenerator {
         textElements: List<TextElement>,
         imagesPerRow: Int,
         pageAspectRatio: Float,
-        pageBackgroundColor: Long
+        pageBackgroundColor: Long,
+        imageSpacingDp: Int = 6,
+        imageCellAspectRatio: Float = 0.526f,
+        pageMarginDp: Int = 10
     ): Result {
         if (images.isEmpty() && textElements.isEmpty()) {
             return Result(false, message = "empty")
         }
 
         val safeName = if (fileName.lowercase().endsWith(".pdf")) fileName else "$fileName.pdf"
-        val pageWidth = 595 // A4-ish points
-        val pageHeight = (pageWidth / pageAspectRatio).toInt().coerceAtLeast(400)
+
+        // Use a fixed logical width; height follows editor page aspect ratio
+        val pageWidth = 1080
+        val pageHeight = (pageWidth / pageAspectRatio.coerceAtLeast(0.1f)).toInt().coerceAtLeast(400)
+
+        // Same margin model as editor (pageMarginDp / PAGE_INNER_PADDING)
+        val margin = pageMarginDp.toFloat() * (pageWidth / 360f) // scale dp-ish to page px
+        val spacing = imageSpacingDp.toFloat() * (pageWidth / 360f)
+        val gridWidth = pageWidth - margin * 2f
+        val gridHeight = pageHeight - margin * 2f
+
+        val perRow = imagesPerRow.coerceAtLeast(1)
+        val cellWidth = (gridWidth - spacing * (perRow - 1)) / perRow
+        val cellAspect = imageCellAspectRatio.coerceAtLeast(0.1f)
+        val cellHeight = cellWidth / cellAspect
+
+        // CRITICAL: same formula as PdfPagesPreview — only full rows that fit
+        val rowsPerPage = if (cellHeight > 0f) {
+            (((gridHeight + spacing) / (cellHeight + spacing)).toInt()).coerceAtLeast(1)
+        } else {
+            1
+        }
+        val imagesPerPage = (perRow * rowsPerPage).coerceAtLeast(1)
+        val pages = if (images.isEmpty()) listOf(emptyList()) else images.chunked(imagesPerPage)
 
         val pdf = PdfDocument()
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-
-        // Group images into pages by imagesPerRow rows (simple grid)
-        val rowsPerPage = 4
-        val imagesPerPage = (imagesPerRow * rowsPerPage).coerceAtLeast(1)
-        val pages = if (images.isEmpty()) listOf(emptyList()) else images.chunked(imagesPerPage)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            isFilterBitmap = true
+        }
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+        }
 
         pages.forEachIndexed { pageIndex, pageImages ->
             val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageIndex + 1).create()
             val page = pdf.startPage(pageInfo)
             val canvas = page.canvas
 
-            // Background
             canvas.drawColor(pageBackgroundColor.toInt())
 
-            // Draw images in a simple grid
-            if (pageImages.isNotEmpty()) {
-                val margin = 24f
-                val gap = 12f
-                val usableWidth = pageWidth - margin * 2
-                val cellWidth = (usableWidth - gap * (imagesPerRow - 1)) / imagesPerRow
-                val cellHeight = cellWidth / pageAspectRatio.coerceAtLeast(0.5f)
+            pageImages.forEachIndexed { idx, img ->
+                val row = idx / perRow
+                val col = idx % perRow
+                // Safety: never draw a row that would go past the page bottom
+                if (row >= rowsPerPage) return@forEachIndexed
 
-                pageImages.forEachIndexed { idx, img ->
-                    val row = idx / imagesPerRow
-                    val col = idx % imagesPerRow
-                    val left = margin + col * (cellWidth + gap)
-                    val top = margin + row * (cellHeight + gap)
-
-                    val bmp = img.bitmap
-                    if (bmp != null && !bmp.isRecycled) {
-                        val src = android.graphics.Rect(0, 0, bmp.width, bmp.height)
-                        val dst = android.graphics.RectF(left, top, left + cellWidth, top + cellHeight)
-                        canvas.drawBitmap(bmp, src, dst, paint)
-                    }
+                val left = margin + col * (cellWidth + spacing)
+                val top = margin + row * (cellHeight + spacing)
+                val bmp = img.bitmap
+                if (bmp != null && !bmp.isRecycled) {
+                    // ContentScale.Fit equivalent — no crop, letterbox inside cell
+                    drawBitmapFit(
+                        canvas = canvas,
+                        bitmap = bmp,
+                        dstLeft = left,
+                        dstTop = top,
+                        dstWidth = cellWidth,
+                        dstHeight = cellHeight,
+                        paint = paint
+                    )
                 }
             }
 
-            // Draw text elements (simple absolute placement for now)
-            textElements.forEach { te ->
-                paint.color = te.textColorArgb.toInt()
-                paint.textSize = te.fontSizeSp * 2.2f // rough scale to PDF points
+            // Text: only elements for this page index
+            textElements.filter { it.pageIndex == pageIndex }.forEach { te ->
+                textPaint.color = te.textColorArgb.toInt()
+                textPaint.textSize = te.fontSizeSp * (pageWidth / 360f)
                 val x = te.xFraction * pageWidth
-                val y = te.yFraction * pageHeight + paint.textSize
-                canvas.drawText(te.text, x, y, paint)
+                val y = te.yFraction * pageHeight + textPaint.textSize
+                canvas.drawText(te.text, x, y, textPaint)
             }
 
             pdf.finishPage(page)
         }
 
-        // Save via MediaStore → Documents/PDFCraftStudio/
         return try {
             val uri = saveToDocuments(context, safeName, pdf)
             pdf.close()
@@ -111,13 +133,47 @@ object PdfGenerator {
         }
     }
 
+    /** Draw bitmap centered inside dst rect using Fit (no crop). */
+    private fun drawBitmapFit(
+        canvas: Canvas,
+        bitmap: Bitmap,
+        dstLeft: Float,
+        dstTop: Float,
+        dstWidth: Float,
+        dstHeight: Float,
+        paint: Paint
+    ) {
+        if (bitmap.width <= 0 || bitmap.height <= 0 || dstWidth <= 0f || dstHeight <= 0f) return
+        val bmpAspect = bitmap.width.toFloat() / bitmap.height.toFloat()
+        val cellAspect = dstWidth / dstHeight
+        val drawW: Float
+        val drawH: Float
+        if (bmpAspect > cellAspect) {
+            // wider than cell → fit width
+            drawW = dstWidth
+            drawH = dstWidth / bmpAspect
+        } else {
+            // taller → fit height
+            drawH = dstHeight
+            drawW = dstHeight * bmpAspect
+        }
+        val left = dstLeft + (dstWidth - drawW) / 2f
+        val top = dstTop + (dstHeight - drawH) / 2f
+        val src = android.graphics.Rect(0, 0, bitmap.width, bitmap.height)
+        val dst = android.graphics.RectF(left, top, left + drawW, top + drawH)
+        canvas.drawBitmap(bitmap, src, dst, paint)
+    }
+
     private fun saveToDocuments(context: Context, fileName: String, pdf: PdfDocument): Uri? {
         val resolver = context.contentResolver
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
             put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS + "/PDFCraftStudio")
+                put(
+                    MediaStore.MediaColumns.RELATIVE_PATH,
+                    Environment.DIRECTORY_DOCUMENTS + "/PDFCraftStudio"
+                )
                 put(MediaStore.MediaColumns.IS_PENDING, 1)
             }
         }

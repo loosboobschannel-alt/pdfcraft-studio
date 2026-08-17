@@ -205,7 +205,10 @@ fun EditorScreen(onBackClick: () -> Unit) {
                                         textElements = viewModel.textElements.toList(),
                                         imagesPerRow = viewModel.imagesPerRow,
                                         pageAspectRatio = viewModel.pageAspectRatio,
-                                        pageBackgroundColor = viewModel.pageBackgroundColor
+                                        pageBackgroundColor = viewModel.pageBackgroundColor,
+                                        imageSpacingDp = viewModel.imageSpacingDp,
+                                        imageCellAspectRatio = viewModel.imageCellAspectRatio,
+                                        pageMarginDp = 10
                                     )
                                     if (result.success) {
                                         savedFileName = result.fileName
