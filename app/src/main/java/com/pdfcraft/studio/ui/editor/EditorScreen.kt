@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -129,6 +130,16 @@ fun EditorScreen(onBackClick: () -> Unit) {
                             contentDescription = stringResource(
                                 R.string.content_desc_back
                             )
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        // Later: Save Project, Draft, Import PDF, Export PDF etc.
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = "More options"
                         )
                     }
                 },
