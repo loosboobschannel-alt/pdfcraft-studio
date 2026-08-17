@@ -648,7 +648,7 @@ private fun ImageCell(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(RoundedCornerShape(percent = cornerRadiusPercent))
-                .background(color = MaterialTheme.colorScheme.surfaceVariant)
+                
                 .then(
                     if (reorderMode) {
                         Modifier.pointerInput(image.id) {
@@ -697,7 +697,7 @@ private fun ImageCell(
                     bitmap = image.bitmap.asImageBitmap(),
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
+                    contentScale = ContentScale.Crop
                 )
             } else {
                 CircularProgressIndicator(
