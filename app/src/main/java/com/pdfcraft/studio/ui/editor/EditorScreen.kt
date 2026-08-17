@@ -412,26 +412,7 @@ Column(
                 pageAspectRatio =
                     viewModel.pageAspectRatio,
                 onPageAspectRatioChange =
-                    viewModel::applyPageSizeToSelection,
-                pageCountForSize =
-                    viewModel.currentPageCountEstimate(
-                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
-                    ),
-                pageSizeSelected =
-                    viewModel.pageSizeSelection.toSet(),
-                onTogglePageSizeSelection =
-                    viewModel::togglePageSizeSelection,
-                onSelectAllPagesForSize = {
-                    viewModel.selectAllPagesForSize(
-                        viewModel.currentPageCountEstimate(
-                            (viewModel.imagesPerRow * 2).coerceAtLeast(1)
-                        )
-                    )
-                },
-                sliderAspectForSelection =
-                    viewModel.pageSizeSelection.firstOrNull()?.let {
-                        viewModel.aspectRatioForPage(it)
-                    } ?: viewModel.pageAspectRatio,
+                    viewModel::updatePageAspectRatio,
                 isPageLandscape =
                     viewModel.isPageLandscape,
                 onPageOrientationChange =
@@ -443,7 +424,7 @@ Column(
                 pageBackgroundColor =
                     viewModel.pageBackgroundColor,
                 onPageBackgroundColorChange =
-                    viewModel::applyBackgroundColorToSelection,
+                    viewModel::updatePageBackgroundColor,
                 pageCountForBgColor =
                     viewModel.currentPageCountEstimate(
                         (viewModel.imagesPerRow * 2).coerceAtLeast(1)
@@ -452,13 +433,6 @@ Column(
                     viewModel.pageBgColorSelection.toSet(),
                 onTogglePageBgColorSelection =
                     viewModel::togglePageBgColorSelection,
-                onSelectAllPagesForBgColor = {
-                    viewModel.selectAllPagesForBgColor(
-                        viewModel.currentPageCountEstimate(
-                            (viewModel.imagesPerRow * 2).coerceAtLeast(1)
-                        )
-                    )
-                },
                 onPickBackgroundImage = {
                     backgroundImagePickerLauncher.launch(
                         androidx.activity.result.PickVisualMediaRequest(

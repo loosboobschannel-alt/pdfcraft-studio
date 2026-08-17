@@ -62,11 +62,6 @@ fun EditorToolbar(
     onTextSizeChange: (Float) -> Unit = {},
     pageAspectRatio: Float,
     onPageAspectRatioChange: (Float) -> Unit,
-    pageCountForSize: Int = 1,
-    pageSizeSelected: Set<Int> = emptySet(),
-    onTogglePageSizeSelection: (Int) -> Unit = {},
-    onSelectAllPagesForSize: () -> Unit = {},
-    sliderAspectForSelection: Float = pageAspectRatio,
     isPageLandscape: Boolean,
     onPageOrientationChange: (Boolean) -> Unit,
     pageMarginDp: Int,
@@ -76,10 +71,6 @@ fun EditorToolbar(
     onPickBackgroundImage: () -> Unit,
     onClearBackgroundImage: () -> Unit,
     hasBackgroundImage: Boolean,
-    pageCountForBgColor: Int = 1,
-    pageBgColorSelected: Set<Int> = emptySet(),
-    onTogglePageBgColorSelection: (Int) -> Unit = {},
-    onSelectAllPagesForBgColor: () -> Unit = {},
     pageNumberPosition: EditorViewModel.PageNumberPosition,
     onPageNumberPositionChange: (EditorViewModel.PageNumberPosition) -> Unit,
     pageNumberStyle: EditorViewModel.PageNumberStyle,
@@ -128,11 +119,7 @@ fun EditorToolbar(
                 onDone = { textSizeModeActive = false }
             )
             pageSizeModeActive -> PageSizeSlider(
-                pageCount = pageCountForSize,
-                selectedPages = pageSizeSelected,
-                aspectRatio = sliderAspectForSelection,
-                onTogglePage = onTogglePageSizeSelection,
-                onSelectAll = onSelectAllPagesForSize,
+                aspectRatio = pageAspectRatio,
                 onAspectRatioChange = onPageAspectRatioChange,
                 onDone = { pageSizeModeActive = false }
             )
@@ -151,10 +138,7 @@ fun EditorToolbar(
                                                 ) {
                     PageToolsMenu(
                         onAddNewPage = onAddNewPage,
-                        onSetPageSize = {
-                            onSelectAllPagesForSize()
-                            pageSizeModeActive = true
-                        },
+                        onSetPageSize = { pageSizeModeActive = true },
                         isPageLandscape = isPageLandscape,
                         onPageOrientationChange = onPageOrientationChange,
                         onSetPageMargin = { pageMarginModeActive = true },
@@ -164,10 +148,6 @@ fun EditorToolbar(
                         onPickBackgroundImage = onPickBackgroundImage,
                         onClearBackgroundImage = onClearBackgroundImage,
                         hasBackgroundImage = hasBackgroundImage,
-                        pageCountForBgColor = pageCountForBgColor,
-                        pageBgColorSelected = pageBgColorSelected,
-                        onTogglePageBgColorSelection = onTogglePageBgColorSelection,
-                        onSelectAllPagesForBgColor = onSelectAllPagesForBgColor,
                         pageNumberPosition = pageNumberPosition,
                         onPageNumberPositionChange = onPageNumberPositionChange,
                         pageNumberStyle = pageNumberStyle,
@@ -284,10 +264,6 @@ private fun PageToolsMenu(
     onPickBackgroundImage: () -> Unit,
     onClearBackgroundImage: () -> Unit,
     hasBackgroundImage: Boolean,
-    pageCountForBgColor: Int = 1,
-    pageBgColorSelected: Set<Int> = emptySet(),
-    onTogglePageBgColorSelection: (Int) -> Unit = {},
-    onSelectAllPagesForBgColor: () -> Unit = {},
     pageNumberPosition: EditorViewModel.PageNumberPosition,
     onPageNumberPositionChange: (EditorViewModel.PageNumberPosition) -> Unit,
     pageNumberStyle: EditorViewModel.PageNumberStyle,
@@ -385,7 +361,48 @@ private fun PageToolsMenu(
                 backgroundSub = !backgroundSub
                 if (backgroundSub) {
                     orientationSub = false
-                    onSelectAllPagesForBgColor()
+                }
+            }
+            if (backgroundSub) {
+                val allColors = primaryColors + extraColors
+
+                // Import From Gallery first
+                ToolMenuItem(stringResource(R.string.page_bg_import_gallery)) {
+                    menuExpanded = false
+                    backgroundSub = false
+                    onPickBackgroundImage()
+                }
+                if (hasBackgroundImage) {
+                    ToolMenuItem(stringResource(R.string.page_bg_clear_image)) {
+                        onClearBackgroundImage()
+                    }
+                }
+
+                // All colors at once (no More/Fewer, no page chips)
+                allColors.chunked(8).forEach { row ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        row.forEach { c ->
+                            val selected = pageBackgroundColor == c && !hasBackgroundImage
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(Color(c), CircleShape)
+                                    .border(
+                                        width = if (selected) 2.dp else 1.dp,
+                                        color = if (selected) MaterialTheme.colorScheme.primary else Color.LightGray,
+                                        shape = CircleShape
+                                    )
+                                    .clickable {
+                                        onPageBackgroundColorChange(c)
+                                    }
+                            )
+                        }
+                    }
                 }
             }
             if (backgroundSub) {
@@ -758,17 +775,22 @@ private fun RoundCornersSlider(
 
 @Composable
 private fun PageSizeSlider(
-    pageCount: Int,
-    selectedPages: Set<Int>,
     aspectRatio: Float,
-    onTogglePage: (Int) -> Unit,
-    onSelectAll: () -> Unit,
     onAspectRatioChange: (Float) -> Unit,
     onDone: () -> Unit
 ) {
-    val count = pageCount.coerceAtLeast(1)
-    val allSelected = selectedPages.size >= count &&
-        (0 until count).all { it in selectedPages }
+    fun ratioToPercent(ratio: Float): Int {
+        val t = ((ratio - 0.4f) / (2.5f - 0.4f)).coerceIn(0f, 1f)
+        return (t * 100f).roundToInt()
+    }
+    fun percentToRatio(percent: Int): Float {
+        val t = percent.coerceIn(0, 100) / 100f
+        return 0.4f + t * (2.5f - 0.4f)
+    }
+
+    var percentText by remember(aspectRatio) {
+        mutableStateOf(ratioToPercent(aspectRatio).toString())
+    }
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         SliderToolHeader(
@@ -776,76 +798,48 @@ private fun PageSizeSlider(
             onDone = onDone
         )
 
-        Text(
-            text = stringResource(R.string.page_size_select_pages),
-            style = MaterialTheme.typography.labelMedium,
-            color = Color.Black,
-            modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
-        )
-
-        // Page selection row: All + Page 1..N
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PageSelectChip(
-                label = stringResource(R.string.page_size_all_pages),
-                selected = allSelected,
-                onClick = onSelectAll
+            SliderWithValueLabel(
+                value = aspectRatio,
+                onValueChange = { newRatio ->
+                    onAspectRatioChange(newRatio)
+                    percentText = ratioToPercent(newRatio).toString()
+                },
+                valueRange = 0.4f..2.5f,
+                steps = 0,
+                labelFormatter = { ratio ->
+                    val w = 100
+                    val h = (100f / ratio).roundToInt().coerceAtLeast(1)
+                    if (ratio >= 1f) {
+                        "Landscape " + w + ":" + h
+                    } else {
+                        "Portrait " + h + ":" + w
+                    }
+                },
+                modifier = Modifier.weight(1f)
             )
-            for (i in 0 until count) {
-                PageSelectChip(
-                    label = stringResource(R.string.page_size_page_chip, i + 1),
-                    selected = i in selectedPages,
-                    onClick = { onTogglePage(i) }
-                )
-            }
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            OutlinedTextField(
+                value = percentText,
+                onValueChange = { input ->
+                    val filtered = input.filter(Char::isDigit).take(3)
+                    percentText = filtered
+                    val percent = filtered.toIntOrNull()
+                    if (percent != null && percent in 0..100) {
+                        onAspectRatioChange(percentToRatio(percent))
+                    }
+                },
+                modifier = Modifier.width(64.dp),
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium
+            )
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Size only via slider — no text field
-        SliderWithValueLabel(
-            value = aspectRatio,
-            onValueChange = onAspectRatioChange,
-            valueRange = 0.4f..2.5f,
-            steps = 0,
-            labelFormatter = { ratio ->
-                val w = 100
-                val h = (100f / ratio).roundToInt().coerceAtLeast(1)
-                if (ratio >= 1f) {
-                    "Landscape " + w + ":" + h
-                } else {
-                    "Portrait " + h + ":" + w
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
     }
-}
-
-@Composable
-private fun PageSelectChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    val bg = if (selected) Color.Black else Color.White
-    val fg = if (selected) Color.White else Color.Black
-    Text(
-        text = if (selected) "✓ " + label else label,
-        color = fg,
-        style = MaterialTheme.typography.labelMedium,
-        maxLines = 1,
-        modifier = Modifier
-            .background(bg, RoundedCornerShape(16.dp))
-            .border(1.dp, Color.Black, RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-    )
 }
 
 @Composable
