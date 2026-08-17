@@ -207,7 +207,6 @@ fun EditorScreen(onBackClick: () -> Unit) {
                                         pageAspectRatio = viewModel.pageAspectRatio,
                     pageAspectRatioForPage = viewModel::aspectRatioForPage,
                                         pageBackgroundColor = viewModel.pageBackgroundColor,
-                    pageBackgroundColorForPage = viewModel::backgroundColorForPage,
                                         imageSpacingDp = viewModel.imageSpacingDp,
                                         imageCellAspectRatio = viewModel.imageCellAspectRatio,
                                         pageMarginDp = 10,
