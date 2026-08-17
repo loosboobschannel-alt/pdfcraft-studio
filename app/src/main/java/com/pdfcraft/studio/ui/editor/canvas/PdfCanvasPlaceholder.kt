@@ -697,7 +697,7 @@ private fun ImageCell(
                     bitmap = image.bitmap.asImageBitmap(),
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Fit
                 )
             } else {
                 CircularProgressIndicator(
@@ -927,7 +927,7 @@ private fun PageCard(
                 bitmap = backgroundBitmap.asImageBitmap(),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Fit
             )
         }
         content()
