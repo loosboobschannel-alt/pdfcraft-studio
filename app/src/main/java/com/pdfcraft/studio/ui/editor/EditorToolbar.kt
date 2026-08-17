@@ -185,7 +185,7 @@ private fun ToolMenuItem(
 ) {
     Text(
         text = label,
-        color = if (enabled) Color.Black else Color.Gray,
+        color = Color.Black,
         style = MaterialTheme.typography.bodyMedium,
         maxLines = 1,
         softWrap = false,
