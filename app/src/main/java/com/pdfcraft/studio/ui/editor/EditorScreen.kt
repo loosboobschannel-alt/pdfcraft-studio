@@ -205,7 +205,6 @@ fun EditorScreen(onBackClick: () -> Unit) {
                                         textElements = viewModel.textElements.toList(),
                                         imagesPerRow = viewModel.imagesPerRow,
                                         pageAspectRatio = viewModel.pageAspectRatio,
-                    pageAspectRatioForPage = viewModel::aspectRatioForPage,
                                         pageBackgroundColor = viewModel.pageBackgroundColor,
                                         imageSpacingDp = viewModel.imageSpacingDp,
                                         imageCellAspectRatio = viewModel.imageCellAspectRatio,

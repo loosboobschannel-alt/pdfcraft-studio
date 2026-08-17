@@ -136,7 +136,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     val pageAspectOverrides = mutableStateMapOf<Int, Float>()
     /** Page indices selected in Set Page Size tool. */
     val pageSizeSelection = mutableStateListOf<Int>()
-        private set
 
     var isPageLandscape: Boolean by mutableStateOf(false)
         private set
@@ -147,7 +146,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var pageBackgroundColor: Long by mutableStateOf(imageSizePreferences.getPageBackgroundColor())
     val pageBackgroundColorOverrides = mutableStateMapOf<Int, Long>()
     val pageBgColorSelection = mutableStateListOf<Int>()
-        private set
 
     var pageBackgroundImageUri: Uri? by mutableStateOf(null)
         private set
