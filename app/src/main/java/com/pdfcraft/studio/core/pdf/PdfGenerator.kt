@@ -37,7 +37,8 @@ object PdfGenerator {
         pageBackgroundColor: Long,
         imageSpacingDp: Int = 6,
         imageCellAspectRatio: Float = 0.526f,
-        pageMarginDp: Int = 10
+        pageMarginDp: Int = 10,
+        minPageCount: Int = 1
     ): Result {
         if (images.isEmpty() && textElements.isEmpty()) {
             return Result(false, message = "empty")
@@ -67,7 +68,20 @@ object PdfGenerator {
             1
         }
         val imagesPerPage = (perRow * rowsPerPage).coerceAtLeast(1)
-        val pages = if (images.isEmpty()) listOf(emptyList()) else images.chunked(imagesPerPage)
+        val imagePages = if (images.isEmpty()) emptyList() else images.chunked(imagesPerPage)
+
+        // Include every page that has text OR blank pages the user added in the editor.
+        // Previously text-only page 2+ were dropped because export only used image chunks.
+        val maxTextPageIndex = textElements.maxOfOrNull { it.pageIndex } ?: -1
+        val totalPages = maxOf(
+            imagePages.size,
+            maxTextPageIndex + 1,
+            minPageCount.coerceAtLeast(1),
+            1
+        )
+        val pages = List(totalPages) { index ->
+            imagePages.getOrElse(index) { emptyList() }
+        }
 
         val pdf = PdfDocument()
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
