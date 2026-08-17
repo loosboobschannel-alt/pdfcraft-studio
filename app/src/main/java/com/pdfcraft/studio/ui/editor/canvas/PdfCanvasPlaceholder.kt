@@ -32,10 +32,12 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -98,8 +100,10 @@ fun PdfPagesPreview(
     imageCellAspectRatio: Float = 1f,
     imageCornerRadiusPercent: Int = 0,
     pageAspectRatio: Float = PAGE_ASPECT_RATIO,
+    pageAspectRatioForPage: ((Int) -> Float)? = null,
     pageMarginDp: Int = 10,
     pageBackgroundColor: Long = 0xFFFFFFFF,
+    pageBackgroundColorForPage: ((Int) -> Long)? = null,
     pageBackgroundBitmap: android.graphics.Bitmap? = null,
     pageNumberPosition: com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition =
         com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.NONE,
@@ -257,8 +261,8 @@ fun PdfPagesPreview(
                     )
 
                     PageCard(
-                        aspectRatio = pageAspectRatio,
-                        backgroundColor = pageBackgroundColor,
+                        aspectRatio = pageAspectRatioForPage?.invoke(pageIndex) ?: pageAspectRatio,
+                        backgroundColor = pageBackgroundColorForPage?.invoke(pageIndex) ?: pageBackgroundColor,
                         backgroundBitmap = pageBackgroundBitmap,
                         pageNumberText = if (pageNumberPosition != com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.NONE)
                             formatPageNumber(pageIndex) else null,
@@ -721,6 +725,7 @@ private fun ImageCell(
         // Outside tap or any image click dismisses via onDismissRequest / openImageMenu logic.
         if (showMenu && !reorderMode) {
             var savedToGallery by remember(image.id) { mutableStateOf(false) }
+            var showInfoDialog by remember(image.id) { mutableStateOf(false) }
             DropdownMenu(
                 expanded = true,
                 onDismissRequest = onClick
@@ -759,8 +764,81 @@ private fun ImageCell(
                         onClick() // close after use
                     }
                 )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.view_image_information),
+                            color = Color.Black,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    },
+                    onClick = {
+                        onClick() // close menu
+                        showInfoDialog = true
+                    }
+                )
+            }
+            if (showInfoDialog) {
+                val sizeLabel = formatImageSizeLabel(image)
+                val bmp = image.bitmap
+                AlertDialog(
+                    onDismissRequest = { showInfoDialog = false },
+                    title = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(stringResource(R.string.image_info_title))
+                            IconButton(onClick = { showInfoDialog = false }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Close,
+                                    contentDescription = stringResource(R.string.image_info_ok)
+                                )
+                            }
+                        }
+                    },
+                    text = {
+                        Column {
+                            Text(stringResource(R.string.image_info_size, sizeLabel))
+                            if (bmp != null && !bmp.isRecycled) {
+                                Text(
+                                    stringResource(
+                                        R.string.image_info_dimensions,
+                                        bmp.width,
+                                        bmp.height
+                                    )
+                                )
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showInfoDialog = false }) {
+                            Text(stringResource(R.string.image_info_ok))
+                        }
+                    }
+                )
             }
         }
+    }
+}
+
+/** Human-readable size for the image info dialog. */
+private fun formatImageSizeLabel(image: ImportedImage): String {
+    val bytes = image.approxSizeBytes
+        ?: image.bitmap?.let { bmp ->
+            if (!bmp.isRecycled) bmp.byteCount else null
+        }
+    if (bytes == null || bytes <= 0) return "—"
+    return if (bytes < 1024) {
+        "$bytes B"
+    } else if (bytes < 1024 * 1024) {
+        val kb = bytes / 1024.0
+        String.format("%.1f KB", kb)
+    } else {
+        val mb = bytes / (1024.0 * 1024.0)
+        String.format("%.2f MB", mb)
     }
 }
 

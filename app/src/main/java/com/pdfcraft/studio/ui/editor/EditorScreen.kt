@@ -205,11 +205,14 @@ fun EditorScreen(onBackClick: () -> Unit) {
                                         textElements = viewModel.textElements.toList(),
                                         imagesPerRow = viewModel.imagesPerRow,
                                         pageAspectRatio = viewModel.pageAspectRatio,
+                    pageAspectRatioForPage = viewModel::aspectRatioForPage,
                                         pageBackgroundColor = viewModel.pageBackgroundColor,
+                    pageBackgroundColorForPage = viewModel::backgroundColorForPage,
                                         imageSpacingDp = viewModel.imageSpacingDp,
                                         imageCellAspectRatio = viewModel.imageCellAspectRatio,
                                         pageMarginDp = 10,
-                                        minPageCount = viewModel.minPageCount
+                                        minPageCount = viewModel.minPageCount,
+                                        pageAspectRatioForPage = viewModel::aspectRatioForPage
                                     )
                                     if (result.success) {
                                         savedFileName = result.fileName
@@ -411,7 +414,26 @@ Column(
                 pageAspectRatio =
                     viewModel.pageAspectRatio,
                 onPageAspectRatioChange =
-                    viewModel::updatePageAspectRatio,
+                    viewModel::applyPageSizeToSelection,
+                pageCountForSize =
+                    viewModel.currentPageCountEstimate(
+                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                    ),
+                pageSizeSelected =
+                    viewModel.pageSizeSelection.toSet(),
+                onTogglePageSizeSelection =
+                    viewModel::togglePageSizeSelection,
+                onSelectAllPagesForSize = {
+                    viewModel.selectAllPagesForSize(
+                        viewModel.currentPageCountEstimate(
+                            (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        )
+                    )
+                },
+                sliderAspectForSelection =
+                    viewModel.pageSizeSelection.firstOrNull()?.let {
+                        viewModel.aspectRatioForPage(it)
+                    } ?: viewModel.pageAspectRatio,
                 isPageLandscape =
                     viewModel.isPageLandscape,
                 onPageOrientationChange =
@@ -423,7 +445,22 @@ Column(
                 pageBackgroundColor =
                     viewModel.pageBackgroundColor,
                 onPageBackgroundColorChange =
-                    viewModel::updatePageBackgroundColor,
+                    viewModel::applyBackgroundColorToSelection,
+                pageCountForBgColor =
+                    viewModel.currentPageCountEstimate(
+                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                    ),
+                pageBgColorSelected =
+                    viewModel.pageBgColorSelection.toSet(),
+                onTogglePageBgColorSelection =
+                    viewModel::togglePageBgColorSelection,
+                onSelectAllPagesForBgColor = {
+                    viewModel.selectAllPagesForBgColor(
+                        viewModel.currentPageCountEstimate(
+                            (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        )
+                    )
+                },
                 onPickBackgroundImage = {
                     backgroundImagePickerLauncher.launch(
                         androidx.activity.result.PickVisualMediaRequest(

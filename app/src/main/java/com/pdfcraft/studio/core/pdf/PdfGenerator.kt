@@ -38,7 +38,8 @@ object PdfGenerator {
         imageSpacingDp: Int = 6,
         imageCellAspectRatio: Float = 0.526f,
         pageMarginDp: Int = 10,
-        minPageCount: Int = 1
+        minPageCount: Int = 1,
+        pageAspectRatioForPage: ((Int) -> Float)? = null
     ): Result {
         if (images.isEmpty() && textElements.isEmpty()) {
             return Result(false, message = "empty")
@@ -92,7 +93,9 @@ object PdfGenerator {
         }
 
         pages.forEachIndexed { pageIndex, pageImages ->
-            val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageIndex + 1).create()
+            val aspect = (pageAspectRatioForPage?.invoke(pageIndex) ?: pageAspectRatio).coerceAtLeast(0.1f)
+            val thisPageHeight = (pageWidth / aspect).toInt().coerceAtLeast(400)
+            val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, thisPageHeight, pageIndex + 1).create()
             val page = pdf.startPage(pageInfo)
             val canvas = page.canvas
 
@@ -126,7 +129,7 @@ object PdfGenerator {
                 textPaint.color = te.textColorArgb.toInt()
                 textPaint.textSize = te.fontSizeSp * (pageWidth / 360f)
                 val x = te.xFraction * pageWidth
-                val y = te.yFraction * pageHeight + textPaint.textSize
+                val y = te.yFraction * thisPageHeight + textPaint.textSize
                 canvas.drawText(te.text, x, y, textPaint)
             }
 

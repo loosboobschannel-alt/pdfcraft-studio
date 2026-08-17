@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -131,6 +132,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     // ---- Page Tools state ----
     var pageAspectRatio: Float by mutableStateOf(9f / 16f)
+    /** Per-page aspect overrides; missing key uses [pageAspectRatio]. */
+    val pageAspectOverrides = mutableStateMapOf<Int, Float>()
+    /** Page indices selected in Set Page Size tool. */
+    val pageSizeSelection = mutableStateListOf<Int>()
         private set
 
     var isPageLandscape: Boolean by mutableStateOf(false)
@@ -140,6 +145,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         private set
 
     var pageBackgroundColor: Long by mutableStateOf(imageSizePreferences.getPageBackgroundColor())
+    val pageBackgroundColorOverrides = mutableStateMapOf<Int, Long>()
+    val pageBgColorSelection = mutableStateListOf<Int>()
         private set
 
     var pageBackgroundImageUri: Uri? by mutableStateOf(null)
@@ -587,6 +594,51 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         minPageCount = minPageCount - 1
     }
 
+    fun aspectRatioForPage(pageIndex: Int): Float {
+        return pageAspectOverrides[pageIndex] ?: pageAspectRatio
+    }
+
+    fun currentPageCountEstimate(imagesPerPage: Int): Int {
+        val perPage = imagesPerPage.coerceAtLeast(1)
+        val imagePages = if (importedImages.isEmpty()) 0
+            else (importedImages.size + perPage - 1) / perPage
+        val textPages = (textElements.maxOfOrNull { it.pageIndex } ?: -1) + 1
+        return maxOf(imagePages, textPages, minPageCount, 1)
+    }
+
+    fun selectAllPagesForSize(pageCount: Int) {
+        pageSizeSelection.clear()
+        pageSizeSelection.addAll(0 until pageCount.coerceAtLeast(1))
+    }
+
+    fun clearPageSizeSelection() {
+        pageSizeSelection.clear()
+    }
+
+    fun togglePageSizeSelection(pageIndex: Int) {
+        if (pageSizeSelection.contains(pageIndex)) {
+            pageSizeSelection.remove(pageIndex)
+        } else {
+            pageSizeSelection.add(pageIndex)
+        }
+    }
+
+    fun isPageSizeSelected(pageIndex: Int): Boolean =
+        pageSizeSelection.contains(pageIndex)
+
+    fun applyPageSizeToSelection(ratio: Float) {
+        val r = ratio.coerceIn(0.4f, 2.5f)
+        if (pageSizeSelection.isEmpty()) {
+            // No selection → treat as global default for all pages
+            pageAspectRatio = r
+            pageAspectOverrides.clear()
+        } else {
+            pageSizeSelection.forEach { idx ->
+                pageAspectOverrides[idx] = r
+            }
+        }
+    }
+
     fun updatePageAspectRatio(ratio: Float) {
         val r = ratio.coerceIn(0.4f, 2.5f)
         pageAspectRatio = r
@@ -601,6 +653,38 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun updatePageMarginDp(dp: Int) {
         pageMarginDp = dp.coerceIn(0, 48)
+    }
+
+    fun backgroundColorForPage(pageIndex: Int): Long {
+        return pageBackgroundColorOverrides[pageIndex] ?: pageBackgroundColor
+    }
+
+    fun selectAllPagesForBgColor(pageCount: Int) {
+        pageBgColorSelection.clear()
+        pageBgColorSelection.addAll(0 until pageCount.coerceAtLeast(1))
+    }
+
+    fun togglePageBgColorSelection(pageIndex: Int) {
+        if (pageBgColorSelection.contains(pageIndex)) {
+            pageBgColorSelection.remove(pageIndex)
+        } else {
+            pageBgColorSelection.add(pageIndex)
+        }
+    }
+
+    fun applyBackgroundColorToSelection(colorArgb: Long) {
+        if (pageBgColorSelection.isEmpty()) {
+            pageBackgroundColor = colorArgb
+            pageBackgroundColorOverrides.clear()
+            imageSizePreferences.savePageBackgroundColor(colorArgb)
+            // solid color replaces image on global path
+            pageBackgroundImageUri = null
+            pageBackgroundBitmap = null
+        } else {
+            pageBgColorSelection.forEach { idx ->
+                pageBackgroundColorOverrides[idx] = colorArgb
+            }
+        }
     }
 
     fun updatePageBackgroundColor(colorArgb: Long) {
