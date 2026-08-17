@@ -132,7 +132,7 @@ fun EditorToolbar(
                         .padding(horizontal = 8.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
-                                ) {
+                                                ) {
                     PageToolsMenu(
                         onAddNewPage = onAddNewPage,
                         onSetPageSize = { pageSizeModeActive = true },
