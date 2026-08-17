@@ -197,7 +197,7 @@ private fun ToolMenuItem(
 }
 
 @Composable
-private fun PageToolsMenu(
+private fun ImageToolsMenu(
     onImportImagesClick: () -> Unit,
     onResizeImagesClick: () -> Unit,
     onAdjustSpacingClick: () -> Unit,
@@ -249,7 +249,7 @@ private fun PageToolsMenu(
 }
 
 @Composable
-private fun ImageToolsMenu(
+private fun PageToolsMenu(
     onAddNewPage: () -> Unit,
     onSetPageSize: () -> Unit,
     isPageLandscape: Boolean,
