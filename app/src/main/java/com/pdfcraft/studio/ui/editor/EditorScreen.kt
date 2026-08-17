@@ -19,6 +19,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
+import com.pdfcraft.studio.core.pdf.PdfGenerator
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -134,12 +143,118 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = {
-                        // Later: Save Project, Draft, Import PDF, Export PDF etc.
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.MoreVert,
-                            contentDescription = "More options"
+                    var menuExpanded by remember { mutableStateOf(false) }
+                    var showNameDialog by remember { mutableStateOf(false) }
+                    var showSuccessDialog by remember { mutableStateOf(false) }
+                    var showErrorDialog by remember { mutableStateOf(false) }
+                    var errorMessage by remember { mutableStateOf("") }
+                    var savedFileName by remember { mutableStateOf("") }
+                    var nameField by remember {
+                        mutableStateOf(TextFieldValue("Document.pdf", TextRange(0, 8)))
+                    }
+
+                    Box {
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.MoreVert,
+                                contentDescription = "More options"
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.export_pdf)) },
+                                onClick = {
+                                    menuExpanded = false
+                                    if (viewModel.importedImages.isEmpty() && viewModel.textElements.isEmpty()) {
+                                        errorMessage = context.getString(R.string.export_pdf_empty)
+                                        showErrorDialog = true
+                                    } else {
+                                        nameField = TextFieldValue("Document.pdf", TextRange(0, 8))
+                                        showNameDialog = true
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                    // --- Name dialog ---
+                    if (showNameDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showNameDialog = false },
+                            title = { Text(stringResource(R.string.export_pdf_dialog_title)) },
+                            text = {
+                                OutlinedTextField(
+                                    value = nameField,
+                                    onValueChange = { nameField = it },
+                                    label = { Text(stringResource(R.string.export_pdf_name_hint)) },
+                                    singleLine = true
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    showNameDialog = false
+                                    val raw = nameField.text.trim().ifEmpty { "Document.pdf" }
+                                    val result = PdfGenerator.export(
+                                        context = context,
+                                        fileName = raw,
+                                        images = viewModel.importedImages.toList(),
+                                        textElements = viewModel.textElements.toList(),
+                                        imagesPerRow = viewModel.imagesPerRow,
+                                        pageAspectRatio = viewModel.pageAspectRatio,
+                                        pageBackgroundColor = viewModel.pageBackgroundColor
+                                    )
+                                    if (result.success) {
+                                        savedFileName = result.fileName
+                                        showSuccessDialog = true
+                                    } else {
+                                        errorMessage = if (result.message == "empty")
+                                            context.getString(R.string.export_pdf_empty)
+                                        else
+                                            context.getString(R.string.export_pdf_failed)
+                                        showErrorDialog = true
+                                    }
+                                }) {
+                                    Text(stringResource(R.string.ok))
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showNameDialog = false }) {
+                                    Text(stringResource(R.string.cancel))
+                                }
+                            }
+                        )
+                    }
+
+                    // --- Success dialog ---
+                    if (showSuccessDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showSuccessDialog = false },
+                            title = { Text(stringResource(R.string.export_pdf_success_title)) },
+                            text = {
+                                Text(stringResource(R.string.export_pdf_success_message, savedFileName))
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { showSuccessDialog = false }) {
+                                    Text(stringResource(R.string.export_pdf_done))
+                                }
+                            }
+                        )
+                    }
+
+                    // --- Error dialog ---
+                    if (showErrorDialog) {
+                        AlertDialog(
+                            onDismissRequest = { showErrorDialog = false },
+                            title = { Text(stringResource(R.string.export_pdf_failed)) },
+                            text = { Text(errorMessage) },
+                            confirmButton = {
+                                TextButton(onClick = { showErrorDialog = false }) {
+                                    Text(stringResource(R.string.export_pdf_done))
+                                }
+                            }
                         )
                     }
                 },

@@ -113,4 +113,17 @@
     <string name="shadow_offset">Offset</string>
     <string name="shadow_blur">Blur</string>
     <string name="shadow_color">Shadow Color</string>
+
+    <string name="export_pdf">Export PDF</string>
+    <string name="export_pdf_dialog_title">Export PDF</string>
+    <string name="export_pdf_name_hint">Enter PDF name</string>
+    <string name="export_pdf_default_name">Document.pdf</string>
+    <string name="export_pdf_success_title">PDF Saved</string>
+    <string name="export_pdf_success_message">Your PDF has been saved as "%1$s" in:\nDocuments / PDFCraftStudio</string>
+    <string name="export_pdf_done">Done</string>
+    <string name="export_pdf_failed">Failed to export PDF. Please try again.</string>
+    <string name="export_pdf_empty">Nothing to export. Add images or text first.</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+
 </resources>
