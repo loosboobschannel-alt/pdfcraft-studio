@@ -425,14 +425,6 @@ Column(
                     viewModel.pageBackgroundColor,
                 onPageBackgroundColorChange =
                     viewModel::updatePageBackgroundColor,
-                pageCountForBgColor =
-                    viewModel.currentPageCountEstimate(
-                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
-                    ),
-                pageBgColorSelected =
-                    viewModel.pageBgColorSelection.toSet(),
-                onTogglePageBgColorSelection =
-                    viewModel::togglePageBgColorSelection,
                 onPickBackgroundImage = {
                     backgroundImagePickerLauncher.launch(
                         androidx.activity.result.PickVisualMediaRequest(
