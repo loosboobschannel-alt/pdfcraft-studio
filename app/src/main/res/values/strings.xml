@@ -56,13 +56,13 @@
     <string name="edit_text_dialog_title">Edit Text</string>
     <string name="text_tool_font">2. Font</string>
     <string name="text_tool_font_size">Font Size</string>
-    <string name="text_tool_color">Text Color</string>
+    <string name="text_tool_color">3. Text Color</string>
     <string name="text_tool_bold">Bold</string>
     <string name="text_tool_italic">Italic</string>
     <string name="text_tool_align_left">Left Alignment</string>
     <string name="text_tool_align_center">Center Alignment</string>
     <string name="text_tool_align_right">Right Alignment</string>
-    <string name="text_tool_delete">3. Delete</string>
+    <string name="text_tool_delete">7. Delete</string>
     <string name="text_tool_rename">Rename</string>
     <string name="text_tool_copy">Copy</string>
     <string name="text_tool_cut">Cut</string>
@@ -101,11 +101,11 @@
     <string name="page_added_message">New page added</string>
     <string name="page_deleted_message">Page deleted</string>
     <string name="page_cannot_delete_last">Cannot delete the last remaining page</string>
-    <string name="text_tool_text_size">Text Size</string>
+    <string name="text_tool_text_size">6. Text Size</string>
 
-    <string name="text_tool_text_color">Text Color</string>
-    <string name="text_tool_bg_color">Background Color</string>
-    <string name="text_tool_shadow">Shadow</string>
+    <string name="text_tool_text_color">3. Text Color</string>
+    <string name="text_tool_bg_color">4. Background Color</string>
+    <string name="text_tool_shadow">5. Shadow</string>
     <string name="color_picker_title">Select Color</string>
     <string name="color_picker_hue">Hue</string>
     <string name="color_picker_sat">Saturation</string>

@@ -132,14 +132,7 @@ fun EditorToolbar(
                         .padding(horizontal = 8.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
-                ) {
-                    ImageToolsMenu(
-                        onImportImagesClick = onImportImagesClick,
-                        onResizeImagesClick = { resizeModeActive = true },
-                        onAdjustSpacingClick = { spacingModeActive = true },
-                        onAdjustImageShapeClick = { shapeModeActive = true },
-                        onAdjustCornersClick = { cornersModeActive = true }
-                    )
+                                ) {
                     PageToolsMenu(
                         onAddNewPage = onAddNewPage,
                         onSetPageSize = { pageSizeModeActive = true },
@@ -156,6 +149,13 @@ fun EditorToolbar(
                         onPageNumberPositionChange = onPageNumberPositionChange,
                         pageNumberStyle = pageNumberStyle,
                         onPageNumberStyleChange = onPageNumberStyleChange
+                    )
+                    ImageToolsMenu(
+                        onImportImagesClick = onImportImagesClick,
+                        onResizeImagesClick = { resizeModeActive = true },
+                        onAdjustSpacingClick = { spacingModeActive = true },
+                        onAdjustImageShapeClick = { shapeModeActive = true },
+                        onAdjustCornersClick = { cornersModeActive = true }
                     )
                     TextToolsMenu(
                         onEnterTextClick = onAddTextClick,
@@ -197,7 +197,7 @@ private fun ToolMenuItem(
 }
 
 @Composable
-private fun ImageToolsMenu(
+private fun PageToolsMenu(
     onImportImagesClick: () -> Unit,
     onResizeImagesClick: () -> Unit,
     onAdjustSpacingClick: () -> Unit,
@@ -249,7 +249,7 @@ private fun ImageToolsMenu(
 }
 
 @Composable
-private fun PageToolsMenu(
+private fun ImageToolsMenu(
     onAddNewPage: () -> Unit,
     onSetPageSize: () -> Unit,
     isPageLandscape: Boolean,
