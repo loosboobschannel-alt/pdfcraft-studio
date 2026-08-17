@@ -33,8 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.pdfcraft.studio.LocalIsDarkTheme
-import com.pdfcraft.studio.LocalToggleTheme
 import com.pdfcraft.studio.R
 import kotlin.math.roundToInt
 
@@ -171,18 +169,6 @@ fun EditorToolbar(
                         },
                         onDeleteTextClick = onDeleteTextClick,
                         hasSelectedText = hasSelectedText
-                    )
-
-                    // Dark / Light toggle
-                    val isDark = LocalIsDarkTheme.current
-                    val toggleTheme = LocalToggleTheme.current
-                    Text(
-                        text = if (isDark) "Light" else "Dark",
-                        color = Color.Black,
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier
-                            .clickable { toggleTheme() }
-                            .padding(vertical = 4.dp, horizontal = 8.dp)
                     )
                 }
             }
