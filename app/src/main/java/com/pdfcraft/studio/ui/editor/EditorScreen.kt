@@ -484,6 +484,7 @@ Column(
                     imageCornerRadiusPercent = viewModel.imageCornerRadiusPercent,
 
                     pageAspectRatio = viewModel.pageAspectRatio,
+                    pageAspectRatioForPage = viewModel::aspectRatioForPage,
                     pageMarginDp = viewModel.pageMarginDp,
                     pageBackgroundColor = viewModel.pageBackgroundColor,
                     pageBackgroundBitmap = viewModel.pageBackgroundBitmap,
