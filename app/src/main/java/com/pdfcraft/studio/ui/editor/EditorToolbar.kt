@@ -75,7 +75,7 @@ fun EditorToolbar(
     onClearPageSizeSelection: () -> Unit = {},
     sliderAspectForSelection: Float = pageAspectRatio,
     isPageLandscape: Boolean,
-    onPageOrientationChange: (Boolean) -> Unit,
+    onPageOrientationChange: (EditorViewModel.PageOrientation) -> Unit,
     pageMarginDp: Int,
     onPageMarginChange: (Int) -> Unit,
     pageBackgroundColor: Long,
@@ -185,6 +185,7 @@ fun EditorToolbar(
                             showPageBgColorPicker = true
                         },
                         isPageLandscape = isPageLandscape,
+                        pageAspectRatio = pageAspectRatio,
                         onPageOrientationChange = onPageOrientationChange,
                         onSetPageMargin = { pageMarginModeActive = true },
                         onDeletePage = onDeletePage,
@@ -362,7 +363,8 @@ private fun PageToolsMenu(
     onSetPageSize: () -> Unit,
     onSetBackgroundColor: () -> Unit,
     isPageLandscape: Boolean,
-    onPageOrientationChange: (Boolean) -> Unit,
+    pageAspectRatio: Float,
+    onPageOrientationChange: (EditorViewModel.PageOrientation) -> Unit,
     onSetPageMargin: () -> Unit,
     onDeletePage: () -> Unit,
     onSetDeletePage: () -> Unit,
@@ -441,18 +443,24 @@ private fun PageToolsMenu(
                     }
             }
             if (orientationSub) {
+                val isSquare = kotlin.math.abs(pageAspectRatio - 1f) < 0.05f
+                val isLand = pageAspectRatio > 1.05f
+                val isPort = pageAspectRatio < 0.95f
                 ToolMenuItem(
-                    label = (if (!isPageLandscape) "✓ " else "") + stringResource(R.string.page_orientation_portrait)
+                    label = (if (isPort) "✓ " else "") + "\u25AF  " + stringResource(R.string.page_orientation_portrait)
                 ) {
-                    onPageOrientationChange(false)
-                    // keep menu open; only close this sub
-                    orientationSub = false
+                    onPageOrientationChange(EditorViewModel.PageOrientation.PORTRAIT)
+                    // menu stays open
                 }
                 ToolMenuItem(
-                    label = (if (isPageLandscape) "✓ " else "") + stringResource(R.string.page_orientation_landscape)
+                    label = (if (isLand) "✓ " else "") + "\u25AD  " + stringResource(R.string.page_orientation_landscape)
                 ) {
-                    onPageOrientationChange(true)
-                    orientationSub = false
+                    onPageOrientationChange(EditorViewModel.PageOrientation.LANDSCAPE)
+                }
+                ToolMenuItem(
+                    label = (if (isSquare) "✓ " else "") + "\u25A1  " + stringResource(R.string.page_orientation_square)
+                ) {
+                    onPageOrientationChange(EditorViewModel.PageOrientation.SQUARE)
                 }
             }
 
