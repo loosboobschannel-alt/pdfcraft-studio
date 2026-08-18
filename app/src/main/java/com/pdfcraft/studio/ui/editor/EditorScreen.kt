@@ -506,6 +506,7 @@ Column(
                     pageBackgroundColor = viewModel.pageBackgroundColor,
                     pageBackgroundColorForPage = viewModel::backgroundColorForPage,
                     pageBackgroundBitmap = viewModel.pageBackgroundBitmap,
+                    pageBackgroundBitmapForPage = viewModel::backgroundBitmapForPage,
                     pageNumberPosition = viewModel.pageNumberPosition,
                     formatPageNumber = viewModel::formatPageNumber,
                     minPageCount = viewModel.minPageCount,

@@ -151,6 +151,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         private set
 
     var pageBackgroundBitmap: Bitmap? by mutableStateOf(null)
+    val pageBackgroundBitmapOverrides = mutableStateMapOf<Int, Bitmap>()
         private set
 
     enum class PageNumberPosition { NONE, LEFT, CENTER, RIGHT }
@@ -721,22 +722,44 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun setPageBackgroundFromUri(uri: Uri?) {
-        pageBackgroundImageUri = uri
         if (uri == null) {
-            pageBackgroundBitmap = null
+            clearPageBackgroundImage()
             return
         }
         viewModelScope.launch {
             val bmp = withContext(Dispatchers.IO) {
                 imageHandler.decode(uri, maxDimensionPx = 1600)
+            } ?: return@launch
+            if (pageBgColorSelection.isEmpty()) {
+                // Global: all pages
+                pageBackgroundImageUri = uri
+                pageBackgroundBitmap = bmp
+                pageBackgroundBitmapOverrides.clear()
+            } else {
+                // Only selected pages
+                pageBgColorSelection.forEach { idx ->
+                    pageBackgroundBitmapOverrides[idx] = bmp
+                    // solid color override not needed when image is set
+                    pageBackgroundColorOverrides.remove(idx)
+                }
             }
-            pageBackgroundBitmap = bmp
         }
     }
 
     fun clearPageBackgroundImage() {
-        pageBackgroundImageUri = null
-        pageBackgroundBitmap = null
+        if (pageBgColorSelection.isEmpty()) {
+            pageBackgroundImageUri = null
+            pageBackgroundBitmap = null
+            pageBackgroundBitmapOverrides.clear()
+        } else {
+            pageBgColorSelection.forEach { idx ->
+                pageBackgroundBitmapOverrides.remove(idx)
+            }
+        }
+    }
+
+    fun backgroundBitmapForPage(pageIndex: Int): Bitmap? {
+        return pageBackgroundBitmapOverrides[pageIndex] ?: pageBackgroundBitmap
     }
 
     fun updatePageNumberPosition(pos: PageNumberPosition) {

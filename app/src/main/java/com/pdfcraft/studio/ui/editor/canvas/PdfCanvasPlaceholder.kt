@@ -105,6 +105,7 @@ fun PdfPagesPreview(
     pageBackgroundColor: Long = 0xFFFFFFFF,
     pageBackgroundColorForPage: ((Int) -> Long)? = null,
     pageBackgroundBitmap: android.graphics.Bitmap? = null,
+    pageBackgroundBitmapForPage: ((Int) -> android.graphics.Bitmap?)? = null,
     pageNumberPosition: com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition =
         com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.NONE,
     formatPageNumber: (Int) -> String = { (it + 1).toString() },
@@ -168,7 +169,7 @@ fun PdfPagesPreview(
                         PageCard(
                             aspectRatio = pageAspectRatioForPage?.invoke(0) ?: pageAspectRatio,
                             backgroundColor = pageBackgroundColorForPage?.invoke(0) ?: pageBackgroundColor,
-                            backgroundBitmap = pageBackgroundBitmap,
+                            backgroundBitmap = pageBackgroundBitmapForPage?.invoke(0) ?: pageBackgroundBitmap,
                             pageNumberText = if (pageNumberPosition != com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.NONE)
                                 formatPageNumber(0) else null,
                             pageNumberPosition = pageNumberPosition
@@ -263,7 +264,7 @@ fun PdfPagesPreview(
                     PageCard(
                         aspectRatio = pageAspectRatioForPage?.invoke(pageIndex) ?: pageAspectRatio,
                         backgroundColor = pageBackgroundColorForPage?.invoke(pageIndex) ?: pageBackgroundColor,
-                        backgroundBitmap = pageBackgroundBitmap,
+                        backgroundBitmap = pageBackgroundBitmapForPage?.invoke(pageIndex) ?: pageBackgroundBitmap,
                         pageNumberText = if (pageNumberPosition != com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.NONE)
                             formatPageNumber(pageIndex) else null,
                         pageNumberPosition = pageNumberPosition
