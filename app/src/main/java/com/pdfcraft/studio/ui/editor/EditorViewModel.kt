@@ -709,9 +709,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             // solid color replaces image on global path
             pageBackgroundImageUri = null
             pageBackgroundBitmap = null
+            pageBackgroundBitmapOverrides.clear()
         } else {
             pageBgColorSelection.forEach { idx ->
                 pageBackgroundColorOverrides[idx] = colorArgb
+                pageBackgroundBitmapOverrides.remove(idx)
             }
         }
     }
@@ -731,15 +733,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 imageHandler.decode(uri, maxDimensionPx = 1600)
             } ?: return@launch
             if (pageBgColorSelection.isEmpty()) {
-                // Global: all pages
                 pageBackgroundImageUri = uri
                 pageBackgroundBitmap = bmp
                 pageBackgroundBitmapOverrides.clear()
             } else {
-                // Only selected pages
                 pageBgColorSelection.forEach { idx ->
                     pageBackgroundBitmapOverrides[idx] = bmp
-                    // solid color override not needed when image is set
                     pageBackgroundColorOverrides.remove(idx)
                 }
             }
@@ -761,6 +760,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun backgroundBitmapForPage(pageIndex: Int): Bitmap? {
         return pageBackgroundBitmapOverrides[pageIndex] ?: pageBackgroundBitmap
     }
+
+
 
     fun updatePageNumberPosition(pos: PageNumberPosition) {
         pageNumberPosition = pos
