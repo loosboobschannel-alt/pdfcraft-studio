@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.Dialog
@@ -459,7 +460,7 @@ private fun PageToolsMenu(
             }
         ) {
             ToolMenuItem(stringResource(R.string.page_tool_add_new_page)) {
-                menuExpanded = false
+                // Keep Page Settings menu open; closes only on outside touch
                 onAddNewPage()
             }
             HorizontalDivider(color = Color.LightGray)

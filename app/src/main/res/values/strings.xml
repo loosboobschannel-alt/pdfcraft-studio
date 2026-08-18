@@ -84,7 +84,7 @@
     <string name="page_size_page_item">Page %1$d</string>
     <string name="page_size_ok">OK</string>
     <string name="page_size_select_all">Select All</string>
-    <string name="page_size_picker_instruction">Select the pages whose size you want to change.</string>
+    <string name="page_size_picker_instruction">Select Pages to Change Size</string>
     <string name="page_tool_orientation">3. Page Orientation</string>
     <string name="page_tool_margin">4. Page Margin</string>
     <string name="page_tool_delete_page">5. Delete Page</string>
@@ -142,7 +142,7 @@
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
 
-    <string name="page_delete_picker_instruction">Select the pages you want to delete.</string>
+    <string name="page_delete_picker_instruction">Select Pages to Delete</string>
     <string name="page_delete_button">Delete</string>
-    <string name="page_bg_picker_instruction">Select the pages whose background you want to change.</string>
+    <string name="page_bg_picker_instruction">Select Pages to Change Background</string>
 </resources>
