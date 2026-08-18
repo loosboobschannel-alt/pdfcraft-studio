@@ -683,6 +683,23 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+
+    fun clearPageBgColorSelection() {
+        pageBgColorSelection.clear()
+    }
+
+    fun toggleSelectAllPagesForBgColor(pageCount: Int) {
+        val count = pageCount.coerceAtLeast(1)
+        val allSelected = pageBgColorSelection.size >= count &&
+            (0 until count).all { it in pageBgColorSelection }
+        if (allSelected) {
+            pageBgColorSelection.clear()
+        } else {
+            pageBgColorSelection.clear()
+            pageBgColorSelection.addAll(0 until count)
+        }
+    }
+
     fun applyBackgroundColorToSelection(colorArgb: Long) {
         if (pageBgColorSelection.isEmpty()) {
             pageBackgroundColor = colorArgb

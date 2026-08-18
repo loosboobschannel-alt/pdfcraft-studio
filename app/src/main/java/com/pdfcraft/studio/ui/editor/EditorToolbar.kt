@@ -82,6 +82,11 @@ fun EditorToolbar(
     onPickBackgroundImage: () -> Unit,
     onClearBackgroundImage: () -> Unit,
     hasBackgroundImage: Boolean,
+    pageCountForBgColor: Int = 1,
+    pageBgColorSelected: Set<Int> = emptySet(),
+    onTogglePageBgColorSelection: (Int) -> Unit = {},
+    onToggleSelectAllPagesForBgColor: () -> Unit = {},
+    onClearPageBgColorSelection: () -> Unit = {},
     pageNumberPosition: EditorViewModel.PageNumberPosition,
     onPageNumberPositionChange: (EditorViewModel.PageNumberPosition) -> Unit,
     pageNumberStyle: EditorViewModel.PageNumberStyle,
@@ -96,6 +101,8 @@ fun EditorToolbar(
     var cornersModeActive by remember { mutableStateOf(false) }
     var pageSizeModeActive by remember { mutableStateOf(false) }
     var showPageSizePicker by remember { mutableStateOf(false) }
+    var showPageBgColorPicker by remember { mutableStateOf(false) }
+    var pageBgColorModeActive by remember { mutableStateOf(false) }
     var pageMarginModeActive by remember { mutableStateOf(false) }
     var textSizeModeActive by remember { mutableStateOf(false) }
 
@@ -129,6 +136,17 @@ fun EditorToolbar(
                 sizeSp = textSizeSp,
                 onSizeChange = onTextSizeChange,
                 onDone = { textSizeModeActive = false }
+            )
+            pageBgColorModeActive -> PageBackgroundColorPanel(
+                pageBackgroundColor = pageBackgroundColor,
+                hasBackgroundImage = hasBackgroundImage,
+                onColorSelected = onPageBackgroundColorChange,
+                onPickBackgroundImage = {
+                    pageBgColorModeActive = false
+                    onPickBackgroundImage()
+                },
+                onClearBackgroundImage = onClearBackgroundImage,
+                onDone = { pageBgColorModeActive = false }
             )
             pageSizeModeActive -> PageSizeSlider(
                 aspectRatio = sliderAspectForSelection,
@@ -207,6 +225,22 @@ fun EditorToolbar(
                 }
             },
             onDismiss = { showPageSizePicker = false }
+        )
+    }
+
+    if (showPageBgColorPicker) {
+        PageSizePickerDialog(
+            pageCount = pageCountForBgColor,
+            selectedPages = pageBgColorSelected,
+            onTogglePage = onTogglePageBgColorSelection,
+            onToggleSelectAll = onToggleSelectAllPagesForBgColor,
+            onOk = {
+                showPageBgColorPicker = false
+                if (pageBgColorSelected.isNotEmpty()) {
+                    pageBgColorModeActive = true
+                }
+            },
+            onDismiss = { showPageBgColorPicker = false }
         )
     }
 }
@@ -296,6 +330,11 @@ private fun PageToolsMenu(
     onPickBackgroundImage: () -> Unit,
     onClearBackgroundImage: () -> Unit,
     hasBackgroundImage: Boolean,
+    pageCountForBgColor: Int = 1,
+    pageBgColorSelected: Set<Int> = emptySet(),
+    onTogglePageBgColorSelection: (Int) -> Unit = {},
+    onToggleSelectAllPagesForBgColor: () -> Unit = {},
+    onClearPageBgColorSelection: () -> Unit = {},
     pageNumberPosition: EditorViewModel.PageNumberPosition,
     onPageNumberPositionChange: (EditorViewModel.PageNumberPosition) -> Unit,
     pageNumberStyle: EditorViewModel.PageNumberStyle,
@@ -389,54 +428,14 @@ private fun PageToolsMenu(
             HorizontalDivider(color = Color.LightGray)
 
             // ---- Background Color (closes orientation sub) ----
-            ToolMenuItem(stringResource(R.string.page_tool_background_color) + " ›") {
-                backgroundSub = !backgroundSub
-                if (backgroundSub) {
-                    orientationSub = false
-                }
+            ToolMenuItem(stringResource(R.string.page_tool_background_color)) {
+                menuExpanded = false
+                backgroundSub = false
+                orientationSub = false
+                onClearPageBgColorSelection()
+                showPageBgColorPicker = true
             }
-            if (backgroundSub) {
-                val allColors = primaryColors + extraColors
 
-                // Import From Gallery first
-                ToolMenuItem(stringResource(R.string.page_bg_import_gallery)) {
-                    menuExpanded = false
-                    backgroundSub = false
-                    onPickBackgroundImage()
-                }
-                if (hasBackgroundImage) {
-                    ToolMenuItem(stringResource(R.string.page_bg_clear_image)) {
-                        onClearBackgroundImage()
-                    }
-                }
-
-                // All colors at once (no More/Fewer, no page chips)
-                allColors.chunked(8).forEach { row ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        row.forEach { c ->
-                            val selected = pageBackgroundColor == c && !hasBackgroundImage
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .background(Color(c), CircleShape)
-                                    .border(
-                                        width = if (selected) 2.dp else 1.dp,
-                                        color = if (selected) MaterialTheme.colorScheme.primary else Color.LightGray,
-                                        shape = CircleShape
-                                    )
-                                    .clickable {
-                                        onPageBackgroundColorChange(c)
-                                    }
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -767,14 +766,15 @@ private fun PageSizePickerDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = stringResource(R.string.page_size_select_all),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.Black,
-                    modifier = Modifier
-                        .clickable(onClick = onToggleSelectAll)
-                        .padding(vertical = 4.dp)
-                )
+                OutlinedButton(onClick = onToggleSelectAll) {
+                    Text(
+                        text = if (allSelected)
+                            stringResource(R.string.page_size_select_all)
+                        else
+                            stringResource(R.string.page_size_select_all),
+                        color = Color.Black
+                    )
+                }
                 Spacer(modifier = Modifier.weight(1f))
                 TextButton(
                     onClick = onOk,
@@ -808,6 +808,84 @@ private fun PageSizePickerDialog(
                             text = stringResource(R.string.page_size_page_item, i + 1),
                             style = MaterialTheme.typography.bodyLarge,
                             color = Color.Black
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun PageBackgroundColorPanel(
+    pageBackgroundColor: Long,
+    hasBackgroundImage: Boolean,
+    onColorSelected: (Long) -> Unit,
+    onPickBackgroundImage: () -> Unit,
+    onClearBackgroundImage: () -> Unit,
+    onDone: () -> Unit
+) {
+    val primaryColors = listOf(
+        0xFFFFFFFFL, 0xFFF5F5F5L, 0xFFE0E0E0L, 0xFFFFF8E1L,
+        0xFFE3F2FDL, 0xFFE8F5E9L, 0xFFFFEBEEL, 0xFF000000L
+    )
+    val extraColors = listOf(
+        0xFFFFCDD2L, 0xFFF8BBD0L, 0xFFE1BEE7L, 0xFFD1C4E9L,
+        0xFFC5CAE9L, 0xFFBBDEFBL, 0xFFB3E5FCL, 0xFFB2EBF2L,
+        0xFFB2DFDBL, 0xFFC8E6C9L, 0xFFDCEDC8L, 0xFFF0F4C3L,
+        0xFFFFF9C4L, 0xFFFFECB3L, 0xFFFFE0B2L, 0xFFFFCCBCL,
+        0xFFD7CCC8L, 0xFFCFD8DCL, 0xFF90A4AEL, 0xFF607D8BL
+    )
+    val allColors = primaryColors + extraColors
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        SliderToolHeader(
+            title = stringResource(R.string.page_tool_background_color),
+            onDone = onDone
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedButton(onClick = onPickBackgroundImage) {
+            Text(
+                text = stringResource(R.string.page_bg_import_gallery),
+                color = Color.Black
+            )
+        }
+        if (hasBackgroundImage) {
+            Spacer(modifier = Modifier.height(4.dp))
+            TextButton(onClick = onClearBackgroundImage) {
+                Text(stringResource(R.string.page_bg_clear_image))
+            }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            allColors.chunked(8).forEach { row ->
+                Row(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    row.forEach { c ->
+                        val selected = pageBackgroundColor == c && !hasBackgroundImage
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(Color(c), CircleShape)
+                                .border(
+                                    width = if (selected) 2.dp else 1.dp,
+                                    color = if (selected) MaterialTheme.colorScheme.primary else Color.LightGray,
+                                    shape = CircleShape
+                                )
+                                .clickable { onColorSelected(c) }
                         )
                     }
                 }

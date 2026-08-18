@@ -445,7 +445,24 @@ Column(
                 pageBackgroundColor =
                     viewModel.pageBackgroundColor,
                 onPageBackgroundColorChange =
-                    viewModel::updatePageBackgroundColor,
+                    viewModel::applyBackgroundColorToSelection,
+                pageCountForBgColor =
+                    viewModel.currentPageCountEstimate(
+                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                    ),
+                pageBgColorSelected =
+                    viewModel.pageBgColorSelection.toSet(),
+                onTogglePageBgColorSelection =
+                    viewModel::togglePageBgColorSelection,
+                onToggleSelectAllPagesForBgColor = {
+                    viewModel.toggleSelectAllPagesForBgColor(
+                        viewModel.currentPageCountEstimate(
+                            (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        )
+                    )
+                },
+                onClearPageBgColorSelection =
+                    viewModel::clearPageBgColorSelection,
                 onPickBackgroundImage = {
                     backgroundImagePickerLauncher.launch(
                         androidx.activity.result.PickVisualMediaRequest(
@@ -487,6 +504,7 @@ Column(
                     pageAspectRatioForPage = viewModel::aspectRatioForPage,
                     pageMarginDp = viewModel.pageMarginDp,
                     pageBackgroundColor = viewModel.pageBackgroundColor,
+                    pageBackgroundColorForPage = viewModel::backgroundColorForPage,
                     pageBackgroundBitmap = viewModel.pageBackgroundBitmap,
                     pageNumberPosition = viewModel.pageNumberPosition,
                     formatPageNumber = viewModel::formatPageNumber,
