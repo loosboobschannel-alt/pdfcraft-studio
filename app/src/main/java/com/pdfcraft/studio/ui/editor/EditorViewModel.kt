@@ -750,28 +750,16 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     enum class PageOrientation { PORTRAIT, LANDSCAPE, SQUARE }
 
     fun updatePageOrientation(orientation: PageOrientation) {
-        when (orientation) {
-            PageOrientation.SQUARE -> {
-                isPageLandscape = false
-                pageAspectRatio = 1f
-            }
-            PageOrientation.LANDSCAPE -> {
-                isPageLandscape = true
-                if (kotlin.math.abs(pageAspectRatio - 1f) < 0.05f) {
-                    pageAspectRatio = 16f / 9f
-                } else if (pageAspectRatio < 1f) {
-                    pageAspectRatio = 1f / pageAspectRatio
-                }
-            }
-            PageOrientation.PORTRAIT -> {
-                isPageLandscape = false
-                if (kotlin.math.abs(pageAspectRatio - 1f) < 0.05f) {
-                    pageAspectRatio = 9f / 16f
-                } else if (pageAspectRatio > 1f) {
-                    pageAspectRatio = 1f / pageAspectRatio
-                }
-            }
+        val ratio = when (orientation) {
+            PageOrientation.PORTRAIT -> 9f / 16f
+            PageOrientation.LANDSCAPE -> 16f / 9f
+            PageOrientation.SQUARE -> 1f
         }
+        pageAspectRatio = ratio
+        isPageLandscape = ratio > 1f
+        // Set Page Size overrides must not block orientation
+        pageAspectOverrides.clear()
+        pageSizeSelection.clear()
     }
 
     /** Keep old Boolean API working if anything still calls it. */
