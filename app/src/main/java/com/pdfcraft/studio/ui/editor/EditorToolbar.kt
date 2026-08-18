@@ -849,24 +849,25 @@ private fun PageSizePickerDialog(
                 .background(Color.White, RoundedCornerShape(12.dp))
                 .padding(16.dp)
         ) {
+            // Instruction: large + bold (all 3 tools)
             Text(
                 text = instructionText.ifEmpty { stringResource(R.string.page_size_picker_instruction) },
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
                 color = Color.Black
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
+            // Select All + OK: smaller / normal
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedButton(onClick = onToggleSelectAll) {
                     Text(
-                        text = if (allSelected)
-                            stringResource(R.string.page_size_select_all)
-                        else
-                            stringResource(R.string.page_size_select_all),
+                        text = stringResource(R.string.page_size_select_all),
+                        style = MaterialTheme.typography.bodySmall,
                         color = Color.Black
                     )
                 }
@@ -875,12 +876,16 @@ private fun PageSizePickerDialog(
                     onClick = onOk,
                     enabled = selectedPages.isNotEmpty()
                 ) {
-                    Text(confirmText.ifEmpty { stringResource(R.string.page_size_ok) })
+                    Text(
+                        text = confirmText.ifEmpty { stringResource(R.string.page_size_ok) },
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
+            // Page list: smaller / normal
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -892,16 +897,17 @@ private fun PageSizePickerDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onTogglePage(i) }
-                            .padding(vertical = 4.dp),
+                            .padding(vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
                             checked = i in selectedPages,
-                            onCheckedChange = { onTogglePage(i) }
+                            onCheckedChange = { onTogglePage(i) },
+                            modifier = Modifier.padding(0.dp)
                         )
                         Text(
                             text = stringResource(R.string.page_size_page_item, i + 1),
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodySmall,
                             color = Color.Black
                         )
                     }
