@@ -459,18 +459,37 @@ private fun PageToolsMenu(
                 backgroundSub = false
             }
         ) {
+            // 1. Add New Page
             ToolMenuItem(stringResource(R.string.page_tool_add_new_page)) {
                 // Keep Page Settings menu open; closes only on outside touch
                 onAddNewPage()
             }
             HorizontalDivider(color = Color.LightGray)
+
+            // 2. Delete Page
+            ToolMenuItem(stringResource(R.string.page_tool_delete_page)) {
+                menuExpanded = false
+                onSetDeletePage()
+            }
+            HorizontalDivider(color = Color.LightGray)
+
+            // 3. Background Color
+            ToolMenuItem(stringResource(R.string.page_tool_background_color)) {
+                menuExpanded = false
+                backgroundSub = false
+                orientationSub = false
+                onSetBackgroundColor()
+            }
+            HorizontalDivider(color = Color.LightGray)
+
+            // 4. Set Page Size
             ToolMenuItem(stringResource(R.string.page_tool_set_page_size)) {
                 menuExpanded = false
                 onSetPageSize()
             }
             HorizontalDivider(color = Color.LightGray)
 
-            // ---- Orientation (closes background sub) ----
+            // 5. Page Orientation
             ToolMenuItem(stringResource(R.string.page_tool_orientation) + " ›") {
                 orientationSub = !orientationSub
                 if (orientationSub) {
@@ -482,7 +501,6 @@ private fun PageToolsMenu(
                 val isLand = pageAspectRatio > 1.05f
                 val isPort = pageAspectRatio < 0.95f
 
-                // Icon + label left; tick on the right with spacing
                 OrientationOptionRow(
                     icon = "▯",
                     label = stringResource(R.string.page_orientation_portrait) + " (9:16)",
@@ -510,23 +528,11 @@ private fun PageToolsMenu(
             }
 
             HorizontalDivider(color = Color.LightGray)
+
+            // 6. Page Margin
             ToolMenuItem(stringResource(R.string.page_tool_margin)) {
                 menuExpanded = false
                 onSetPageMargin()
-            }
-            HorizontalDivider(color = Color.LightGray)
-            ToolMenuItem(stringResource(R.string.page_tool_delete_page)) {
-                menuExpanded = false
-                onSetDeletePage()
-            }
-            HorizontalDivider(color = Color.LightGray)
-
-            // ---- Background Color (closes orientation sub) ----
-            ToolMenuItem(stringResource(R.string.page_tool_background_color)) {
-                menuExpanded = false
-                backgroundSub = false
-                orientationSub = false
-                onSetBackgroundColor()
             }
 
         }
