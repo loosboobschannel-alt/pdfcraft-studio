@@ -485,7 +485,29 @@ Column(
                 onAddNewPage =
                     viewModel::addNewPage,
                 onDeletePage =
-                    viewModel::deleteLastPage
+                    viewModel::deleteLastPage,
+                pageCountForDelete =
+                    viewModel.currentPageCountEstimate(
+                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                    ),
+                pageDeleteSelected =
+                    viewModel.pageDeleteSelection.toSet(),
+                onTogglePageDeleteSelection =
+                    viewModel::togglePageDeleteSelection,
+                onToggleSelectAllPagesForDelete = {
+                    viewModel.toggleSelectAllPagesForDelete(
+                        viewModel.currentPageCountEstimate(
+                            (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        )
+                    )
+                },
+                onClearPageDeleteSelection =
+                    viewModel::clearPageDeleteSelection,
+                onDeleteSelectedPages = {
+                    viewModel.deleteSelectedPages(
+                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                    )
+                }
             )
 
             Column(

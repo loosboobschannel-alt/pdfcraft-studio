@@ -94,6 +94,12 @@ fun EditorToolbar(
     onPageNumberStyleChange: (EditorViewModel.PageNumberStyle) -> Unit,
     onAddNewPage: () -> Unit,
     onDeletePage: () -> Unit,
+    pageCountForDelete: Int = 1,
+    pageDeleteSelected: Set<Int> = emptySet(),
+    onTogglePageDeleteSelection: (Int) -> Unit = {},
+    onToggleSelectAllPagesForDelete: () -> Unit = {},
+    onClearPageDeleteSelection: () -> Unit = {},
+    onDeleteSelectedPages: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var resizeModeActive by remember { mutableStateOf(false) }
@@ -103,6 +109,7 @@ fun EditorToolbar(
     var pageSizeModeActive by remember { mutableStateOf(false) }
     var showPageSizePicker by remember { mutableStateOf(false) }
     var showPageBgColorPicker by remember { mutableStateOf(false) }
+    var showPageDeletePicker by remember { mutableStateOf(false) }
     var pageBgColorModeActive by remember { mutableStateOf(false) }
     var pageMarginModeActive by remember { mutableStateOf(false) }
     var textSizeModeActive by remember { mutableStateOf(false) }
@@ -181,6 +188,10 @@ fun EditorToolbar(
                         onPageOrientationChange = onPageOrientationChange,
                         onSetPageMargin = { pageMarginModeActive = true },
                         onDeletePage = onDeletePage,
+                        onSetDeletePage = {
+                            onClearPageDeleteSelection()
+                            showPageDeletePicker = true
+                        },
                         pageBackgroundColor = pageBackgroundColor,
                         onPageBackgroundColorChange = onPageBackgroundColorChange,
                         onPickBackgroundImage = onPickBackgroundImage,
@@ -229,7 +240,9 @@ fun EditorToolbar(
                     pageSizeModeActive = true
                 }
             },
-            onDismiss = { showPageSizePicker = false }
+            onDismiss = { showPageSizePicker = false },
+            instructionText = stringResource(R.string.page_size_picker_instruction),
+            confirmText = stringResource(R.string.page_size_ok)
         )
     }
 
@@ -245,9 +258,30 @@ fun EditorToolbar(
                     pageBgColorModeActive = true
                 }
             },
-            onDismiss = { showPageBgColorPicker = false }
+            onDismiss = { showPageBgColorPicker = false },
+            instructionText = stringResource(R.string.page_bg_picker_instruction),
+            confirmText = stringResource(R.string.page_size_ok)
         )
     }
+
+    if (showPageDeletePicker) {
+        PageSizePickerDialog(
+            pageCount = pageCountForDelete,
+            selectedPages = pageDeleteSelected,
+            onTogglePage = onTogglePageDeleteSelection,
+            onToggleSelectAll = onToggleSelectAllPagesForDelete,
+            onOk = {
+                showPageDeletePicker = false
+                if (pageDeleteSelected.isNotEmpty()) {
+                    onDeleteSelectedPages()
+                }
+            },
+            onDismiss = { showPageDeletePicker = false },
+            instructionText = stringResource(R.string.page_delete_picker_instruction),
+            confirmText = stringResource(R.string.page_delete_button)
+        )
+    }
+
 }
 
 @Composable
@@ -331,6 +365,12 @@ private fun PageToolsMenu(
     onPageOrientationChange: (Boolean) -> Unit,
     onSetPageMargin: () -> Unit,
     onDeletePage: () -> Unit,
+    pageCountForDelete: Int = 1,
+    pageDeleteSelected: Set<Int> = emptySet(),
+    onTogglePageDeleteSelection: (Int) -> Unit = {},
+    onToggleSelectAllPagesForDelete: () -> Unit = {},
+    onClearPageDeleteSelection: () -> Unit = {},
+    onDeleteSelectedPages: () -> Unit = {},
     pageBackgroundColor: Long,
     onPageBackgroundColorChange: (Long) -> Unit,
     onPickBackgroundImage: () -> Unit,
@@ -429,7 +469,7 @@ private fun PageToolsMenu(
             HorizontalDivider(color = Color.LightGray)
             ToolMenuItem(stringResource(R.string.page_tool_delete_page)) {
                 menuExpanded = false
-                onDeletePage()
+                onSetDeletePage()
             }
             HorizontalDivider(color = Color.LightGray)
 
@@ -743,7 +783,9 @@ private fun PageSizePickerDialog(
     onTogglePage: (Int) -> Unit,
     onToggleSelectAll: () -> Unit,
     onOk: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    instructionText: String = "",
+    confirmText: String = ""
 ) {
     val count = pageCount.coerceAtLeast(1)
     val allSelected = selectedPages.size >= count &&
@@ -760,7 +802,7 @@ private fun PageSizePickerDialog(
                 .padding(16.dp)
         ) {
             Text(
-                text = stringResource(R.string.page_size_picker_instruction),
+                text = instructionText.ifEmpty { stringResource(R.string.page_size_picker_instruction) },
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Black
             )
@@ -785,7 +827,7 @@ private fun PageSizePickerDialog(
                     onClick = onOk,
                     enabled = selectedPages.isNotEmpty()
                 ) {
-                    Text(stringResource(R.string.page_size_ok))
+                    Text(confirmText.ifEmpty { stringResource(R.string.page_size_ok) })
                 }
             }
 

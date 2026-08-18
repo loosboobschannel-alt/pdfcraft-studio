@@ -94,6 +94,7 @@
     <string name="page_tool_page_numbers">7. Page Numbers Setting</string>
     <string name="page_orientation_portrait">Portrait</string>
     <string name="page_orientation_landscape">Landscape</string>
+    <string name="page_orientation_square">Square  1:1</string>
     <string name="page_margin_done">Done</string>
     <string name="page_size_done">Done</string>
     <string name="page_size_page_chip">Page %1$d</string>
@@ -141,4 +142,7 @@
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
 
+    <string name="page_delete_picker_instruction">Select the pages you want to delete.</string>
+    <string name="page_delete_button">Delete</string>
+    <string name="page_bg_picker_instruction">Select the pages whose background you want to change.</string>
 </resources>

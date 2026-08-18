@@ -146,6 +146,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var pageBackgroundColor: Long by mutableStateOf(imageSizePreferences.getPageBackgroundColor())
     val pageBackgroundColorOverrides = mutableStateMapOf<Int, Long>()
     val pageBgColorSelection = mutableStateListOf<Int>()
+    val pageDeleteSelection = mutableStateListOf<Int>()
 
     var pageBackgroundImageUri: Uri? by mutableStateOf(null)
         private set
@@ -592,6 +593,97 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         minPageCount = minPageCount - 1
     }
 
+    fun clearPageDeleteSelection() {
+        pageDeleteSelection.clear()
+    }
+
+    fun togglePageDeleteSelection(pageIndex: Int) {
+        if (pageDeleteSelection.contains(pageIndex)) {
+            pageDeleteSelection.remove(pageIndex)
+        } else {
+            pageDeleteSelection.add(pageIndex)
+        }
+    }
+
+    fun toggleSelectAllPagesForDelete(pageCount: Int) {
+        val count = pageCount.coerceAtLeast(1)
+        val allSelected = pageDeleteSelection.size >= count &&
+            (0 until count).all { it in pageDeleteSelection }
+        if (allSelected) {
+            pageDeleteSelection.clear()
+        } else {
+            pageDeleteSelection.clear()
+            pageDeleteSelection.addAll(0 until count)
+        }
+    }
+
+    fun deleteSelectedPages(imagesPerPage: Int) {
+        val perPage = imagesPerPage.coerceAtLeast(1)
+        val total = currentPageCountEstimate(perPage)
+        val toDelete = pageDeleteSelection.filter { it in 0 until total }.toSortedSet()
+        if (toDelete.isEmpty()) return
+
+        if (toDelete.size >= total) {
+            importedImages.clear()
+            textElements.clear()
+            minPageCount = 1
+            pageAspectOverrides.clear()
+            pageBackgroundColorOverrides.clear()
+            if (this::pageBackgroundBitmapOverrides.isInitialized || true) {
+                try { pageBackgroundBitmapOverrides.clear() } catch (_: Throwable) {}
+            }
+            pageDeleteSelection.clear()
+            return
+        }
+
+        // Remove images that sit on deleted page slots
+        val keptImages = importedImages.filterIndexed { index, _ ->
+            (index / perPage) !in toDelete
+        }
+        importedImages.clear()
+        importedImages.addAll(keptImages)
+
+        // Text: drop deleted pages, shift later indices down
+        val keptText = textElements
+            .filter { it.pageIndex !in toDelete }
+            .map { te ->
+                val shift = toDelete.count { it < te.pageIndex }
+                if (shift > 0) te.copy(pageIndex = te.pageIndex - shift) else te
+            }
+        textElements.clear()
+        textElements.addAll(keptText)
+
+        // Reindex float overrides
+        run {
+            val old = pageAspectOverrides.toMap()
+            pageAspectOverrides.clear()
+            old.forEach { (k, v) ->
+                if (k in toDelete) return@forEach
+                pageAspectOverrides[k - toDelete.count { it < k }] = v
+            }
+        }
+        run {
+            val old = pageBackgroundColorOverrides.toMap()
+            pageBackgroundColorOverrides.clear()
+            old.forEach { (k, v) ->
+                if (k in toDelete) return@forEach
+                pageBackgroundColorOverrides[k - toDelete.count { it < k }] = v
+            }
+        }
+        try {
+            val old = pageBackgroundBitmapOverrides.toMap()
+            pageBackgroundBitmapOverrides.clear()
+            old.forEach { (k, v) ->
+                if (k in toDelete) return@forEach
+                pageBackgroundBitmapOverrides[k - toDelete.count { it < k }] = v
+            }
+        } catch (_: Throwable) {}
+
+        minPageCount = maxOf(1, minPageCount - toDelete.size)
+        pageDeleteSelection.clear()
+    }
+
+
     fun aspectRatioForPage(pageIndex: Int): Float {
         return pageAspectOverrides[pageIndex] ?: pageAspectRatio
     }
@@ -656,10 +748,38 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         isPageLandscape = r > 1f
     }
 
+    enum class PageOrientation { PORTRAIT, LANDSCAPE, SQUARE }
+
+    fun updatePageOrientation(orientation: PageOrientation) {
+        when (orientation) {
+            PageOrientation.SQUARE -> {
+                isPageLandscape = false
+                pageAspectRatio = 1f
+            }
+            PageOrientation.LANDSCAPE -> {
+                isPageLandscape = true
+                if (kotlin.math.abs(pageAspectRatio - 1f) < 0.05f) {
+                    pageAspectRatio = 16f / 9f
+                } else if (pageAspectRatio < 1f) {
+                    pageAspectRatio = 1f / pageAspectRatio
+                }
+            }
+            PageOrientation.PORTRAIT -> {
+                isPageLandscape = false
+                if (kotlin.math.abs(pageAspectRatio - 1f) < 0.05f) {
+                    pageAspectRatio = 9f / 16f
+                } else if (pageAspectRatio > 1f) {
+                    pageAspectRatio = 1f / pageAspectRatio
+                }
+            }
+        }
+    }
+
+    /** Keep old Boolean API working if anything still calls it. */
     fun updatePageOrientation(landscape: Boolean) {
-        isPageLandscape = landscape
-        val magnitude = if (pageAspectRatio >= 1f) pageAspectRatio else 1f / pageAspectRatio
-        pageAspectRatio = if (landscape) magnitude else 1f / magnitude
+        updatePageOrientation(
+            if (landscape) PageOrientation.LANDSCAPE else PageOrientation.PORTRAIT
+        )
     }
 
     fun updatePageMarginDp(dp: Int) {
