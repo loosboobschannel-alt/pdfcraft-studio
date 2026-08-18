@@ -1,6 +1,7 @@
 package com.pdfcraft.studio.ui.editor
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.border
@@ -20,12 +21,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +39,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Dialog
 import com.pdfcraft.studio.R
 import kotlin.math.roundToInt
 
@@ -62,6 +67,12 @@ fun EditorToolbar(
     onTextSizeChange: (Float) -> Unit = {},
     pageAspectRatio: Float,
     onPageAspectRatioChange: (Float) -> Unit,
+    pageCountForSize: Int = 1,
+    pageSizeSelected: Set<Int> = emptySet(),
+    onTogglePageSizeSelection: (Int) -> Unit = {},
+    onToggleSelectAllPagesForSize: () -> Unit = {},
+    onClearPageSizeSelection: () -> Unit = {},
+    sliderAspectForSelection: Float = pageAspectRatio,
     isPageLandscape: Boolean,
     onPageOrientationChange: (Boolean) -> Unit,
     pageMarginDp: Int,
@@ -84,6 +95,7 @@ fun EditorToolbar(
     var shapeModeActive by remember { mutableStateOf(false) }
     var cornersModeActive by remember { mutableStateOf(false) }
     var pageSizeModeActive by remember { mutableStateOf(false) }
+    var showPageSizePicker by remember { mutableStateOf(false) }
     var pageMarginModeActive by remember { mutableStateOf(false) }
     var textSizeModeActive by remember { mutableStateOf(false) }
 
@@ -119,7 +131,7 @@ fun EditorToolbar(
                 onDone = { textSizeModeActive = false }
             )
             pageSizeModeActive -> PageSizeSlider(
-                aspectRatio = pageAspectRatio,
+                aspectRatio = sliderAspectForSelection,
                 onAspectRatioChange = onPageAspectRatioChange,
                 onDone = { pageSizeModeActive = false }
             )
@@ -138,7 +150,10 @@ fun EditorToolbar(
                                                 ) {
                     PageToolsMenu(
                         onAddNewPage = onAddNewPage,
-                        onSetPageSize = { pageSizeModeActive = true },
+                        onSetPageSize = {
+                            onClearPageSizeSelection()
+                            showPageSizePicker = true
+                        },
                         isPageLandscape = isPageLandscape,
                         onPageOrientationChange = onPageOrientationChange,
                         onSetPageMargin = { pageMarginModeActive = true },
@@ -197,6 +212,22 @@ private fun ToolMenuItem(
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 10.dp)
     )
+
+    if (showPageSizePicker) {
+        PageSizePickerDialog(
+            pageCount = pageCountForSize,
+            selectedPages = pageSizeSelected,
+            onTogglePage = onTogglePageSizeSelection,
+            onToggleSelectAll = onToggleSelectAllPagesForSize,
+            onOk = {
+                showPageSizePicker = false
+                if (pageSizeSelected.isNotEmpty()) {
+                    pageSizeModeActive = true
+                }
+            },
+            onDismiss = { showPageSizePicker = false }
+        )
+    }
 }
 
 @Composable
@@ -695,6 +726,91 @@ private fun RoundCornersSlider(
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyMedium
             )
+        }
+    }
+}
+
+
+@Composable
+private fun PageSizePickerDialog(
+    pageCount: Int,
+    selectedPages: Set<Int>,
+    onTogglePage: (Int) -> Unit,
+    onToggleSelectAll: () -> Unit,
+    onOk: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val count = pageCount.coerceAtLeast(1)
+    val allSelected = selectedPages.size >= count &&
+        (0 until count).all { it in selectedPages }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White, RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.page_size_picker_instruction),
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.page_size_select_all),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.Black,
+                    modifier = Modifier
+                        .clickable(onClick = onToggleSelectAll)
+                        .padding(vertical = 4.dp)
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                TextButton(
+                    onClick = onOk,
+                    enabled = selectedPages.isNotEmpty()
+                ) {
+                    Text(stringResource(R.string.page_size_ok))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                for (i in 0 until count) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onTogglePage(i) }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = i in selectedPages,
+                            onCheckedChange = { onTogglePage(i) }
+                        )
+                        Text(
+                            text = stringResource(R.string.page_size_page_item, i + 1),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Black
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -81,6 +81,10 @@
     <string name="page_tools_menu_entry">Page Settings</string>
     <string name="page_tool_add_new_page">1. Add New Page</string>
     <string name="page_tool_set_page_size">2. Set Page Size</string>
+    <string name="page_size_page_item">Page %1$d</string>
+    <string name="page_size_ok">OK</string>
+    <string name="page_size_select_all">Select All</string>
+    <string name="page_size_picker_instruction">Select the pages whose size you want to change.</string>
     <string name="page_tool_orientation">3. Page Orientation</string>
     <string name="page_tool_margin">4. Page Margin</string>
     <string name="page_tool_delete_page">5. Delete Page</string>

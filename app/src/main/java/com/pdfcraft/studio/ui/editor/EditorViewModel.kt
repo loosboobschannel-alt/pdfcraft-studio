@@ -609,6 +609,19 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         pageSizeSelection.addAll(0 until pageCount.coerceAtLeast(1))
     }
 
+    /** First click selects all; second click clears all. */
+    fun toggleSelectAllPagesForSize(pageCount: Int) {
+        val count = pageCount.coerceAtLeast(1)
+        val allSelected = pageSizeSelection.size >= count &&
+            (0 until count).all { it in pageSizeSelection }
+        if (allSelected) {
+            pageSizeSelection.clear()
+        } else {
+            pageSizeSelection.clear()
+            pageSizeSelection.addAll(0 until count)
+        }
+    }
+
     fun clearPageSizeSelection() {
         pageSizeSelection.clear()
     }

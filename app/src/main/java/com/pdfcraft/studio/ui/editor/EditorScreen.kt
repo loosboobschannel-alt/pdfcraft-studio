@@ -412,7 +412,28 @@ Column(
                 pageAspectRatio =
                     viewModel.pageAspectRatio,
                 onPageAspectRatioChange =
-                    viewModel::updatePageAspectRatio,
+                    viewModel::applyPageSizeToSelection,
+                pageCountForSize =
+                    viewModel.currentPageCountEstimate(
+                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                    ),
+                pageSizeSelected =
+                    viewModel.pageSizeSelection.toSet(),
+                onTogglePageSizeSelection =
+                    viewModel::togglePageSizeSelection,
+                onToggleSelectAllPagesForSize = {
+                    viewModel.toggleSelectAllPagesForSize(
+                        viewModel.currentPageCountEstimate(
+                            (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        )
+                    )
+                },
+                onClearPageSizeSelection =
+                    viewModel::clearPageSizeSelection,
+                sliderAspectForSelection =
+                    viewModel.pageSizeSelection.firstOrNull()?.let {
+                        viewModel.aspectRatioForPage(it)
+                    } ?: viewModel.pageAspectRatio,
                 isPageLandscape =
                     viewModel.isPageLandscape,
                 onPageOrientationChange =
