@@ -29,6 +29,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -171,6 +172,10 @@ fun EditorToolbar(
                         onSetPageSize = {
                             onClearPageSizeSelection()
                             showPageSizePicker = true
+                        },
+                        onSetBackgroundColor = {
+                            onClearPageBgColorSelection()
+                            onSetBackgroundColor()
                         },
                         isPageLandscape = isPageLandscape,
                         onPageOrientationChange = onPageOrientationChange,
@@ -321,6 +326,7 @@ private fun ImageToolsMenu(
 private fun PageToolsMenu(
     onAddNewPage: () -> Unit,
     onSetPageSize: () -> Unit,
+    onSetBackgroundColor: () -> Unit,
     isPageLandscape: Boolean,
     onPageOrientationChange: (Boolean) -> Unit,
     onSetPageMargin: () -> Unit,
@@ -432,8 +438,7 @@ private fun PageToolsMenu(
                 menuExpanded = false
                 backgroundSub = false
                 orientationSub = false
-                onClearPageBgColorSelection()
-                showPageBgColorPicker = true
+                onSetBackgroundColor()
             }
 
         }
