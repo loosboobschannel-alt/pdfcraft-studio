@@ -285,6 +285,40 @@ fun EditorToolbar(
 
 }
 
+
+@Composable
+private fun OrientationOptionRow(
+    icon: String,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Left: icon + label (with ratio in brackets)
+        Text(
+            text = icon + "  " + label,
+            color = Color.Black,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = 1,
+            softWrap = false
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        // Right: tick with a little space from the edge
+        Text(
+            text = if (selected) "✓" else "",
+            color = Color.Black,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(start = 12.dp)
+        )
+    }
+}
+
 @Composable
 private fun ToolMenuItem(
     label: String,
@@ -439,29 +473,35 @@ private fun PageToolsMenu(
             ToolMenuItem(stringResource(R.string.page_tool_orientation) + " ›") {
                 orientationSub = !orientationSub
                 if (orientationSub) {
-                    backgroundSub = false
-                    }
-            }
-            if (orientationSub) {
                 val isSquare = kotlin.math.abs(pageAspectRatio - 1f) < 0.05f
                 val isLand = pageAspectRatio > 1.05f
                 val isPort = pageAspectRatio < 0.95f
-                ToolMenuItem(
-                    label = (if (isPort) "✓ " else "") + "\u25AF  " + stringResource(R.string.page_orientation_portrait)
-                ) {
-                    onPageOrientationChange(EditorViewModel.PageOrientation.PORTRAIT)
-                    // menu stays open
-                }
-                ToolMenuItem(
-                    label = (if (isLand) "✓ " else "") + "\u25AD  " + stringResource(R.string.page_orientation_landscape)
-                ) {
-                    onPageOrientationChange(EditorViewModel.PageOrientation.LANDSCAPE)
-                }
-                ToolMenuItem(
-                    label = (if (isSquare) "✓ " else "") + "\u25A1  " + stringResource(R.string.page_orientation_square)
-                ) {
-                    onPageOrientationChange(EditorViewModel.PageOrientation.SQUARE)
-                }
+
+                // Icon + label left; tick on the right with spacing
+                OrientationOptionRow(
+                    icon = "▯",
+                    label = stringResource(R.string.page_orientation_portrait) + " (9:16)",
+                    selected = isPort,
+                    onClick = {
+                        onPageOrientationChange(EditorViewModel.PageOrientation.PORTRAIT)
+                    }
+                )
+                OrientationOptionRow(
+                    icon = "▭",
+                    label = stringResource(R.string.page_orientation_landscape) + " (16:9)",
+                    selected = isLand,
+                    onClick = {
+                        onPageOrientationChange(EditorViewModel.PageOrientation.LANDSCAPE)
+                    }
+                )
+                OrientationOptionRow(
+                    icon = "□",
+                    label = stringResource(R.string.page_orientation_square) + " (1:1)",
+                    selected = isSquare,
+                    onClick = {
+                        onPageOrientationChange(EditorViewModel.PageOrientation.SQUARE)
+                    }
+                )
             }
 
             HorizontalDivider(color = Color.LightGray)
