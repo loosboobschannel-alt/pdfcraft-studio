@@ -166,7 +166,7 @@ fun PdfPagesPreview(
                             modifier = Modifier.padding(bottom = 6.dp)
                         )
                         PageCard(
-                            aspectRatio = pageAspectRatioForPage(0),
+                            aspectRatio = pageAspectRatioForPage?.invoke(0) ?: pageAspectRatio,
                             backgroundColor = pageBackgroundColor,
                             backgroundBitmap = pageBackgroundBitmap,
                             pageNumberText = if (pageNumberPosition != com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition.NONE)
