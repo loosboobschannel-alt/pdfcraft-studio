@@ -473,6 +473,10 @@ private fun PageToolsMenu(
             ToolMenuItem(stringResource(R.string.page_tool_orientation) + " ›") {
                 orientationSub = !orientationSub
                 if (orientationSub) {
+                    backgroundSub = false
+                }
+            }
+            if (orientationSub) {
                 val isSquare = kotlin.math.abs(pageAspectRatio - 1f) < 0.05f
                 val isLand = pageAspectRatio > 1.05f
                 val isPort = pageAspectRatio < 0.95f
