@@ -629,9 +629,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             minPageCount = 1
             pageAspectOverrides.clear()
             pageBackgroundColorOverrides.clear()
-            if (this::pageBackgroundBitmapOverrides.isInitialized || true) {
-                try { pageBackgroundBitmapOverrides.clear() } catch (_: Throwable) {}
-            }
+            pageBackgroundBitmapOverrides.clear()
             pageDeleteSelection.clear()
             return
         }
@@ -670,14 +668,15 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 pageBackgroundColorOverrides[k - toDelete.count { it < k }] = v
             }
         }
-        try {
+        run {
             val old = pageBackgroundBitmapOverrides.toMap()
             pageBackgroundBitmapOverrides.clear()
             old.forEach { (k, v) ->
-                if (k in toDelete) return@forEach
-                pageBackgroundBitmapOverrides[k - toDelete.count { it < k }] = v
+                if (k !in toDelete) {
+                    pageBackgroundBitmapOverrides[k - toDelete.count { it < k }] = v
+                }
             }
-        } catch (_: Throwable) {}
+        }
 
         minPageCount = maxOf(1, minPageCount - toDelete.size)
         pageDeleteSelection.clear()
