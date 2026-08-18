@@ -193,6 +193,22 @@ fun EditorToolbar(
         }
         HorizontalDivider()
     }
+
+    if (showPageSizePicker) {
+        PageSizePickerDialog(
+            pageCount = pageCountForSize,
+            selectedPages = pageSizeSelected,
+            onTogglePage = onTogglePageSizeSelection,
+            onToggleSelectAll = onToggleSelectAllPagesForSize,
+            onOk = {
+                showPageSizePicker = false
+                if (pageSizeSelected.isNotEmpty()) {
+                    pageSizeModeActive = true
+                }
+            },
+            onDismiss = { showPageSizePicker = false }
+        )
+    }
 }
 
 @Composable
@@ -213,21 +229,6 @@ private fun ToolMenuItem(
             .padding(horizontal = 16.dp, vertical = 10.dp)
     )
 
-    if (showPageSizePicker) {
-        PageSizePickerDialog(
-            pageCount = pageCountForSize,
-            selectedPages = pageSizeSelected,
-            onTogglePage = onTogglePageSizeSelection,
-            onToggleSelectAll = onToggleSelectAllPagesForSize,
-            onOk = {
-                showPageSizePicker = false
-                if (pageSizeSelected.isNotEmpty()) {
-                    pageSizeModeActive = true
-                }
-            },
-            onDismiss = { showPageSizePicker = false }
-        )
-    }
 }
 
 @Composable
