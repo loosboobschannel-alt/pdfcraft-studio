@@ -859,7 +859,7 @@ private fun PageSizePickerDialog(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Select All + OK: smaller / normal
+            // Select All only (top left) — outlined
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -871,21 +871,11 @@ private fun PageSizePickerDialog(
                         color = Color.Black
                     )
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                TextButton(
-                    onClick = onOk,
-                    enabled = selectedPages.isNotEmpty()
-                ) {
-                    Text(
-                        text = confirmText.ifEmpty { stringResource(R.string.page_size_ok) },
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Page list: smaller / normal
+            // Page list
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -911,6 +901,26 @@ private fun PageSizePickerDialog(
                             color = Color.Black
                         )
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // OK / Delete: bottom-right, outlined (like Select All), blue text
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedButton(
+                    onClick = onOk,
+                    enabled = selectedPages.isNotEmpty()
+                ) {
+                    Text(
+                        text = confirmText.ifEmpty { stringResource(R.string.page_size_ok) },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF1976D2)
+                    )
                 }
             }
         }
