@@ -175,7 +175,7 @@ fun EditorToolbar(
                         },
                         onSetBackgroundColor = {
                             onClearPageBgColorSelection()
-                            onSetBackgroundColor()
+                            showPageBgColorPicker = true
                         },
                         isPageLandscape = isPageLandscape,
                         onPageOrientationChange = onPageOrientationChange,
