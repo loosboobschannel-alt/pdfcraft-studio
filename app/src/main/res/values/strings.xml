@@ -146,4 +146,27 @@
     <string name="page_delete_picker_instruction">Select Pages to Delete</string>
     <string name="page_delete_button">Delete</string>
     <string name="page_bg_picker_instruction">Select Pages to Change Background</string>
+
+    <string name="cat_page">Page</string>
+    <string name="cat_images">Images</string>
+    <string name="cat_text">Text</string>
+    <string name="chip_add_page">Add Page</string>
+    <string name="chip_page_size">Size</string>
+    <string name="chip_orientation">Orientation</string>
+    <string name="chip_margin">Margin</string>
+    <string name="chip_background">Background</string>
+    <string name="chip_delete_page">Delete</string>
+    <string name="chip_import">Import</string>
+    <string name="chip_rows">Rows</string>
+    <string name="chip_spacing">Spacing</string>
+    <string name="chip_image_size">Size</string>
+    <string name="chip_corners">Corners</string>
+    <string name="chip_add_text">Add Text</string>
+    <string name="chip_font">Font</string>
+    <string name="chip_text_size">Size</string>
+    <string name="chip_text_color">Color</string>
+    <string name="chip_text_bg">Background</string>
+    <string name="chip_shadow">Shadow</string>
+    <string name="chip_delete_text">Delete</string>
+
 </resources>

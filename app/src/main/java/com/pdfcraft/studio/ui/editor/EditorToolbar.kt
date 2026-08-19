@@ -114,6 +114,8 @@ fun EditorToolbar(
     var pageBgColorModeActive by remember { mutableStateOf(false) }
     var pageMarginModeActive by remember { mutableStateOf(false) }
     var textSizeModeActive by remember { mutableStateOf(false) }
+    var selectedToolCategory by remember { mutableStateOf(0) } // 0=Page 1=Images 2=Text
+    var orientationMenuExpanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -168,64 +170,128 @@ fun EditorToolbar(
                 onDone = { pageMarginModeActive = false }
             )
             else -> {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                    PageToolsMenu(
-                        onAddNewPage = onAddNewPage,
-                        onSetPageSize = {
-                            onClearPageSizeSelection()
-                            showPageSizePicker = true
-                        },
-                        onSetBackgroundColor = {
-                            onClearPageBgColorSelection()
-                            showPageBgColorPicker = true
-                        },
-                        isPageLandscape = isPageLandscape,
-                        pageAspectRatio = pageAspectRatio,
-                        onPageOrientationChange = onPageOrientationChange,
-                        onSetPageMargin = { pageMarginModeActive = true },
-                        onDeletePage = onDeletePage,
-                        onSetDeletePage = {
-                            onClearPageDeleteSelection()
-                            showPageDeletePicker = true
-                        },
-                        pageBackgroundColor = pageBackgroundColor,
-                        onPageBackgroundColorChange = onPageBackgroundColorChange,
-                        onPickBackgroundImage = onPickBackgroundImage,
-                        onClearBackgroundImage = onClearBackgroundImage,
-                        hasBackgroundImage = hasBackgroundImage,
-                        pageNumberPosition = pageNumberPosition,
-                        onPageNumberPositionChange = onPageNumberPositionChange,
-                        pageNumberStyle = pageNumberStyle,
-                        onPageNumberStyleChange = onPageNumberStyleChange
-                    )
-                    ImageToolsMenu(
-                        onImportImagesClick = onImportImagesClick,
-                        onResizeImagesClick = { resizeModeActive = true },
-                        onAdjustSpacingClick = { spacingModeActive = true },
-                        onAdjustImageShapeClick = { shapeModeActive = true },
-                        onAdjustCornersClick = { cornersModeActive = true }
-                    )
-                    TextToolsMenu(
-                        onEnterTextClick = onAddTextClick,
-                        onFontClick = onFontClick,
-                        onTextColorClick = onTextColorClick,
-                        onTextBgColorClick = onTextBgColorClick,
-                        onTextShadowClick = onTextShadowClick,
-                        onTextSizeClick = {
-                            if (hasSelectedText) textSizeModeActive = true
-                            else onTextSizeClick()
-                        },
-                        onDeleteTextClick = onDeleteTextClick,
-                        hasSelectedText = hasSelectedText
-                    )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Category tabs: Page | Images | Text
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CategoryTab(
+                            label = stringResource(R.string.cat_page),
+                            selected = selectedToolCategory == 0,
+                            onClick = { selectedToolCategory = 0 }
+                        )
+                        CategoryTab(
+                            label = stringResource(R.string.cat_images),
+                            selected = selectedToolCategory == 1,
+                            onClick = { selectedToolCategory = 1 }
+                        )
+                        CategoryTab(
+                            label = stringResource(R.string.cat_text),
+                            selected = selectedToolCategory == 2,
+                            onClick = { selectedToolCategory = 2 }
+                        )
+                    }
+                    HorizontalDivider(color = Color(0xFFE0E0E0))
+
+                    // Tools for selected category (horizontal scroll)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 8.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        when (selectedToolCategory) {
+                            0 -> {
+                                ToolChip(stringResource(R.string.chip_add_page)) { onAddNewPage() }
+                                ToolChip(stringResource(R.string.chip_page_size)) {
+                                    onClearPageSizeSelection()
+                                    showPageSizePicker = true
+                                }
+                                Box {
+                                    ToolChip(stringResource(R.string.chip_orientation)) {
+                                        orientationMenuExpanded = true
+                                    }
+                                    DropdownMenu(
+                                        expanded = orientationMenuExpanded,
+                                        onDismissRequest = { orientationMenuExpanded = false }
+                                    ) {
+                                        val isSquare = kotlin.math.abs(pageAspectRatio - 1f) < 0.05f
+                                        val isLand = pageAspectRatio > 1.05f
+                                        val isPort = pageAspectRatio < 0.95f
+                                        ToolMenuItem(
+                                            label = "\u25AF  " + stringResource(R.string.page_orientation_portrait) + " (9:16)" + if (isPort) "  \u2713" else ""
+                                        ) {
+                                            onPageOrientationChange(EditorViewModel.PageOrientation.PORTRAIT)
+                                        }
+                                        ToolMenuItem(
+                                            label = "\u25AD  " + stringResource(R.string.page_orientation_landscape) + " (16:9)" + if (isLand) "  \u2713" else ""
+                                        ) {
+                                            onPageOrientationChange(EditorViewModel.PageOrientation.LANDSCAPE)
+                                        }
+                                        ToolMenuItem(
+                                            label = "\u25A1  " + stringResource(R.string.page_orientation_square) + " (1:1)" + if (isSquare) "  \u2713" else ""
+                                        ) {
+                                            onPageOrientationChange(EditorViewModel.PageOrientation.SQUARE)
+                                        }
+                                    }
+                                }
+                                ToolChip(stringResource(R.string.chip_margin)) {
+                                    pageMarginModeActive = true
+                                }
+                                ToolChip(stringResource(R.string.chip_background)) {
+                                    onClearPageBgColorSelection()
+                                    showPageBgColorPicker = true
+                                }
+                                ToolChip(stringResource(R.string.chip_delete_page)) {
+                                    onClearPageDeleteSelection()
+                                    showPageDeletePicker = true
+                                }
+                            }
+                            1 -> {
+                                ToolChip(stringResource(R.string.chip_import)) { onImportImagesClick() }
+                                ToolChip(stringResource(R.string.chip_rows)) { resizeModeActive = true }
+                                ToolChip(stringResource(R.string.chip_spacing)) { spacingModeActive = true }
+                                ToolChip(stringResource(R.string.chip_image_size)) { shapeModeActive = true }
+                                ToolChip(stringResource(R.string.chip_corners)) { cornersModeActive = true }
+                            }
+                            else -> {
+                                ToolChip(stringResource(R.string.chip_add_text)) { onAddTextClick() }
+                                ToolChip(stringResource(R.string.chip_font)) { onFontClick() }
+                                ToolChip(
+                                    label = stringResource(R.string.chip_text_size),
+                                    enabled = hasSelectedText
+                                ) {
+                                    if (hasSelectedText) textSizeModeActive = true
+                                    else onTextSizeClick()
+                                }
+                                ToolChip(
+                                    label = stringResource(R.string.chip_text_color),
+                                    enabled = hasSelectedText
+                                ) { onTextColorClick() }
+                                ToolChip(
+                                    label = stringResource(R.string.chip_text_bg),
+                                    enabled = hasSelectedText
+                                ) { onTextBgColorClick() }
+                                ToolChip(
+                                    label = stringResource(R.string.chip_shadow),
+                                    enabled = hasSelectedText
+                                ) { onTextShadowClick() }
+                                ToolChip(
+                                    label = stringResource(R.string.chip_delete_text),
+                                    enabled = hasSelectedText
+                                ) { onDeleteTextClick() }
+                            }
+                        }
+                    }
                 }
             }
+
         }
         HorizontalDivider()
     }
@@ -318,6 +384,61 @@ private fun OrientationOptionRow(
             modifier = Modifier.padding(start = 12.dp)
         )
     }
+}
+
+
+@Composable
+private fun CategoryTab(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) MaterialTheme.colorScheme.primary else Color.Black
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .height(2.dp)
+                .width(28.dp)
+                .background(
+                    if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    RoundedCornerShape(1.dp)
+                )
+        )
+    }
+}
+
+@Composable
+private fun ToolChip(
+    label: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Text(
+        text = label,
+        color = if (enabled) Color.Black else Color.Gray,
+        style = MaterialTheme.typography.labelLarge,
+        maxLines = 1,
+        softWrap = false,
+        modifier = Modifier
+            .background(
+                color = Color(0xFFF5F5F5),
+                shape = RoundedCornerShape(20.dp)
+            )
+            .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(20.dp))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+    )
 }
 
 @Composable
