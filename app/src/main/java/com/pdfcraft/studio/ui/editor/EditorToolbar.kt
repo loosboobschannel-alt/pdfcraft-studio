@@ -310,6 +310,18 @@ fun EditorToolbar(
         )
     }
 
+    if (showArrangePagesDialog) {
+        ArrangePagesDialog(
+            pageCount = pageCountForArrange,
+            onArrange = { from, to ->
+                showArrangePagesDialog = false
+                onMovePage(from, to)
+            },
+            onDismiss = { showArrangePagesDialog = false }
+        )
+    }
+
+
     if (showPageDuplicatePicker) {
         PageSizePickerDialog(
             pageCount = pageCountForDuplicate,
@@ -326,21 +338,7 @@ fun EditorToolbar(
             instructionText = stringResource(R.string.page_duplicate_picker_instruction),
             confirmText = stringResource(R.string.page_duplicate_button)
         )
-    }
-
-    if (showArrangePagesDialog) {
-        ArrangePagesDialog(
-            pageCount = pageCountForArrange,
-            onArrange = { from, to ->
-                showArrangePagesDialog = false
-                onMovePage(from, to)
-            },
-            onDismiss = { showArrangePagesDialog = false }
-        )
-    }
-
-
-}
+    }}
 
 
 @Composable
