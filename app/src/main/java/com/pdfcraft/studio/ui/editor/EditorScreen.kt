@@ -1,6 +1,7 @@
 package com.pdfcraft.studio.ui.editor
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 
 import androidx.compose.foundation.border
 
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -75,6 +77,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -1114,14 +1117,16 @@ private fun CropImageScreen(
                             )
                             .border(2.dp, Color.White)
                             .pointerInput(Unit) {
+                                val areaW = size.width.toFloat().coerceAtLeast(1f)
+                                val areaH = size.height.toFloat().coerceAtLeast(1f)
                                 detectDragGestures { change, drag ->
                                     change.consume()
-                                    val dx = drag.x / size.width
-                                    val dy = drag.y / size.height
+                                    val dx = drag.x / areaW
+                                    val dy = drag.y / areaH
                                     val w = right - left
                                     val h = bottom - top
-                                    var nl = (left + dx).coerceIn(0f, 1f - w)
-                                    var nt = (top + dy).coerceIn(0f, 1f - h)
+                                    val nl = (left + dx).coerceIn(0f, 1f - w)
+                                    val nt = (top + dy).coerceIn(0f, 1f - h)
                                     left = nl
                                     top = nt
                                     right = nl + w
@@ -1139,10 +1144,12 @@ private fun CropImageScreen(
                             .size(handle)
                             .background(Color.White, CircleShape)
                             .pointerInput(Unit) {
+                                val areaW = size.width.toFloat().coerceAtLeast(1f)
+                                val areaH = size.height.toFloat().coerceAtLeast(1f)
                                 detectDragGestures { change, drag ->
                                     change.consume()
-                                    left = (left + drag.x / size.width).coerceIn(0f, right - 0.1f)
-                                    top = (top + drag.y / size.height).coerceIn(0f, bottom - 0.1f)
+                                    left = (left + drag.x / areaW).coerceIn(0f, right - 0.1f)
+                                    top = (top + drag.y / areaH).coerceIn(0f, bottom - 0.1f)
                                 }
                             }
                     )
@@ -1154,10 +1161,12 @@ private fun CropImageScreen(
                             .size(handle)
                             .background(Color.White, CircleShape)
                             .pointerInput(Unit) {
+                                val areaW = size.width.toFloat().coerceAtLeast(1f)
+                                val areaH = size.height.toFloat().coerceAtLeast(1f)
                                 detectDragGestures { change, drag ->
                                     change.consume()
-                                    right = (right + drag.x / size.width).coerceIn(left + 0.1f, 1f)
-                                    bottom = (bottom + drag.y / size.height).coerceIn(top + 0.1f, 1f)
+                                    right = (right + drag.x / areaW).coerceIn(left + 0.1f, 1f)
+                                    bottom = (bottom + drag.y / areaH).coerceIn(top + 0.1f, 1f)
                                 }
                             }
                     )
