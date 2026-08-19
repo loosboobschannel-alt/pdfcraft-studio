@@ -539,6 +539,13 @@ Column(
                         order,
                         (viewModel.imagesPerRow * 2).coerceAtLeast(1)
                     )
+                },
+                onMovePage = { from, to ->
+                    viewModel.movePageTo(
+                        from,
+                        to,
+                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                    )
                 }
             )
 

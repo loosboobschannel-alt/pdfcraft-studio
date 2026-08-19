@@ -731,6 +731,27 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         pageDuplicateSelection.clear()
     }
 
+    
+    /**
+     * Move page [fromIndex] so it occupies the current position of [toIndex].
+     * Example: from=4 (Page 5), to=8 (Page 9) → order becomes 1,2,3,4,6,7,8,5,9,...
+     */
+    fun movePageTo(fromIndex: Int, toIndex: Int, imagesPerPage: Int) {
+        val perPage = imagesPerPage.coerceAtLeast(1)
+        val total = currentPageCountEstimate(perPage)
+        if (fromIndex == toIndex) return
+        if (fromIndex !in 0 until total || toIndex !in 0 until total) return
+
+        val order = (0 until total).toMutableList()
+        val item = order.removeAt(fromIndex)
+        var insertAt = toIndex
+        if (fromIndex < toIndex) {
+            insertAt = toIndex - 1
+        }
+        order.add(insertAt, item)
+        reorderPages(order, perPage)
+    }
+
     fun reorderPages(newOrder: List<Int>, imagesPerPage: Int) {
         val perPage = imagesPerPage.coerceAtLeast(1)
         val total = currentPageCountEstimate(perPage)

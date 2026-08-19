@@ -182,4 +182,11 @@
     <string name="page_arrange_move_down">Down</string>
     <string name="page_arrange_page_item">Page %1$d</string>
 
+
+    <string name="page_arrange_step1">Step 1 — Select the page you want to move</string>
+    <string name="page_arrange_step2">Step 2 — Select where you want to place it</string>
+    <string name="page_arrange_button">Arrange</string>
+    <string name="page_arrange_cancel">Cancel</string>
+    <string name="page_arrange_source_label">Moving: Page %1$d</string>
+
 </resources>

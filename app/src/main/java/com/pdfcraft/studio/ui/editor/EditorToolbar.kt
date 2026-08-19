@@ -109,6 +109,7 @@ fun EditorToolbar(
     onDuplicateSelectedPages: () -> Unit = {},
     pageCountForArrange: Int = 1,
     onReorderPages: (List<Int>) -> Unit = {},
+    onMovePage: (Int, Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     var resizeModeActive by remember { mutableStateOf(false) }
@@ -388,9 +389,9 @@ fun EditorToolbar(
     if (showArrangePagesDialog) {
         ArrangePagesDialog(
             pageCount = pageCountForArrange,
-            onDone = { newOrder ->
+            onArrange = { from, to ->
                 showArrangePagesDialog = false
-                if (newOrder.isNotEmpty()) onReorderPages(newOrder)
+                onMovePage(from, to)
             },
             onDismiss = { showArrangePagesDialog = false }
         )
@@ -999,14 +1000,17 @@ private fun RoundCornersSlider(
 
 
 
+
 @Composable
 private fun ArrangePagesDialog(
     pageCount: Int,
-    onDone: (List<Int>) -> Unit,
+    onArrange: (from: Int, to: Int) -> Unit,
     onDismiss: () -> Unit
 ) {
     val count = pageCount.coerceAtLeast(1)
-    var order by remember { mutableStateOf((0 until count).toList()) }
+    var sourcePage by remember { mutableStateOf<Int?>(null) }
+    var destPage by remember { mutableStateOf<Int?>(null) }
+    val step = if (sourcePage == null) 1 else 2
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1023,66 +1027,94 @@ private fun ArrangePagesDialog(
                 style = MaterialTheme.typography.titleMedium,
                 color = Color.Black
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = if (step == 1)
+                    stringResource(R.string.page_arrange_step1)
+                else
+                    stringResource(R.string.page_arrange_step2),
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Black
+            )
+            if (sourcePage != null) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.page_arrange_source_label, (sourcePage ?: 0) + 1),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             Spacer(modifier = Modifier.height(12.dp))
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(280.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                order.forEachIndexed { index, pageIdx ->
+                for (i in 0 until count) {
+                    val isSource = sourcePage == i
+                    val isDest = destPage == i
+                    val selected = isSource || isDest
+                    val bg = when {
+                        isSource -> Color(0xFF1565C0)
+                        isDest -> Color(0xFF2E7D32)
+                        else -> Color(0xFFF5F5F5)
+                    }
+                    val fg = if (isSource || isDest) Color.White else Color.Black
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                            .padding(vertical = 4.dp)
+                            .background(bg, RoundedCornerShape(10.dp))
+                            .border(
+                                width = if (selected) 2.dp else 1.dp,
+                                color = if (selected) bg else Color(0xFFE0E0E0),
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            .clickable {
+                                if (step == 1) {
+                                    sourcePage = i
+                                    destPage = null
+                                } else {
+                                    if (i != sourcePage) destPage = i
+                                }
+                            }
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = stringResource(R.string.page_arrange_page_item, pageIdx + 1),
+                            text = stringResource(R.string.page_arrange_page_item, i + 1),
                             style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Black,
+                            color = fg,
                             modifier = Modifier.weight(1f)
                         )
-                        TextButton(
-                            onClick = {
-                                if (index > 0) {
-                                    val m = order.toMutableList()
-                                    val t = m[index - 1]
-                                    m[index - 1] = m[index]
-                                    m[index] = t
-                                    order = m
-                                }
-                            },
-                            enabled = index > 0
-                        ) {
-                            Text(stringResource(R.string.page_arrange_move_up))
-                        }
-                        TextButton(
-                            onClick = {
-                                if (index < order.lastIndex) {
-                                    val m = order.toMutableList()
-                                    val t = m[index + 1]
-                                    m[index + 1] = m[index]
-                                    m[index] = t
-                                    order = m
-                                }
-                            },
-                            enabled = index < order.lastIndex
-                        ) {
-                            Text(stringResource(R.string.page_arrange_move_down))
+                        if (isSource) {
+                            Text("Source", color = fg, style = MaterialTheme.typography.labelMedium)
+                        } else if (isDest) {
+                            Text("Destination", color = fg, style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 TextButton(onClick = onDismiss) {
-                    Text(stringResource(android.R.string.cancel))
+                    Text(stringResource(R.string.page_arrange_cancel))
                 }
-                TextButton(onClick = { onDone(order) }) {
-                    Text(stringResource(R.string.page_arrange_done))
+                TextButton(
+                    onClick = {
+                        val s = sourcePage
+                        val d = destPage
+                        if (s != null && d != null) onArrange(s, d)
+                    },
+                    enabled = sourcePage != null && destPage != null
+                ) {
+                    Text(stringResource(R.string.page_arrange_button))
                 }
             }
         }
