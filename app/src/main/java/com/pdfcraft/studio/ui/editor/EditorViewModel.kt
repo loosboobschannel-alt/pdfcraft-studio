@@ -147,6 +147,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     val pageBackgroundColorOverrides = mutableStateMapOf<Int, Long>()
     val pageBgColorSelection = mutableStateListOf<Int>()
     val pageDeleteSelection = mutableStateListOf<Int>()
+    val pageDuplicateSelection = mutableStateListOf<Int>()
 
     var pageBackgroundImageUri: Uri? by mutableStateOf(null)
         private set
@@ -615,6 +616,171 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             pageDeleteSelection.clear()
             pageDeleteSelection.addAll(0 until count)
         }
+    }
+
+    
+    fun clearPageDuplicateSelection() {
+        pageDuplicateSelection.clear()
+    }
+
+    fun togglePageDuplicateSelection(pageIndex: Int) {
+        if (pageDuplicateSelection.contains(pageIndex)) {
+            pageDuplicateSelection.remove(pageIndex)
+        } else {
+            pageDuplicateSelection.add(pageIndex)
+        }
+    }
+
+    fun toggleSelectAllPagesForDuplicate(pageCount: Int) {
+        val count = pageCount.coerceAtLeast(1)
+        val allSelected = pageDuplicateSelection.size >= count &&
+            (0 until count).all { it in pageDuplicateSelection }
+        if (allSelected) {
+            pageDuplicateSelection.clear()
+        } else {
+            pageDuplicateSelection.clear()
+            pageDuplicateSelection.addAll(0 until count)
+        }
+    }
+
+    fun duplicateSelectedPages(imagesPerPage: Int) {
+        val perPage = imagesPerPage.coerceAtLeast(1)
+        val total = currentPageCountEstimate(perPage)
+        val selected = pageDuplicateSelection.filter { it in 0 until total }.sortedDescending()
+        if (selected.isEmpty()) return
+
+        for (pageIdx in selected) {
+            val start = pageIdx * perPage
+            val end = minOf(start + perPage, importedImages.size)
+            val slice = if (start < importedImages.size) {
+                importedImages.subList(start, end).toList()
+            } else {
+                emptyList()
+            }
+            val copies = slice.map { img ->
+                img.copy(id = java.util.UUID.randomUUID().toString())
+            }
+            importedImages.addAll(end, copies)
+
+            // Shift text on pages after this page, then copy texts on this page
+            val textsOnPage = textElements.filter { it.pageIndex == pageIdx }
+            for (i in textElements.indices.reversed()) {
+                val te = textElements[i]
+                if (te.pageIndex > pageIdx) {
+                    textElements[i] = te.copy(pageIndex = te.pageIndex + 1)
+                }
+            }
+            textsOnPage.forEach { te ->
+                textElements.add(
+                    te.copy(
+                        id = java.util.UUID.randomUUID().toString(),
+                        pageIndex = pageIdx + 1
+                    )
+                )
+            }
+
+            // Shift overrides for indices > pageIdx, then copy override at pageIdx to pageIdx+1
+            fun shiftFloat(map: MutableMap<Int, Float>) {
+                val entries = map.toList().sortedByDescending { it.first }
+                map.clear()
+                entries.forEach { (k, v) ->
+                    when {
+                        k > pageIdx -> map[k + 1] = v
+                        k == pageIdx -> {
+                            map[k] = v
+                            map[k + 1] = v
+                        }
+                        else -> map[k] = v
+                    }
+                }
+            }
+            fun shiftLong(map: MutableMap<Int, Long>) {
+                val entries = map.toList().sortedByDescending { it.first }
+                map.clear()
+                entries.forEach { (k, v) ->
+                    when {
+                        k > pageIdx -> map[k + 1] = v
+                        k == pageIdx -> {
+                            map[k] = v
+                            map[k + 1] = v
+                        }
+                        else -> map[k] = v
+                    }
+                }
+            }
+            fun shiftBmp(map: MutableMap<Int, android.graphics.Bitmap>) {
+                val entries = map.toList().sortedByDescending { it.first }
+                map.clear()
+                entries.forEach { (k, v) ->
+                    when {
+                        k > pageIdx -> map[k + 1] = v
+                        k == pageIdx -> {
+                            map[k] = v
+                            map[k + 1] = v
+                        }
+                        else -> map[k] = v
+                    }
+                }
+            }
+            shiftFloat(pageAspectOverrides)
+            shiftLong(pageBackgroundColorOverrides)
+            shiftBmp(pageBackgroundBitmapOverrides)
+
+            minPageCount = minPageCount + 1
+        }
+        pageDuplicateSelection.clear()
+    }
+
+    fun reorderPages(newOrder: List<Int>, imagesPerPage: Int) {
+        val perPage = imagesPerPage.coerceAtLeast(1)
+        val total = currentPageCountEstimate(perPage)
+        if (newOrder.size != total || newOrder.toSet() != (0 until total).toSet()) return
+
+        val pageImages = (0 until total).map { p ->
+            val start = p * perPage
+            val end = minOf(start + perPage, importedImages.size)
+            if (start < importedImages.size) importedImages.subList(start, end).toList()
+            else emptyList()
+        }
+        val rebuilt = newOrder.flatMap { pageImages[it] }
+        importedImages.clear()
+        importedImages.addAll(rebuilt)
+
+        // newOrder[newPos] = oldPos  =>  oldPos maps to newPos
+        val oldToNew = newOrder.mapIndexed { newPos, oldPos -> oldPos to newPos }.toMap()
+        val newTexts = textElements.map { te ->
+            te.copy(pageIndex = oldToNew[te.pageIndex] ?: te.pageIndex)
+        }
+        textElements.clear()
+        textElements.addAll(newTexts)
+
+        fun remapFloat(map: MutableMap<Int, Float>) {
+            val old = map.toMap()
+            map.clear()
+            old.forEach { (k, v) ->
+                val nk = oldToNew[k]
+                if (nk != null) map[nk] = v
+            }
+        }
+        fun remapLong(map: MutableMap<Int, Long>) {
+            val old = map.toMap()
+            map.clear()
+            old.forEach { (k, v) ->
+                val nk = oldToNew[k]
+                if (nk != null) map[nk] = v
+            }
+        }
+        fun remapBmp(map: MutableMap<Int, android.graphics.Bitmap>) {
+            val old = map.toMap()
+            map.clear()
+            old.forEach { (k, v) ->
+                val nk = oldToNew[k]
+                if (nk != null) map[nk] = v
+            }
+        }
+        remapFloat(pageAspectOverrides)
+        remapLong(pageBackgroundColorOverrides)
+        remapBmp(pageBackgroundBitmapOverrides)
     }
 
     fun deleteSelectedPages(imagesPerPage: Int) {

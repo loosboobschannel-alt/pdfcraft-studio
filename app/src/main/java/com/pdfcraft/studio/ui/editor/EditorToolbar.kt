@@ -101,6 +101,14 @@ fun EditorToolbar(
     onToggleSelectAllPagesForDelete: () -> Unit = {},
     onClearPageDeleteSelection: () -> Unit = {},
     onDeleteSelectedPages: () -> Unit = {},
+    pageCountForDuplicate: Int = 1,
+    pageDuplicateSelected: Set<Int> = emptySet(),
+    onTogglePageDuplicateSelection: (Int) -> Unit = {},
+    onToggleSelectAllPagesForDuplicate: () -> Unit = {},
+    onClearPageDuplicateSelection: () -> Unit = {},
+    onDuplicateSelectedPages: () -> Unit = {},
+    pageCountForArrange: Int = 1,
+    onReorderPages: (List<Int>) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var resizeModeActive by remember { mutableStateOf(false) }
@@ -111,6 +119,8 @@ fun EditorToolbar(
     var showPageSizePicker by remember { mutableStateOf(false) }
     var showPageBgColorPicker by remember { mutableStateOf(false) }
     var showPageDeletePicker by remember { mutableStateOf(false) }
+    var showPageDuplicatePicker by remember { mutableStateOf(false) }
+    var showArrangePagesDialog by remember { mutableStateOf(false) }
     var pageBgColorModeActive by remember { mutableStateOf(false) }
     var pageMarginModeActive by remember { mutableStateOf(false) }
     var textSizeModeActive by remember { mutableStateOf(false) }
@@ -209,12 +219,19 @@ fun EditorToolbar(
                         when (selectedToolCategory) {
                             0 -> {
                                 ToolChip(stringResource(R.string.chip_add_page)) { onAddNewPage() }
+                                ToolChip(stringResource(R.string.chip_duplicate_pages)) {
+                                    onClearPageDuplicateSelection()
+                                    showPageDuplicatePicker = true
+                                }
+                                ToolChip(stringResource(R.string.chip_arrange_pages)) {
+                                    showArrangePagesDialog = true
+                                }
                                 ToolChip(stringResource(R.string.chip_page_size)) {
                                     onClearPageSizeSelection()
                                     showPageSizePicker = true
                                 }
                                 Box {
-                                    ToolChip(stringResource(R.string.chip_orientation)) {
+                                    ToolChip(stringResource(R.string.chip_page_layout)) {
                                         orientationMenuExpanded = true
                                     }
                                     DropdownMenu(
@@ -241,7 +258,7 @@ fun EditorToolbar(
                                         }
                                     }
                                 }
-                                ToolChip(stringResource(R.string.chip_margin)) {
+                                ToolChip(stringResource(R.string.chip_page_spacing)) {
                                     pageMarginModeActive = true
                                 }
                                 ToolChip(stringResource(R.string.chip_background)) {
@@ -349,6 +366,36 @@ fun EditorToolbar(
             confirmText = stringResource(R.string.page_delete_button)
         )
     }
+
+    if (showPageDuplicatePicker) {
+        PageSizePickerDialog(
+            pageCount = pageCountForDuplicate,
+            selectedPages = pageDuplicateSelected,
+            onTogglePage = onTogglePageDuplicateSelection,
+            onToggleSelectAll = onToggleSelectAllPagesForDuplicate,
+            onOk = {
+                showPageDuplicatePicker = false
+                if (pageDuplicateSelected.isNotEmpty()) {
+                    onDuplicateSelectedPages()
+                }
+            },
+            onDismiss = { showPageDuplicatePicker = false },
+            instructionText = stringResource(R.string.page_duplicate_picker_instruction),
+            confirmText = stringResource(R.string.page_duplicate_button)
+        )
+    }
+
+    if (showArrangePagesDialog) {
+        ArrangePagesDialog(
+            pageCount = pageCountForArrange,
+            onDone = { newOrder ->
+                showArrangePagesDialog = false
+                if (newOrder.isNotEmpty()) onReorderPages(newOrder)
+            },
+            onDismiss = { showArrangePagesDialog = false }
+        )
+    }
+
 
 }
 
@@ -950,6 +997,97 @@ private fun RoundCornersSlider(
     }
 }
 
+
+
+@Composable
+private fun ArrangePagesDialog(
+    pageCount: Int,
+    onDone: (List<Int>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val count = pageCount.coerceAtLeast(1)
+    var order by remember { mutableStateOf((0 until count).toList()) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White, RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.page_arrange_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                order.forEachIndexed { index, pageIdx ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.page_arrange_page_item, pageIdx + 1),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.Black,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(
+                            onClick = {
+                                if (index > 0) {
+                                    val m = order.toMutableList()
+                                    val t = m[index - 1]
+                                    m[index - 1] = m[index]
+                                    m[index] = t
+                                    order = m
+                                }
+                            },
+                            enabled = index > 0
+                        ) {
+                            Text(stringResource(R.string.page_arrange_move_up))
+                        }
+                        TextButton(
+                            onClick = {
+                                if (index < order.lastIndex) {
+                                    val m = order.toMutableList()
+                                    val t = m[index + 1]
+                                    m[index + 1] = m[index]
+                                    m[index] = t
+                                    order = m
+                                }
+                            },
+                            enabled = index < order.lastIndex
+                        ) {
+                            Text(stringResource(R.string.page_arrange_move_down))
+                        }
+                    }
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+                TextButton(onClick = { onDone(order) }) {
+                    Text(stringResource(R.string.page_arrange_done))
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun PageSizePickerDialog(

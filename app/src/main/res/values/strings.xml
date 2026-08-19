@@ -169,4 +169,17 @@
     <string name="chip_shadow">Shadow</string>
     <string name="chip_delete_text">Delete</string>
 
+
+    <string name="chip_duplicate_pages">Duplicate Pages</string>
+    <string name="chip_arrange_pages">Arrange Pages</string>
+    <string name="chip_page_layout">Page Layout</string>
+    <string name="chip_page_spacing">Page Spacing</string>
+    <string name="page_duplicate_picker_instruction">Select Pages to Duplicate</string>
+    <string name="page_duplicate_button">Duplicate</string>
+    <string name="page_arrange_title">Arrange Pages</string>
+    <string name="page_arrange_done">Done</string>
+    <string name="page_arrange_move_up">Up</string>
+    <string name="page_arrange_move_down">Down</string>
+    <string name="page_arrange_page_item">Page %1$d</string>
+
 </resources>

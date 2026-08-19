@@ -507,6 +507,38 @@ Column(
                     viewModel.deleteSelectedPages(
                         (viewModel.imagesPerRow * 2).coerceAtLeast(1)
                     )
+                },
+                pageCountForDuplicate =
+                    viewModel.currentPageCountEstimate(
+                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                    ),
+                pageDuplicateSelected =
+                    viewModel.pageDuplicateSelection.toSet(),
+                onTogglePageDuplicateSelection =
+                    viewModel::togglePageDuplicateSelection,
+                onToggleSelectAllPagesForDuplicate = {
+                    viewModel.toggleSelectAllPagesForDuplicate(
+                        viewModel.currentPageCountEstimate(
+                            (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        )
+                    )
+                },
+                onClearPageDuplicateSelection =
+                    viewModel::clearPageDuplicateSelection,
+                onDuplicateSelectedPages = {
+                    viewModel.duplicateSelectedPages(
+                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                    )
+                },
+                pageCountForArrange =
+                    viewModel.currentPageCountEstimate(
+                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                    ),
+                onReorderPages = { order ->
+                    viewModel.reorderPages(
+                        order,
+                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                    )
                 }
             )
 
