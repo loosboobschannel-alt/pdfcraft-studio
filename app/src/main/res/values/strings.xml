@@ -214,7 +214,7 @@
     <string name="image_menu_position">Image Position</string>
     <string name="image_position_title">Image Position</string>
     <string name="image_position_move_title">Move Image</string>
-    <string name="image_position_move_hint">Select this option to move the selected image to another image's position.</string>
+    <string name="image_position_move_hint">Select this option to move the selected image to another image&apos;s position.</string>
     <string name="image_position_swap_title">Swap Positions</string>
     <string name="image_position_swap_hint">Select this option to swap the positions of the selected image and another image.</string>
     <string name="image_position_cancel">Cancel</string>
