@@ -54,15 +54,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-
-    // ---- Crop full-screen ----
-
-    // ---- Rotate dialog ----
-
-
-
-
-
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -87,8 +78,19 @@ import com.pdfcraft.studio.ui.editor.canvas.PdfPagesPreview
 import com.pdfcraft.studio.ui.theme.PDFCraftStudioTheme
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun EditorScreen(onBackClick: () -> Unit) {
     val viewModel: EditorViewModel = viewModel()
+
+    // Image edit dialogs / actions state (must be before use)
+    var cropImageId by remember { mutableStateOf<String?>(null) }
+    var rotateImageId by remember { mutableStateOf<String?>(null) }
+    var rotateDegrees by remember { mutableStateOf(0f) }
+    var linkImageId by remember { mutableStateOf<String?>(null) }
+    var linkUrlText by remember { mutableStateOf("") }
+    var showImagePositionDialog by remember { mutableStateOf(false) }
+    var imagePositionTargetId by remember { mutableStateOf<String?>(null) }
 
     cropImageId?.let { cid ->
         val img = viewModel.getImage(cid)
