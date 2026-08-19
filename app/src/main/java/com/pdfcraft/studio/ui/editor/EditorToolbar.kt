@@ -341,6 +341,93 @@ fun EditorToolbar(
     }}
 
 
+
+    if (showPageSizePicker) {
+        PageSizePickerDialog(
+            pageCount = pageCountForSize,
+            selectedPages = pageSizeSelected,
+            onTogglePage = onTogglePageSizeSelection,
+            onToggleSelectAll = onToggleSelectAllPagesForSize,
+            onOk = {
+                showPageSizePicker = false
+                if (pageSizeSelected.isNotEmpty()) {
+                    pageSizeModeActive = true
+                }
+            },
+            onDismiss = { showPageSizePicker = false },
+            instructionText = stringResource(R.string.page_size_picker_instruction),
+            confirmText = stringResource(R.string.page_size_ok)
+        )
+    }
+
+    if (showPageBgColorPicker) {
+        PageSizePickerDialog(
+            pageCount = pageCountForBgColor,
+            selectedPages = pageBgColorSelected,
+            onTogglePage = onTogglePageBgColorSelection,
+            onToggleSelectAll = onToggleSelectAllPagesForBgColor,
+            onOk = {
+                showPageBgColorPicker = false
+                if (pageBgColorSelected.isNotEmpty()) {
+                    pageBgColorModeActive = true
+                }
+            },
+            onDismiss = { showPageBgColorPicker = false },
+            instructionText = stringResource(R.string.page_bg_picker_instruction),
+            confirmText = stringResource(R.string.page_size_ok)
+        )
+    }
+
+    if (showPageDeletePicker) {
+        PageSizePickerDialog(
+            pageCount = pageCountForDelete,
+            selectedPages = pageDeleteSelected,
+            onTogglePage = onTogglePageDeleteSelection,
+            onToggleSelectAll = onToggleSelectAllPagesForDelete,
+            onOk = {
+                showPageDeletePicker = false
+                if (pageDeleteSelected.isNotEmpty()) {
+                    onDeleteSelectedPages()
+                }
+            },
+            onDismiss = { showPageDeletePicker = false },
+            instructionText = stringResource(R.string.page_delete_picker_instruction),
+            confirmText = stringResource(R.string.page_delete_button)
+        )
+    }
+
+    if (showPageDuplicatePicker) {
+        PageSizePickerDialog(
+            pageCount = pageCountForDuplicate,
+            selectedPages = pageDuplicateSelected,
+            onTogglePage = onTogglePageDuplicateSelection,
+            onToggleSelectAll = onToggleSelectAllPagesForDuplicate,
+            onOk = {
+                showPageDuplicatePicker = false
+                if (pageDuplicateSelected.isNotEmpty()) {
+                    onDuplicateSelectedPages()
+                }
+            },
+            onDismiss = { showPageDuplicatePicker = false },
+            instructionText = stringResource(R.string.page_duplicate_picker_instruction),
+            confirmText = stringResource(R.string.page_duplicate_button)
+        )
+    }
+
+    if (showArrangePagesDialog) {
+        ArrangePagesDialog(
+            pageCount = pageCountForArrange,
+            onArrange = { from, to ->
+                showArrangePagesDialog = false
+                onMovePage(from, to)
+            },
+            onDismiss = { showArrangePagesDialog = false }
+        )
+    }
+
+}
+
+
 @Composable
 private fun OrientationOptionRow(
     icon: String,
