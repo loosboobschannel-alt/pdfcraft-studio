@@ -81,15 +81,19 @@
     <string name="font_imported_label">Imported</string>
     <string name="page_tools_menu_entry">Page Settings</string>
     <string name="page_tool_add_new_page">1. Add New Page</string>
-    <string name="page_tool_set_page_size">2. Set Page Size</string>
+
+    <string name="page_tool_duplicate_pages">2. Duplicate Pages</string>
+    <string name="page_tool_arrange_pages">3. Arrange Pages</string>
+
+    <string name="page_tool_set_page_size">4. Page Size</string>
     <string name="page_size_page_item">Page %1$d</string>
     <string name="page_size_ok">OK</string>
     <string name="page_size_select_all">Select All</string>
     <string name="page_size_picker_instruction">Select Pages to Change Size</string>
-    <string name="page_tool_orientation">3. Page Orientation</string>
-    <string name="page_tool_margin">4. Page Margin</string>
-    <string name="page_tool_delete_page">5. Delete Page</string>
-    <string name="page_tool_background_color">6. Background Color</string>
+    <string name="page_tool_orientation">5. Page Layout</string>
+    <string name="page_tool_margin">6. Page Spacing</string>
+    <string name="page_tool_delete_page">8. Delete Page</string>
+    <string name="page_tool_background_color">7. Background</string>
     <string name="page_bg_select_pages">Apply to pages</string>
     <string name="page_bg_import_gallery">Import From Gallery</string>
     <string name="page_tool_page_numbers">7. Page Numbers Setting</string>
@@ -188,5 +192,41 @@
     <string name="page_arrange_button">Arrange</string>
     <string name="page_arrange_cancel">Cancel</string>
     <string name="page_arrange_source_label">Moving: Page %1$d</string>
+
+
+    <string name="image_crop">Crop</string>
+    <string name="image_rotate">Rotate</string>
+    <string name="crop_title">Crop</string>
+    <string name="crop_cancel">Cancel</string>
+    <string name="crop_apply">Apply</string>
+    <string name="rotate_title">Rotate</string>
+    <string name="rotate_right">Rotate Right 90°</string>
+    <string name="rotate_left">Rotate Left 90°</string>
+    <string name="rotate_180">Rotate 180°</string>
+    <string name="rotate_reset">Reset</string>
+    <string name="rotate_ok">OK</string>
+    <string name="rotate_cancel">Cancel</string>
+    <string name="image_info_file_size">File Size: %1$s</string>
+
+
+    <string name="image_menu_delete">Delete</string>
+    <string name="image_menu_replace">Replace Image</string>
+    <string name="image_menu_position">Image Position</string>
+    <string name="image_position_title">Image Position</string>
+    <string name="image_position_move_title">Move Image</string>
+    <string name="image_position_move_hint">Select this option to move the selected image to another image's position.</string>
+    <string name="image_position_swap_title">Swap Positions</string>
+    <string name="image_position_swap_hint">Select this option to swap the positions of the selected image and another image.</string>
+    <string name="image_position_cancel">Cancel</string>
+    <string name="image_position_pick_hint">Tap another image to complete</string>
+
+
+    <string name="image_menu_add_link">Add Clickable Link</string>
+    <string name="image_link_title">Add Clickable Link</string>
+    <string name="image_link_instruction">Add a web link to this image. When the image is tapped in the exported PDF, the link will open.</string>
+    <string name="image_link_url_label">Website URL</string>
+    <string name="image_link_url_hint">https://example.com</string>
+    <string name="image_link_done">Done</string>
+    <string name="image_link_cancel">Cancel</string>
 
 </resources>

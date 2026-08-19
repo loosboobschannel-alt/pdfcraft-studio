@@ -1,5 +1,21 @@
 package com.pdfcraft.studio.ui.editor
 
+import androidx.compose.foundation.background
+
+import androidx.compose.foundation.border
+
+import androidx.compose.ui.layout.ContentScale
+
+import androidx.compose.ui.graphics.asImageBitmap
+
+import androidx.compose.foundation.shape.CircleShape
+
+import androidx.compose.foundation.layout.offset
+
+import androidx.compose.foundation.layout.BoxWithConstraints
+
+import androidx.compose.foundation.Image
+
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
@@ -36,6 +52,157 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+
+    // ---- Crop full-screen ----
+    cropImageId?.let { cid ->
+        val img = viewModel.getImage(cid)
+        val bmp = img?.bitmap
+        if (bmp != null && !bmp.isRecycled) {
+            CropImageScreen(
+                bitmap = bmp,
+                onCancel = { cropImageId = null },
+                onApply = { l, t, r, b ->
+                    viewModel.cropImageBitmap(cid, l, t, r, b)
+                    cropImageId = null
+                }
+            )
+        } else {
+            cropImageId = null
+        }
+    }
+
+    // ---- Rotate dialog ----
+    rotateImageId?.let { rid ->
+        val img = viewModel.getImage(rid)
+        val bmp = img?.bitmap
+        if (bmp != null && !bmp.isRecycled) {
+            RotateImageDialog(
+                bitmap = bmp,
+                degrees = rotateDegrees,
+                onDegreesChange = { rotateDegrees = it },
+                onCancel = {
+                    rotateImageId = null
+                    rotateDegrees = 0f
+                },
+                onOk = {
+                    if (rotateDegrees % 360f != 0f) {
+                        viewModel.rotateImageBitmap(rid, rotateDegrees)
+                    }
+                    rotateImageId = null
+                    rotateDegrees = 0f
+                }
+            )
+        } else {
+            rotateImageId = null
+        }
+    }
+
+
+    if (showImagePositionDialog && imagePositionTargetId != null) {
+        val srcId = imagePositionTargetId!!
+        AlertDialog(
+            onDismissRequest = {
+                showImagePositionDialog = false
+                imagePositionTargetId = null
+            },
+            title = { Text(stringResource(R.string.image_position_title)) },
+            text = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.image_position_move_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = stringResource(R.string.image_position_move_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.DarkGray
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(onClick = {
+                        viewModel.startImageMove(srcId)
+                        showImagePositionDialog = false
+                        imagePositionTargetId = null
+                    }) {
+                        Text(stringResource(R.string.image_position_move_title))
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = stringResource(R.string.image_position_swap_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = stringResource(R.string.image_position_swap_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.DarkGray
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(onClick = {
+                        viewModel.startImageSwap(srcId)
+                        showImagePositionDialog = false
+                        imagePositionTargetId = null
+                    }) {
+                        Text(stringResource(R.string.image_position_swap_title))
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = {
+                    showImagePositionDialog = false
+                    imagePositionTargetId = null
+                }) {
+                    Text(stringResource(R.string.image_position_cancel))
+                }
+            }
+        )
+    }
+
+
+    linkImageId?.let { lid ->
+        AlertDialog(
+            onDismissRequest = { linkImageId = null },
+            title = { Text(stringResource(R.string.image_link_title)) },
+            text = {
+                Column {
+                    Text(
+                        text = stringResource(R.string.image_link_instruction),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.DarkGray
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = stringResource(R.string.image_link_url_label),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = linkUrlText,
+                        onValueChange = { linkUrlText = it },
+                        placeholder = { Text(stringResource(R.string.image_link_url_hint)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.setImageLinkUrl(lid, linkUrlText)
+                    linkImageId = null
+                }) {
+                    Text(stringResource(R.string.image_link_done))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { linkImageId = null }) {
+                    Text(stringResource(R.string.image_link_cancel))
+                }
+            }
+        )
+    }
+
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -90,7 +257,8 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     )
                 }
             } else {
-                viewModel.importImages(uris)
+                val replaceId = viewModel.pendingReplaceImageId
+                viewModel.importImages(uris, replaceId = replaceId)
             }
         }
 
@@ -638,8 +806,8 @@ Column(
                         viewModel.openImageMenu(id)
                     },
 
-                    onImageLongPress = { id ->
-                        viewModel.longPressImage(id)
+                    onImageLongPress = { _ ->
+                        // Long-press multi-select removed
                     },
 
                     onChangePosition = { id ->
@@ -675,6 +843,15 @@ Column(
                         }
                     },
 
+                    onCropImage = { id ->
+                        viewModel.dismissImageMenu()
+                        cropImageId = id
+                    },
+                    onRotateImage = { id ->
+                        viewModel.dismissImageMenu()
+                        rotateImageId = id
+                        rotateDegrees = 0f
+                    },
                     onShareSingle = { id ->
                         viewModel.getImage(id)?.let { image ->
                             shareImages(
@@ -684,6 +861,18 @@ Column(
                         }
                     },
 
+                    onReplaceImage = { id ->
+                        viewModel.startReplaceImage(id)
+                        showImportSettings = true
+                    },
+                    onImagePosition = { id ->
+                        imagePositionTargetId = id
+                        showImagePositionDialog = true
+                    },
+                    onAddImageLink = { id ->
+                        linkImageId = id
+                        linkUrlText = viewModel.getImage(id)?.linkUrl.orEmpty()
+                    },
                     onDeleteSingle = { id ->
                         viewModel.deleteSingle(id)
                     },
@@ -873,4 +1062,192 @@ private fun EditorScreenPreview() {
     PDFCraftStudioTheme {
         EditorScreen(onBackClick = {})
     }
+}
+
+
+
+@Composable
+private fun CropImageScreen(
+    bitmap: Bitmap,
+    onCancel: () -> Unit,
+    onApply: (leftFrac: Float, topFrac: Float, rightFrac: Float, bottomFrac: Float) -> Unit
+) {
+    // Normalized crop rect inside the image (0..1)
+    var left by remember { mutableStateOf(0.1f) }
+    var top by remember { mutableStateOf(0.1f) }
+    var right by remember { mutableStateOf(0.9f) }
+    var bottom by remember { mutableStateOf(0.9f) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black)
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(onClick = onCancel) {
+                    Text(stringResource(R.string.crop_cancel), color = Color.White)
+                }
+                Text(
+                    text = stringResource(R.string.crop_title),
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                TextButton(onClick = { onApply(left, top, right, bottom) }) {
+                    Text(stringResource(R.string.crop_apply), color = Color.White)
+                }
+            }
+            BoxWithConstraints(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                val maxW = maxWidth
+                val maxH = maxHeight
+                val imgAspect = bitmap.width.toFloat() / bitmap.height.toFloat()
+                val boxAspect = maxW / maxH
+                val drawW: androidx.compose.ui.unit.Dp
+                val drawH: androidx.compose.ui.unit.Dp
+                if (imgAspect > boxAspect) {
+                    drawW = maxW
+                    drawH = maxW / imgAspect
+                } else {
+                    drawH = maxH
+                    drawW = maxH * imgAspect
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .width(drawW)
+                        .height(drawH)
+                ) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.FillBounds
+                    )
+                    // Darken outside crop — simple border rectangle
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(
+                                start = drawW * left,
+                                top = drawH * top,
+                                end = drawW * (1f - right),
+                                bottom = drawH * (1f - bottom)
+                            )
+                            .border(2.dp, Color.White)
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, drag ->
+                                    change.consume()
+                                    val dx = drag.x / size.width
+                                    val dy = drag.y / size.height
+                                    val w = right - left
+                                    val h = bottom - top
+                                    var nl = (left + dx).coerceIn(0f, 1f - w)
+                                    var nt = (top + dy).coerceIn(0f, 1f - h)
+                                    left = nl
+                                    top = nt
+                                    right = nl + w
+                                    bottom = nt + h
+                                }
+                            }
+                    )
+                    // Corner handles: expand/shrink
+                    val handle = 28.dp
+                    // Top-left
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .offset(x = drawW * left - 12.dp, y = drawH * top - 12.dp)
+                            .size(handle)
+                            .background(Color.White, CircleShape)
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, drag ->
+                                    change.consume()
+                                    left = (left + drag.x / size.width).coerceIn(0f, right - 0.1f)
+                                    top = (top + drag.y / size.height).coerceIn(0f, bottom - 0.1f)
+                                }
+                            }
+                    )
+                    // Bottom-right
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .offset(x = drawW * right - 12.dp, y = drawH * bottom - 12.dp)
+                            .size(handle)
+                            .background(Color.White, CircleShape)
+                            .pointerInput(Unit) {
+                                detectDragGestures { change, drag ->
+                                    change.consume()
+                                    right = (right + drag.x / size.width).coerceIn(left + 0.1f, 1f)
+                                    bottom = (bottom + drag.y / size.height).coerceIn(top + 0.1f, 1f)
+                                }
+                            }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RotateImageDialog(
+    bitmap: Bitmap,
+    degrees: Float,
+    onDegreesChange: (Float) -> Unit,
+    onCancel: () -> Unit,
+    onOk: () -> Unit
+) {
+    val preview = remember(bitmap, degrees) {
+        if (degrees % 360f == 0f) bitmap
+        else {
+            val m = android.graphics.Matrix().apply { postRotate(degrees) }
+            android.graphics.Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, m, true)
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(stringResource(R.string.rotate_title)) },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Image(
+                    bitmap = preview.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentScale = ContentScale.Fit
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                TextButton(onClick = { onDegreesChange((degrees + 90f) % 360f) }) {
+                    Text(stringResource(R.string.rotate_right))
+                }
+                TextButton(onClick = { onDegreesChange((degrees + 270f) % 360f) }) {
+                    Text(stringResource(R.string.rotate_left))
+                }
+                TextButton(onClick = { onDegreesChange((degrees + 180f) % 360f) }) {
+                    Text(stringResource(R.string.rotate_180))
+                }
+                TextButton(onClick = { onDegreesChange(0f) }) {
+                    Text(stringResource(R.string.rotate_reset))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onOk) { Text(stringResource(R.string.rotate_ok)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.rotate_cancel)) }
+        }
+    )
 }

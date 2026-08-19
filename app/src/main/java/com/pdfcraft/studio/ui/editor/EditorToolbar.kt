@@ -181,132 +181,71 @@ fun EditorToolbar(
                 onDone = { pageMarginModeActive = false }
             )
             else -> {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    // Category tabs: Page | Images | Text
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        CategoryTab(
-                            label = stringResource(R.string.cat_page),
-                            selected = selectedToolCategory == 0,
-                            onClick = { selectedToolCategory = 0 }
-                        )
-                        CategoryTab(
-                            label = stringResource(R.string.cat_images),
-                            selected = selectedToolCategory == 1,
-                            onClick = { selectedToolCategory = 1 }
-                        )
-                        CategoryTab(
-                            label = stringResource(R.string.cat_text),
-                            selected = selectedToolCategory == 2,
-                            onClick = { selectedToolCategory = 2 }
-                        )
-                    }
-                    HorizontalDivider(color = Color(0xFFE0E0E0))
-
-                    // Tools for selected category (horizontal scroll)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 8.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        when (selectedToolCategory) {
-                            0 -> {
-                                ToolChip(stringResource(R.string.chip_add_page)) { onAddNewPage() }
-                                ToolChip(stringResource(R.string.chip_duplicate_pages)) {
-                                    onClearPageDuplicateSelection()
-                                    showPageDuplicatePicker = true
-                                }
-                                ToolChip(stringResource(R.string.chip_arrange_pages)) {
-                                    showArrangePagesDialog = true
-                                }
-                                ToolChip(stringResource(R.string.chip_page_size)) {
-                                    onClearPageSizeSelection()
-                                    showPageSizePicker = true
-                                }
-                                Box {
-                                    ToolChip(stringResource(R.string.chip_page_layout)) {
-                                        orientationMenuExpanded = true
-                                    }
-                                    DropdownMenu(
-                                        expanded = orientationMenuExpanded,
-                                        onDismissRequest = { orientationMenuExpanded = false }
-                                    ) {
-                                        val isSquare = kotlin.math.abs(pageAspectRatio - 1f) < 0.05f
-                                        val isLand = pageAspectRatio > 1.05f
-                                        val isPort = pageAspectRatio < 0.95f
-                                        ToolMenuItem(
-                                            label = "\u25AF  " + stringResource(R.string.page_orientation_portrait) + " (9:16)" + if (isPort) "  \u2713" else ""
-                                        ) {
-                                            onPageOrientationChange(EditorViewModel.PageOrientation.PORTRAIT)
-                                        }
-                                        ToolMenuItem(
-                                            label = "\u25AD  " + stringResource(R.string.page_orientation_landscape) + " (16:9)" + if (isLand) "  \u2713" else ""
-                                        ) {
-                                            onPageOrientationChange(EditorViewModel.PageOrientation.LANDSCAPE)
-                                        }
-                                        ToolMenuItem(
-                                            label = "\u25A1  " + stringResource(R.string.page_orientation_square) + " (1:1)" + if (isSquare) "  \u2713" else ""
-                                        ) {
-                                            onPageOrientationChange(EditorViewModel.PageOrientation.SQUARE)
-                                        }
-                                    }
-                                }
-                                ToolChip(stringResource(R.string.chip_page_spacing)) {
-                                    pageMarginModeActive = true
-                                }
-                                ToolChip(stringResource(R.string.chip_background)) {
-                                    onClearPageBgColorSelection()
-                                    showPageBgColorPicker = true
-                                }
-                                ToolChip(stringResource(R.string.chip_delete_page)) {
-                                    onClearPageDeleteSelection()
-                                    showPageDeletePicker = true
-                                }
-                            }
-                            1 -> {
-                                ToolChip(stringResource(R.string.chip_import)) { onImportImagesClick() }
-                                ToolChip(stringResource(R.string.chip_rows)) { resizeModeActive = true }
-                                ToolChip(stringResource(R.string.chip_spacing)) { spacingModeActive = true }
-                                ToolChip(stringResource(R.string.chip_image_size)) { shapeModeActive = true }
-                                ToolChip(stringResource(R.string.chip_corners)) { cornersModeActive = true }
-                            }
-                            else -> {
-                                ToolChip(stringResource(R.string.chip_add_text)) { onAddTextClick() }
-                                ToolChip(stringResource(R.string.chip_font)) { onFontClick() }
-                                ToolChip(
-                                    label = stringResource(R.string.chip_text_size),
-                                    enabled = hasSelectedText
-                                ) {
-                                    if (hasSelectedText) textSizeModeActive = true
-                                    else onTextSizeClick()
-                                }
-                                ToolChip(
-                                    label = stringResource(R.string.chip_text_color),
-                                    enabled = hasSelectedText
-                                ) { onTextColorClick() }
-                                ToolChip(
-                                    label = stringResource(R.string.chip_text_bg),
-                                    enabled = hasSelectedText
-                                ) { onTextBgColorClick() }
-                                ToolChip(
-                                    label = stringResource(R.string.chip_shadow),
-                                    enabled = hasSelectedText
-                                ) { onTextShadowClick() }
-                                ToolChip(
-                                    label = stringResource(R.string.chip_delete_text),
-                                    enabled = hasSelectedText
-                                ) { onDeleteTextClick() }
-                            }
-                        }
-                    }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    PageToolsMenu(
+                        onAddNewPage = onAddNewPage,
+                        onDuplicatePages = {
+                            onClearPageDuplicateSelection()
+                            showPageDuplicatePicker = true
+                        },
+                        onArrangePages = {
+                            showArrangePagesDialog = true
+                        },
+                        onSetPageSize = {
+                            onClearPageSizeSelection()
+                            showPageSizePicker = true
+                        },
+                        onSetBackgroundColor = {
+                            onClearPageBgColorSelection()
+                            showPageBgColorPicker = true
+                        },
+                        isPageLandscape = isPageLandscape,
+                        pageAspectRatio = pageAspectRatio,
+                        onPageOrientationChange = onPageOrientationChange,
+                        onSetPageMargin = { pageMarginModeActive = true },
+                        onDeletePage = onDeletePage,
+                        onSetDeletePage = {
+                            onClearPageDeleteSelection()
+                            showPageDeletePicker = true
+                        },
+                        pageBackgroundColor = pageBackgroundColor,
+                        onPageBackgroundColorChange = onPageBackgroundColorChange,
+                        onPickBackgroundImage = onPickBackgroundImage,
+                        onClearBackgroundImage = onClearBackgroundImage,
+                        hasBackgroundImage = hasBackgroundImage,
+                        pageNumberPosition = pageNumberPosition,
+                        onPageNumberPositionChange = onPageNumberPositionChange,
+                        pageNumberStyle = pageNumberStyle,
+                        onPageNumberStyleChange = onPageNumberStyleChange
+                    )
+                    ImageToolsMenu(
+                        onImportImagesClick = onImportImagesClick,
+                        onResizeImagesClick = { resizeModeActive = true },
+                        onAdjustSpacingClick = { spacingModeActive = true },
+                        onAdjustImageShapeClick = { shapeModeActive = true },
+                        onAdjustCornersClick = { cornersModeActive = true }
+                    )
+                    TextToolsMenu(
+                        onEnterTextClick = onAddTextClick,
+                        onFontClick = onFontClick,
+                        onTextColorClick = onTextColorClick,
+                        onTextBgColorClick = onTextBgColorClick,
+                        onTextShadowClick = onTextShadowClick,
+                        onTextSizeClick = {
+                            if (hasSelectedText) textSizeModeActive = true
+                            else onTextSizeClick()
+                        },
+                        onDeleteTextClick = onDeleteTextClick,
+                        hasSelectedText = hasSelectedText
+                    )
+                }
+            }
                 }
             }
 
@@ -564,6 +503,8 @@ private fun ImageToolsMenu(
 @Composable
 private fun PageToolsMenu(
     onAddNewPage: () -> Unit,
+    onDuplicatePages: () -> Unit,
+    onArrangePages: () -> Unit,
     onSetPageSize: () -> Unit,
     onSetBackgroundColor: () -> Unit,
     isPageLandscape: Boolean,
@@ -630,35 +571,32 @@ private fun PageToolsMenu(
         ) {
             // 1. Add New Page
             ToolMenuItem(stringResource(R.string.page_tool_add_new_page)) {
-                // Keep Page Settings menu open; closes only on outside touch
                 onAddNewPage()
             }
             HorizontalDivider(color = Color.LightGray)
 
-            // 2. Delete Page
-            ToolMenuItem(stringResource(R.string.page_tool_delete_page)) {
+            // 2. Duplicate Pages
+            ToolMenuItem(stringResource(R.string.page_tool_duplicate_pages)) {
                 menuExpanded = false
-                onSetDeletePage()
+                onDuplicatePages()
             }
             HorizontalDivider(color = Color.LightGray)
 
-            // 3. Background Color
-            ToolMenuItem(stringResource(R.string.page_tool_background_color)) {
+            // 3. Arrange Pages
+            ToolMenuItem(stringResource(R.string.page_tool_arrange_pages)) {
                 menuExpanded = false
-                backgroundSub = false
-                orientationSub = false
-                onSetBackgroundColor()
+                onArrangePages()
             }
             HorizontalDivider(color = Color.LightGray)
 
-            // 4. Set Page Size
+            // 4. Page Size
             ToolMenuItem(stringResource(R.string.page_tool_set_page_size)) {
                 menuExpanded = false
                 onSetPageSize()
             }
             HorizontalDivider(color = Color.LightGray)
 
-            // 5. Page Orientation
+            // 5. Page Layout (orientation)
             ToolMenuItem(stringResource(R.string.page_tool_orientation) + " ›") {
                 orientationSub = !orientationSub
                 if (orientationSub) {
@@ -695,13 +633,28 @@ private fun PageToolsMenu(
                     }
                 )
             }
-
             HorizontalDivider(color = Color.LightGray)
 
-            // 6. Page Margin
+            // 6. Page Spacing
             ToolMenuItem(stringResource(R.string.page_tool_margin)) {
                 menuExpanded = false
                 onSetPageMargin()
+            }
+            HorizontalDivider(color = Color.LightGray)
+
+            // 7. Background
+            ToolMenuItem(stringResource(R.string.page_tool_background_color)) {
+                menuExpanded = false
+                backgroundSub = false
+                orientationSub = false
+                onSetBackgroundColor()
+            }
+            HorizontalDivider(color = Color.LightGray)
+
+            // 8. Delete Page
+            ToolMenuItem(stringResource(R.string.page_tool_delete_page)) {
+                menuExpanded = false
+                onSetDeletePage()
             }
 
         }

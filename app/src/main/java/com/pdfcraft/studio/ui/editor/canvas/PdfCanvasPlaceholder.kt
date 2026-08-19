@@ -137,6 +137,11 @@ fun PdfPagesPreview(
     onPaste: () -> Unit = {},
     onSaveSingle: (String) -> Unit = {},
     onShareSingle: (String) -> Unit = {},
+    onCropImage: (String) -> Unit = {},
+    onRotateImage: (String) -> Unit = {},
+    onReplaceImage: (String) -> Unit = {},
+    onImagePosition: (String) -> Unit = {},
+    onAddImageLink: (String) -> Unit = {},
     onFinishMultipleSelection: () -> Unit = {},
     onMultipleChangePosition: () -> Unit = {},
     onMultipleCut: () -> Unit = {},
@@ -290,6 +295,11 @@ fun PdfPagesPreview(
                                 onPaste = onPaste,
                                 onSaveSingle = onSaveSingle,
                                 onShareSingle = onShareSingle,
+                                onCropImage = onCropImage,
+                                onRotateImage = onRotateImage,
+                                onReplaceImage = onReplaceImage,
+                                onImagePosition = onImagePosition,
+                                onAddImageLink = onAddImageLink,
                                 onDeleteSingle = onDeleteSingle,
                                 onMoveSingle = onMoveSingle,
                                 onMoveMultiple = onMoveMultiple,
@@ -317,44 +327,12 @@ fun PdfPagesPreview(
             }
         }
 
-        if (selectionMode && selectedImageIds.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(18.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.primary,
-                        shape = CircleShape
-                    )
-                    .combinedClickable(
-                        onClick = onFinishMultipleSelection
-                    )
-                    .padding(
-                        horizontal = 20.dp,
-                        vertical = 14.dp
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(R.string.selection_done),
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
+        // Long-press selection Done button removed
+
     }
 
-    if (multipleActionsVisible) {
-        MultipleActionsDialog(
-            onChangePosition = onMultipleChangePosition,
-            onCut = onMultipleCut,
-            onCopy = onMultipleCopy,
-            onSave = onMultipleSave,
-            onShare = onMultipleShare,
-            onDelete = onMultipleDelete,
-            onDismiss = onCloseMultipleActions
-        )
-    }
+    // MultipleActionsDialog removed (long-press flow)
+
 }
 
 private class TextStyleRangesVisualTransformation(
@@ -535,6 +513,11 @@ private fun ImageGrid(
     onPaste: () -> Unit,
     onSaveSingle: (String) -> Unit,
     onShareSingle: (String) -> Unit,
+    onCropImage: (String) -> Unit,
+    onRotateImage: (String) -> Unit,
+    onReplaceImage: (String) -> Unit,
+    onImagePosition: (String) -> Unit,
+    onAddImageLink: (String) -> Unit,
     onDeleteSingle: (String) -> Unit,
     onMoveSingle: (String, String) -> Unit,
     onMoveMultiple: (String) -> Unit,
@@ -566,7 +549,7 @@ private fun ImageGrid(
                             onImageClick(image.id)
                         },
                         onLongPress = {
-                            onImageLongPress(image.id)
+                            // long-press multi-select removed
                         },
                         onChangePosition = {
                             onChangePosition(image.id)
@@ -583,6 +566,21 @@ private fun ImageGrid(
                         },
                         onShare = {
                             onShareSingle(image.id)
+                        },
+                        onCrop = {
+                            onCropImage(image.id)
+                        },
+                        onRotate = {
+                            onRotateImage(image.id)
+                        },
+                        onReplace = {
+                            onReplaceImage(image.id)
+                        },
+                        onImagePosition = {
+                            onImagePosition(image.id)
+                        },
+                        onAddLink = {
+                            onAddImageLink(image.id)
                         },
                         onDelete = {
                             onDeleteSingle(image.id)
@@ -626,6 +624,11 @@ private fun ImageCell(
     onPaste: () -> Unit,
     onSave: () -> Unit,
     onShare: () -> Unit,
+    onCrop: () -> Unit,
+    onRotate: () -> Unit,
+    onReplace: () -> Unit,
+    onImagePosition: () -> Unit,
+    onAddLink: () -> Unit,
     onDelete: () -> Unit,
     onDropOnTarget: (String) -> Unit
 ) {
@@ -693,7 +696,7 @@ private fun ImageCell(
                 )
                 .combinedClickable(
                     onClick = onClick,
-                    onLongClick = onLongPress
+                    onLongClick = { /* long-press removed */ }
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -724,9 +727,9 @@ private fun ImageCell(
 
         // Compact dropdown anchored to this image cell (same style as Image/Text Tools menus).
         // Outside tap or any image click dismisses via onDismissRequest / openImageMenu logic.
+        var showInfoDialog by remember(image.id) { mutableStateOf(false) }
         if (showMenu && !reorderMode) {
             var savedToGallery by remember(image.id) { mutableStateOf(false) }
-            var showInfoDialog by remember(image.id) { mutableStateOf(false) }
             DropdownMenu(
                 expanded = true,
                 onDismissRequest = onClick
@@ -775,8 +778,92 @@ private fun ImageCell(
                         )
                     },
                     onClick = {
-                        onClick() // close menu
+                        onClick()
                         showInfoDialog = true
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.image_crop),
+                            color = Color.Black,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    },
+                    onClick = {
+                        onClick()
+                        onCrop()
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.image_rotate),
+                            color = Color.Black,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    },
+                    onClick = {
+                        onClick()
+                        onRotate()
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.image_menu_replace),
+                            color = Color.Black,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    },
+                    onClick = {
+                        onClick()
+                        onReplace()
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.image_menu_position),
+                            color = Color.Black,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    },
+                    onClick = {
+                        onClick()
+                        onImagePosition()
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.image_menu_add_link),
+                            color = Color.Black,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    },
+                    onClick = {
+                        onClick()
+                        onAddLink()
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.image_menu_delete),
+                            color = Color.Black,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    },
+                    onClick = {
+                        onClick()
+                        onDelete()
                     }
                 )
             }
@@ -802,7 +889,7 @@ private fun ImageCell(
                     },
                     text = {
                         Column {
-                            Text(stringResource(R.string.image_info_size, sizeLabel))
+                            Text(stringResource(R.string.image_info_file_size, sizeLabel))
                             if (bmp != null && !bmp.isRecycled) {
                                 Text(
                                     stringResource(
@@ -827,19 +914,24 @@ private fun ImageCell(
 
 /** Human-readable size for the image info dialog. */
 private fun formatImageSizeLabel(image: ImportedImage): String {
-    val bytes = image.approxSizeBytes
+    val bytes: Int? = image.approxSizeBytes?.takeIf { it > 0 }
         ?: image.bitmap?.let { bmp ->
-            if (!bmp.isRecycled) bmp.byteCount else null
+            if (bmp.isRecycled) return@let null
+            try {
+                val stream = java.io.ByteArrayOutputStream()
+                bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, stream)
+                stream.size()
+            } catch (_: Exception) {
+                bmp.byteCount
+            }
         }
     if (bytes == null || bytes <= 0) return "—"
     return if (bytes < 1024) {
         "$bytes B"
     } else if (bytes < 1024 * 1024) {
-        val kb = bytes / 1024.0
-        String.format("%.1f KB", kb)
+        String.format("%.1f KB", bytes / 1024.0)
     } else {
-        val mb = bytes / (1024.0 * 1024.0)
-        String.format("%.2f MB", mb)
+        String.format("%.2f MB", bytes / (1024.0 * 1024.0))
     }
 }
 

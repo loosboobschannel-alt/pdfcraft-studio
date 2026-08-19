@@ -26,7 +26,8 @@ data class ImportedImage(
     val id: String,
     val imageUri: Uri? = null,
     val bitmap: Bitmap? = null,
-    val approxSizeBytes: Int? = null
+    val approxSizeBytes: Int? = null,
+    val linkUrl: String? = null
 )
 
 data class TextElement(
@@ -182,6 +183,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         private set
 
     var reorderMode: Boolean by mutableStateOf(false)
+    var pendingReplaceImageId: String? by mutableStateOf(null)
+    /** 0=none, 1=move, 2=swap */
+    var imagePositionMode: Int by mutableStateOf(0)
+    var imagePositionSourceId: String? by mutableStateOf(null)
 
     private var clipboardImages: List<ImportedImage> by mutableStateOf(emptyList())
 
@@ -418,13 +423,24 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         imageCornerRadiusPercent = percent.coerceIn(0, 100)
     }
 
-    fun importImages(uris: List<Uri>) {
+    fun importImages(uris: List<Uri>, replaceId: String? = null) {
         val targetBytes = selectedImageSizeOption.targetBytes
         isImporting = true
 
+        val insertAt = if (replaceId != null) {
+            val idx = importedImages.indexOfFirst { it.id == replaceId }
+            if (idx >= 0) {
+                importedImages.removeAt(idx)
+                idx
+            } else importedImages.size
+        } else {
+            importedImages.size
+        }
+        pendingReplaceImageId = null
+
         val imageIds = uris.mapIndexed { index, uri ->
-            val imageId = "" + uri + "_" + (importedImages.size + index)
-            importedImages.add(ImportedImage(id = imageId, imageUri = uri))
+            val imageId = "" + uri + "_" + System.currentTimeMillis() + "_" + index
+            importedImages.add(insertAt + index, ImportedImage(id = imageId, imageUri = uri))
             imageId
         }
 
@@ -453,12 +469,24 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun openImageMenu(id: String) {
-        if (selectionMode) {
-            toggleSelection(id)
-        } else {
-            // Toggle: same image click closes the menu (Windows-style)
-            singleMenuImageId = if (singleMenuImageId != null) null else id
+        if (imagePositionMode != 0 && imagePositionSourceId != null) {
+            val src = imagePositionSourceId!!
+            if (id != src) {
+                when (imagePositionMode) {
+                    1 -> moveSingleImageTo(src, id)
+                    2 -> swapImages(src, id)
+                }
+            }
+            imagePositionMode = 0
+            imagePositionSourceId = null
+            singleMenuImageId = null
+            return
         }
+        // Multi-select via long-press removed
+        selectionMode = false
+        selectedImageIds.clear()
+        multipleActionsVisible = false
+        singleMenuImageId = if (singleMenuImageId == id) null else id
     }
 
     fun dismissImageMenu() {
@@ -466,11 +494,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun longPressImage(id: String) {
-        if (!selectionMode) {
-            selectionMode = true
-            selectedImageIds.clear()
-            selectedImageIds.add(id)
-        }
+        // Long-press multi-select removed — intentionally no-op
     }
 
     private fun toggleSelection(id: String) {
@@ -479,6 +503,76 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         } else {
             selectedImageIds.add(id)
         }
+    }
+
+    
+    fun replaceImageBitmap(id: String, newBitmap: android.graphics.Bitmap, sizeBytes: Int? = null) {
+        val idx = importedImages.indexOfFirst { it.id == id }
+        if (idx < 0) return
+        val old = importedImages[idx]
+        val bytes = sizeBytes ?: run {
+            try {
+                val stream = java.io.ByteArrayOutputStream()
+                newBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, stream)
+                stream.size()
+            } catch (_: Exception) {
+                if (!newBitmap.isRecycled) newBitmap.byteCount else old.approxSizeBytes
+            }
+        }
+        importedImages[idx] = old.copy(
+            bitmap = newBitmap,
+            approxSizeBytes = bytes,
+            imageUri = null
+        )
+    }
+
+    fun rotateImageBitmap(id: String, degrees: Float): Boolean {
+        val img = getImage(id) ?: return false
+        val src = img.bitmap ?: return false
+        if (src.isRecycled) return false
+        if (degrees % 360f == 0f) return true
+        val matrix = android.graphics.Matrix().apply { postRotate(degrees) }
+        val rotated = android.graphics.Bitmap.createBitmap(
+            src, 0, 0, src.width, src.height, matrix, true
+        )
+        replaceImageBitmap(id, rotated)
+        return true
+    }
+
+    fun cropImageBitmap(
+        id: String,
+        leftFrac: Float,
+        topFrac: Float,
+        rightFrac: Float,
+        bottomFrac: Float
+    ): Boolean {
+        val img = getImage(id) ?: return false
+        val src = img.bitmap ?: return false
+        if (src.isRecycled) return false
+        val l = (leftFrac.coerceIn(0f, 1f) * src.width).toInt().coerceIn(0, src.width - 1)
+        val t = (topFrac.coerceIn(0f, 1f) * src.height).toInt().coerceIn(0, src.height - 1)
+        val r = (rightFrac.coerceIn(0f, 1f) * src.width).toInt().coerceIn(l + 1, src.width)
+        val b = (bottomFrac.coerceIn(0f, 1f) * src.height).toInt().coerceIn(t + 1, src.height)
+        val w = r - l
+        val h = b - t
+        if (w < 2 || h < 2) return false
+        val cropped = android.graphics.Bitmap.createBitmap(src, l, t, w, h)
+        replaceImageBitmap(id, cropped)
+        return true
+    }
+
+    
+    fun setImageLinkUrl(id: String, url: String?) {
+        val idx = importedImages.indexOfFirst { it.id == id }
+        if (idx < 0) return
+        val cleaned = url?.trim()?.takeIf { it.isNotEmpty() }
+        val normalized = cleaned?.let {
+            if (it.startsWith("http://", true) || it.startsWith("https://", true)) it
+            else "https://$it"
+        }
+        val old = importedImages[idx]
+        importedImages[idx] = old.copy(linkUrl = normalized)
+        singleMenuImageId = null
     }
 
     fun getImage(id: String): ImportedImage? =
@@ -554,6 +648,39 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         importedImages.removeAll { it.id in selectedImageIds }
         multipleActionsVisible = false
         cancelSelection()
+    }
+
+    
+    fun startReplaceImage(id: String) {
+        pendingReplaceImageId = id
+        singleMenuImageId = null
+    }
+
+    fun startImageMove(id: String) {
+        imagePositionSourceId = id
+        imagePositionMode = 1
+        singleMenuImageId = null
+    }
+
+    fun startImageSwap(id: String) {
+        imagePositionSourceId = id
+        imagePositionMode = 2
+        singleMenuImageId = null
+    }
+
+    fun cancelImagePositionMode() {
+        imagePositionMode = 0
+        imagePositionSourceId = null
+    }
+
+    fun swapImages(idA: String, idB: String) {
+        if (idA == idB) return
+        val i = importedImages.indexOfFirst { it.id == idA }
+        val j = importedImages.indexOfFirst { it.id == idB }
+        if (i < 0 || j < 0) return
+        val tmp = importedImages[i]
+        importedImages[i] = importedImages[j]
+        importedImages[j] = tmp
     }
 
     fun moveSingleImageTo(sourceId: String, targetId: String) {

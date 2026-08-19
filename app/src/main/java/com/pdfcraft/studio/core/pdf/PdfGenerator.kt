@@ -12,7 +12,14 @@ import android.os.Environment
 import android.provider.MediaStore
 import com.pdfcraft.studio.ui.editor.ImportedImage
 import com.pdfcraft.studio.ui.editor.TextElement
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 import java.io.OutputStream
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
+import com.tom_roush.pdfbox.pdmodel.PDDocument
+import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
+import com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink
+import com.tom_roush.pdfbox.pdmodel.interactive.action.PDActionURI
 
 /**
  * Builds a PDF from the current editor pages (images + text).
@@ -84,6 +91,7 @@ object PdfGenerator {
             imagePages.getOrElse(index) { emptyList() }
         }
 
+        val linkRects = mutableListOf<LinkRect>()
         val pdf = PdfDocument()
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             isFilterBitmap = true
@@ -111,8 +119,7 @@ object PdfGenerator {
                 val top = margin + row * (cellHeight + spacing)
                 val bmp = img.bitmap
                 if (bmp != null && !bmp.isRecycled) {
-                    // ContentScale.Fit equivalent — no crop, letterbox inside cell
-                    drawBitmapFit(
+                    val drawn = drawBitmapFit(
                         canvas = canvas,
                         bitmap = bmp,
                         dstLeft = left,
@@ -121,6 +128,20 @@ object PdfGenerator {
                         dstHeight = cellHeight,
                         paint = paint
                     )
+                    val url = img.linkUrl?.trim()?.takeIf { it.isNotEmpty() }
+                    if (drawn != null && url != null) {
+                        linkRects.add(
+                            LinkRect(
+                                pageIndex = pageIndex,
+                                left = drawn.left,
+                                top = drawn.top,
+                                right = drawn.right,
+                                bottom = drawn.bottom,
+                                pageHeight = thisPageHeight.toFloat(),
+                                url = url
+                            )
+                        )
+                    }
                 }
             }
 
@@ -137,20 +158,71 @@ object PdfGenerator {
         }
 
         return try {
-            val uri = saveToDocuments(context, safeName, pdf)
+            val baos = ByteArrayOutputStream()
+            pdf.writeTo(baos)
             pdf.close()
+            var bytes = baos.toByteArray()
+            if (linkRects.isNotEmpty()) {
+                bytes = addLinkAnnotations(bytes, linkRects, context)
+            }
+            val uri = saveBytesToDocuments(context, safeName, bytes)
             if (uri != null) {
                 Result(true, fileName = safeName)
             } else {
                 Result(false, message = "save_failed")
             }
         } catch (e: Exception) {
-            pdf.close()
+            try { pdf.close() } catch (_: Exception) {}
             Result(false, message = e.message ?: "error")
         }
     }
 
+    private fun saveBytesToDocuments(context: Context, fileName: String, bytes: ByteArray): Uri? {
+        val resolver = context.contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(
+                    MediaStore.MediaColumns.RELATIVE_PATH,
+                    Environment.DIRECTORY_DOCUMENTS + "/PDFCraftStudio"
+                )
+                put(MediaStore.MediaColumns.IS_PENDING, 1)
+            }
+        }
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        } else {
+            MediaStore.Files.getContentUri("external")
+        }
+        val uri = resolver.insert(collection, values) ?: return null
+        return try {
+            resolver.openOutputStream(uri)?.use { it.write(bytes) }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                values.clear()
+                values.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                resolver.update(uri, values, null, null)
+            }
+            uri
+        } catch (e: Exception) {
+            resolver.delete(uri, null, null)
+            null
+        }
+    }
+
+
     /** Draw bitmap centered inside dst rect using Fit (no crop). */
+    private data class LinkRect(
+        val pageIndex: Int,
+        val left: Float,
+        val top: Float,
+        val right: Float,
+        val bottom: Float,
+        val pageHeight: Float,
+        val url: String
+    )
+
+    /** Draw bitmap centered inside dst rect using Fit (no crop). Returns drawn bounds. */
     private fun drawBitmapFit(
         canvas: Canvas,
         bitmap: Bitmap,
@@ -159,18 +231,16 @@ object PdfGenerator {
         dstWidth: Float,
         dstHeight: Float,
         paint: Paint
-    ) {
-        if (bitmap.width <= 0 || bitmap.height <= 0 || dstWidth <= 0f || dstHeight <= 0f) return
+    ): android.graphics.RectF? {
+        if (bitmap.width <= 0 || bitmap.height <= 0 || dstWidth <= 0f || dstHeight <= 0f) return null
         val bmpAspect = bitmap.width.toFloat() / bitmap.height.toFloat()
         val cellAspect = dstWidth / dstHeight
         val drawW: Float
         val drawH: Float
         if (bmpAspect > cellAspect) {
-            // wider than cell → fit width
             drawW = dstWidth
             drawH = dstWidth / bmpAspect
         } else {
-            // taller → fit height
             drawH = dstHeight
             drawW = dstHeight * bmpAspect
         }
@@ -179,7 +249,43 @@ object PdfGenerator {
         val src = android.graphics.Rect(0, 0, bitmap.width, bitmap.height)
         val dst = android.graphics.RectF(left, top, left + drawW, top + drawH)
         canvas.drawBitmap(bitmap, src, dst, paint)
+        return dst
     }
+
+    private fun addLinkAnnotations(pdfBytes: ByteArray, links: List<LinkRect>, context: Context): ByteArray {
+        if (links.isEmpty()) return pdfBytes
+        try {
+            PDFBoxResourceLoader.init(context)
+            PDDocument.load(ByteArrayInputStream(pdfBytes)).use { doc ->
+                links.forEach { link ->
+                    if (link.pageIndex !in 0 until doc.numberOfPages) return@forEach
+                    val page = doc.getPage(link.pageIndex)
+                    // PdfDocument y grows downward; PDFBox y grows upward
+                    val pdfTop = link.pageHeight - link.top
+                    val pdfBottom = link.pageHeight - link.bottom
+                    val rect = PDRectangle(
+                        link.left,
+                        minOf(pdfBottom, pdfTop),
+                        link.right - link.left,
+                        kotlin.math.abs(pdfTop - pdfBottom)
+                    )
+                    val annot = PDAnnotationLink()
+                    annot.rectangle = rect
+                    val action = PDActionURI()
+                    action.uri = link.url
+                    annot.action = action
+                    page.annotations.add(annot)
+                }
+                val out = ByteArrayOutputStream()
+                doc.save(out)
+                return out.toByteArray()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return pdfBytes
+        }
+    }
+
 
     private fun saveToDocuments(context: Context, fileName: String, pdf: PdfDocument): Uri? {
         val resolver = context.contentResolver
