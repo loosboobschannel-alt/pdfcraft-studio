@@ -54,6 +54,39 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 
     // ---- Crop full-screen ----
+
+    // ---- Rotate dialog ----
+
+
+
+
+
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pdfcraft.studio.R
+import com.pdfcraft.studio.ui.editor.canvas.PdfPagesPreview
+import com.pdfcraft.studio.ui.theme.PDFCraftStudioTheme
+import kotlinx.coroutines.launch
+
+fun EditorScreen(onBackClick: () -> Unit) {
+    val viewModel: EditorViewModel = viewModel()
+
     cropImageId?.let { cid ->
         val img = viewModel.getImage(cid)
         val bmp = img?.bitmap
@@ -71,7 +104,6 @@ import androidx.compose.material3.Scaffold
         }
     }
 
-    // ---- Rotate dialog ----
     rotateImageId?.let { rid ->
         val img = viewModel.getImage(rid)
         val bmp = img?.bitmap
@@ -97,139 +129,74 @@ import androidx.compose.material3.Scaffold
         }
     }
 
-
-    if (showImagePositionDialog && imagePositionTargetId != null) {
-        val srcId = imagePositionTargetId!!
-        AlertDialog(
-            onDismissRequest = {
-                showImagePositionDialog = false
-                imagePositionTargetId = null
-            },
-            title = { Text(stringResource(R.string.image_position_title)) },
-            text = {
-                Column {
-                    Text(
-                        text = stringResource(R.string.image_position_move_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Color.Black
-                    )
-                    Text(
-                        text = stringResource(R.string.image_position_move_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.DarkGray
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    TextButton(onClick = {
-                        viewModel.startImageMove(srcId)
-                        showImagePositionDialog = false
-                        imagePositionTargetId = null
-                    }) {
-                        Text(stringResource(R.string.image_position_move_title))
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = stringResource(R.string.image_position_swap_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Color.Black
-                    )
-                    Text(
-                        text = stringResource(R.string.image_position_swap_hint),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.DarkGray
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    TextButton(onClick = {
-                        viewModel.startImageSwap(srcId)
-                        showImagePositionDialog = false
-                        imagePositionTargetId = null
-                    }) {
-                        Text(stringResource(R.string.image_position_swap_title))
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = {
-                    showImagePositionDialog = false
-                    imagePositionTargetId = null
-                }) {
-                    Text(stringResource(R.string.image_position_cancel))
-                }
-            }
-        )
-    }
-
-
     linkImageId?.let { lid ->
-        AlertDialog(
+        androidx.compose.material3.AlertDialog(
             onDismissRequest = { linkImageId = null },
-            title = { Text(stringResource(R.string.image_link_title)) },
+            title = { androidx.compose.material3.Text(stringResource(R.string.image_link_title)) },
             text = {
-                Column {
-                    Text(
-                        text = stringResource(R.string.image_link_instruction),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.DarkGray
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = stringResource(R.string.image_link_url_label),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Color.Black
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
+                androidx.compose.foundation.layout.Column {
+                    androidx.compose.material3.Text(stringResource(R.string.image_link_instruction))
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(8.dp))
+                    androidx.compose.material3.OutlinedTextField(
                         value = linkUrlText,
                         onValueChange = { linkUrlText = it },
-                        placeholder = { Text(stringResource(R.string.image_link_url_hint)) },
+                        placeholder = { androidx.compose.material3.Text(stringResource(R.string.image_link_url_hint)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
+                androidx.compose.material3.TextButton(onClick = {
                     viewModel.setImageLinkUrl(lid, linkUrlText)
                     linkImageId = null
-                }) {
-                    Text(stringResource(R.string.image_link_done))
-                }
+                }) { androidx.compose.material3.Text(stringResource(R.string.image_link_done)) }
             },
             dismissButton = {
-                TextButton(onClick = { linkImageId = null }) {
-                    Text(stringResource(R.string.image_link_cancel))
+                androidx.compose.material3.TextButton(onClick = { linkImageId = null }) {
+                    androidx.compose.material3.Text(stringResource(R.string.image_link_cancel))
                 }
             }
         )
     }
 
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.pdfcraft.studio.R
-import com.pdfcraft.studio.ui.editor.canvas.PdfPagesPreview
-import com.pdfcraft.studio.ui.theme.PDFCraftStudioTheme
-import kotlinx.coroutines.launch
+    if (showImagePositionDialog && imagePositionTargetId != null) {
+        val srcId = imagePositionTargetId!!
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {
+                showImagePositionDialog = false
+                imagePositionTargetId = null
+            },
+            title = { androidx.compose.material3.Text(stringResource(R.string.image_position_title)) },
+            text = {
+                androidx.compose.foundation.layout.Column {
+                    androidx.compose.material3.Text(stringResource(R.string.image_position_move_title))
+                    androidx.compose.material3.Text(stringResource(R.string.image_position_move_hint))
+                    androidx.compose.material3.TextButton(onClick = {
+                        viewModel.startImageMove(srcId)
+                        showImagePositionDialog = false
+                        imagePositionTargetId = null
+                    }) { androidx.compose.material3.Text(stringResource(R.string.image_position_move_title)) }
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
+                    androidx.compose.material3.Text(stringResource(R.string.image_position_swap_title))
+                    androidx.compose.material3.Text(stringResource(R.string.image_position_swap_hint))
+                    androidx.compose.material3.TextButton(onClick = {
+                        viewModel.startImageSwap(srcId)
+                        showImagePositionDialog = false
+                        imagePositionTargetId = null
+                    }) { androidx.compose.material3.Text(stringResource(R.string.image_position_swap_title)) }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    showImagePositionDialog = false
+                    imagePositionTargetId = null
+                }) { androidx.compose.material3.Text(stringResource(R.string.image_position_cancel)) }
+            }
+        )
+    }
 
-@Composable
-@OptIn(ExperimentalMaterial3Api::class)
-fun EditorScreen(onBackClick: () -> Unit) {
-    val viewModel: EditorViewModel = viewModel()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showImportSettings by remember { mutableStateOf(false) }
