@@ -683,14 +683,32 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         importedImages[j] = tmp
     }
 
+    /**
+     * Move [sourceId] into the list slot of [targetId].
+     * Destination image is removed; images after it shift back.
+     * Source is not duplicated. Works across pages (flat image list order).
+     */
     fun moveSingleImageTo(sourceId: String, targetId: String) {
         if (sourceId == targetId) return
         val sourceIndex = importedImages.indexOfFirst { it.id == sourceId }
         if (sourceIndex < 0) return
-        val item = importedImages.removeAt(sourceIndex)
+
+        // Take source out first (preserves its bitmap/content)
+        val sourceItem = importedImages.removeAt(sourceIndex)
+
+        // Target index after source removal
         val targetIndex = importedImages.indexOfFirst { it.id == targetId }
-        val insertAt = if (targetIndex < 0) importedImages.size else targetIndex
-        importedImages.add(insertAt, item)
+        if (targetIndex < 0) {
+            // Target gone — put source back at end
+            importedImages.add(sourceItem)
+            return
+        }
+
+        // Remove destination image from that slot
+        importedImages.removeAt(targetIndex)
+
+        // Insert source at destination's position (later images already shifted back)
+        importedImages.add(targetIndex, sourceItem)
     }
 
     fun moveSelectedImagesTo(targetId: String) {
