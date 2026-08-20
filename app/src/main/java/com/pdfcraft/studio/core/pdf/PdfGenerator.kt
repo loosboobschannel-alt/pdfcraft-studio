@@ -261,14 +261,23 @@ object PdfGenerator {
                     if (link.pageIndex !in 0 until doc.numberOfPages) return@forEach
                     val page = doc.getPage(link.pageIndex)
                     val media = page.mediaBox
-                    // Prefer real PDF page height (matches MediaBox); fallback to recorded canvas height
-                    val pageH = if (media.height > 0f) media.height else link.pageHeight
+                    val pageW = if (media.width > 0f) media.width else 1080f
+                    val pageH = if (media.height > 0f) media.height else link.pageHeight.coerceAtLeast(1f)
+                    val srcW = 1080f
+                    val srcH = link.pageHeight.coerceAtLeast(1f)
+                    val scaleX = pageW / srcW
+                    val scaleY = pageH / srcH
 
-                    // Android PdfDocument: Y down. PDF: Y up from bottom-left.
-                    val llx = link.left.coerceIn(0f, media.width)
-                    val lly = (pageH - link.bottom).coerceIn(0f, pageH)
-                    val urx = link.right.coerceIn(0f, media.width)
-                    val ury = (pageH - link.top).coerceIn(0f, pageH)
+                    // Canvas (top-left, Y down) → PDF user space (bottom-left, Y up)
+                    val left = link.left * scaleX
+                    val right = link.right * scaleX
+                    val top = link.top * scaleY
+                    val bottom = link.bottom * scaleY
+
+                    val llx = left.coerceIn(0f, pageW)
+                    val lly = (pageH - bottom).coerceIn(0f, pageH)
+                    val urx = right.coerceIn(0f, pageW)
+                    val ury = (pageH - top).coerceIn(0f, pageH)
                     val w = (urx - llx).coerceAtLeast(1f)
                     val h = (ury - lly).coerceAtLeast(1f)
 
@@ -278,19 +287,29 @@ object PdfGenerator {
                         uri = "https://$uri"
                     }
 
-                    val annot = PDAnnotationLink()
-                    annot.rectangle = PDRectangle(llx, lly, w, h)
                     val action = PDActionURI()
                     action.uri = uri
+
+                    val annot = PDAnnotationLink()
+                    annot.rectangle = PDRectangle(llx, lly, w, h)
                     annot.action = action
-                    // Invisible border so image looks clean but stays clickable
                     try {
                         val bs = com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDBorderStyleDictionary()
-                        bs.width = 0f
+                        bs.setWidth(0f)
                         annot.borderStyle = bs
-                    } catch (_: Exception) { }
+                    } catch (_: Exception) {
+                        try {
+                            val bs = com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDBorderStyleDictionary()
+                            bs.width = 0f
+                            annot.borderStyle = bs
+                        } catch (_: Exception) { }
+                    }
 
-                    page.annotations.add(annot)
+                    // CRITICAL: assign a new list back so ANNOTS is written into the page dict
+                    // (plain .add on some PDFBox/Android PDFs does not persist)
+                    val updated = ArrayList(page.annotations)
+                    updated.add(annot)
+                    page.annotations = updated
                 }
                 val out = ByteArrayOutputStream()
                 doc.save(out)
@@ -301,6 +320,7 @@ object PdfGenerator {
             pdfBytes
         }
     }
+
 
 
     private fun saveToDocuments(context: Context, fileName: String, pdf: PdfDocument): Uri? {

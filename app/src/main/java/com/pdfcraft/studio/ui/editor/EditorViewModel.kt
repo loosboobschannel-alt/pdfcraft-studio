@@ -684,31 +684,30 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * Move [sourceId] into the list slot of [targetId].
-     * Destination image is removed; images after it shift back.
+     * Move [sourceId] to [targetId]'s original list position (insertion,
+     * not replacement). The destination image is kept — it (and every
+     * image between source and destination) shifts over by one slot.
      * Source is not duplicated. Works across pages (flat image list order).
      */
     fun moveSingleImageTo(sourceId: String, targetId: String) {
         if (sourceId == targetId) return
+
         val sourceIndex = importedImages.indexOfFirst { it.id == sourceId }
         if (sourceIndex < 0) return
 
-        // Take source out first (preserves its bitmap/content)
+        // Capture the destination's index BEFORE removing the source —
+        // it must not be recalculated after removal.
+        val targetIndex = importedImages.indexOfFirst { it.id == targetId }
+        if (targetIndex < 0) return
+
+        // Remove ONLY the source. The destination is never touched/removed.
         val sourceItem = importedImages.removeAt(sourceIndex)
 
-        // Target index after source removal
-        val targetIndex = importedImages.indexOfFirst { it.id == targetId }
-        if (targetIndex < 0) {
-            // Target gone — put source back at end
-            importedImages.add(sourceItem)
-            return
-        }
-
-        // Remove destination image from that slot
-        importedImages.removeAt(targetIndex)
-
-        // Insert source at destination's position (later images already shifted back)
-        importedImages.add(targetIndex, sourceItem)
+        // Insert the source at the destination's original index. This
+        // correctly places it in that exact slot and shifts everything
+        // between source and destination by one, in either direction.
+        val insertAt = targetIndex.coerceIn(0, importedImages.size)
+        importedImages.add(insertAt, sourceItem)
     }
 
     fun moveSelectedImagesTo(targetId: String) {
