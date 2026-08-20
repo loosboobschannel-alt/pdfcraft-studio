@@ -31,7 +31,8 @@ object PdfGenerator {
     data class Result(
         val success: Boolean,
         val fileName: String = "",
-        val message: String = ""
+        val message: String = "",
+        val linkWarning: String? = null
     )
 
     fun export(
@@ -162,12 +163,15 @@ object PdfGenerator {
             pdf.writeTo(baos)
             pdf.close()
             var bytes = baos.toByteArray()
+            var linkWarning: String? = null
             if (linkRects.isNotEmpty()) {
-                bytes = addLinkAnnotations(bytes, linkRects, context)
+                val stamped = addLinkAnnotations(bytes, linkRects, context)
+                bytes = stamped.first
+                linkWarning = stamped.second
             }
             val uri = saveBytesToDocuments(context, safeName, bytes)
             if (uri != null) {
-                Result(true, fileName = safeName)
+                Result(true, fileName = safeName, linkWarning = linkWarning)
             } else {
                 Result(false, message = "save_failed")
             }
@@ -252,8 +256,8 @@ object PdfGenerator {
         return dst
     }
 
-    private fun addLinkAnnotations(pdfBytes: ByteArray, links: List<LinkRect>, context: Context): ByteArray {
-        if (links.isEmpty()) return pdfBytes
+    private fun addLinkAnnotations(pdfBytes: ByteArray, links: List<LinkRect>, context: Context): Pair<ByteArray, String?> {
+        if (links.isEmpty()) return pdfBytes to null
         return try {
             PDFBoxResourceLoader.init(context)
             PDDocument.load(ByteArrayInputStream(pdfBytes)).use { doc ->
@@ -314,11 +318,11 @@ object PdfGenerator {
                 }
                 val out = ByteArrayOutputStream()
                 doc.save(out)
-                out.toByteArray()
+                out.toByteArray() to null
             }
         } catch (e: Exception) {
-            e.printStackTrace()
-            pdfBytes
+            android.util.Log.e("PdfGenerator", "Failed to add link annotations", e)
+            pdfBytes to (e.javaClass.simpleName + ": " + (e.message ?: "unknown error"))
         }
     }
 

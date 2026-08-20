@@ -290,6 +290,8 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     var showErrorDialog by remember { mutableStateOf(false) }
                     var errorMessage by remember { mutableStateOf("") }
                     var savedFileName by remember { mutableStateOf("") }
+                    var linkWarning by remember { mutableStateOf<String?>(null) }
+                    var linkWarning by remember { mutableStateOf<String?>(null) }
                     var nameField by remember {
                         mutableStateOf(TextFieldValue("Document.pdf", TextRange(0, 8)))
                     }
@@ -354,6 +356,8 @@ fun EditorScreen(onBackClick: () -> Unit) {
                                     )
                                     if (result.success) {
                                         savedFileName = result.fileName
+                                        linkWarning = result.linkWarning
+                                        linkWarning = result.linkWarning
                                         showSuccessDialog = true
                                     } else {
                                         errorMessage = if (result.message == "empty")
@@ -380,7 +384,17 @@ fun EditorScreen(onBackClick: () -> Unit) {
                             onDismissRequest = { showSuccessDialog = false },
                             title = { Text(stringResource(R.string.export_pdf_success_title)) },
                             text = {
-                                Text(stringResource(R.string.export_pdf_success_message, savedFileName))
+                                Column {
+                                    Text(stringResource(R.string.export_pdf_success_message, savedFileName))
+                                    val warning = linkWarning
+                                    if (warning != null) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Link warning: $warning",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
                             },
                             confirmButton = {
                                 TextButton(onClick = { showSuccessDialog = false }) {
