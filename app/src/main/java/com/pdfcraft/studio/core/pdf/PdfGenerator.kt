@@ -254,35 +254,51 @@ object PdfGenerator {
 
     private fun addLinkAnnotations(pdfBytes: ByteArray, links: List<LinkRect>, context: Context): ByteArray {
         if (links.isEmpty()) return pdfBytes
-        try {
+        return try {
             PDFBoxResourceLoader.init(context)
             PDDocument.load(ByteArrayInputStream(pdfBytes)).use { doc ->
                 links.forEach { link ->
                     if (link.pageIndex !in 0 until doc.numberOfPages) return@forEach
                     val page = doc.getPage(link.pageIndex)
-                    // PdfDocument y grows downward; PDFBox y grows upward
-                    val pdfTop = link.pageHeight - link.top
-                    val pdfBottom = link.pageHeight - link.bottom
-                    val rect = PDRectangle(
-                        link.left,
-                        minOf(pdfBottom, pdfTop),
-                        link.right - link.left,
-                        kotlin.math.abs(pdfTop - pdfBottom)
-                    )
+                    val media = page.mediaBox
+                    // Prefer real PDF page height (matches MediaBox); fallback to recorded canvas height
+                    val pageH = if (media.height > 0f) media.height else link.pageHeight
+
+                    // Android PdfDocument: Y down. PDF: Y up from bottom-left.
+                    val llx = link.left.coerceIn(0f, media.width)
+                    val lly = (pageH - link.bottom).coerceIn(0f, pageH)
+                    val urx = link.right.coerceIn(0f, media.width)
+                    val ury = (pageH - link.top).coerceIn(0f, pageH)
+                    val w = (urx - llx).coerceAtLeast(1f)
+                    val h = (ury - lly).coerceAtLeast(1f)
+
+                    var uri = link.url.trim()
+                    if (uri.isEmpty()) return@forEach
+                    if (!uri.contains("://")) {
+                        uri = "https://$uri"
+                    }
+
                     val annot = PDAnnotationLink()
-                    annot.rectangle = rect
+                    annot.rectangle = PDRectangle(llx, lly, w, h)
                     val action = PDActionURI()
-                    action.uri = link.url
+                    action.uri = uri
                     annot.action = action
+                    // Invisible border so image looks clean but stays clickable
+                    try {
+                        val bs = com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDBorderStyleDictionary()
+                        bs.width = 0f
+                        annot.borderStyle = bs
+                    } catch (_: Exception) { }
+
                     page.annotations.add(annot)
                 }
                 val out = ByteArrayOutputStream()
                 doc.save(out)
-                return out.toByteArray()
+                out.toByteArray()
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            return pdfBytes
+            pdfBytes
         }
     }
 
