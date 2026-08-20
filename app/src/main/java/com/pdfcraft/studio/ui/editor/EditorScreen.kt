@@ -291,7 +291,6 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     var errorMessage by remember { mutableStateOf("") }
                     var savedFileName by remember { mutableStateOf("") }
                     var linkWarning by remember { mutableStateOf<String?>(null) }
-                    var linkWarning by remember { mutableStateOf<String?>(null) }
                     var nameField by remember {
                         mutableStateOf(TextFieldValue("Document.pdf", TextRange(0, 8)))
                     }
@@ -356,7 +355,6 @@ fun EditorScreen(onBackClick: () -> Unit) {
                                     )
                                     if (result.success) {
                                         savedFileName = result.fileName
-                                        linkWarning = result.linkWarning
                                         linkWarning = result.linkWarning
                                         showSuccessDialog = true
                                     } else {
