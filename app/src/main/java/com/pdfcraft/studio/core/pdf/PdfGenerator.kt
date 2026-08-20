@@ -250,9 +250,26 @@ object PdfGenerator {
         }
         val left = dstLeft + (dstWidth - drawW) / 2f
         val top = dstTop + (dstHeight - drawH) / 2f
-        val src = android.graphics.Rect(0, 0, bitmap.width, bitmap.height)
         val dst = android.graphics.RectF(left, top, left + drawW, top + drawH)
-        canvas.drawBitmap(bitmap, src, dst, paint)
+
+        // Downscale to on-page pixel size so PdfDocument does not embed
+        // full-resolution bitmaps (main cause of multi-MB PDFs from tiny JPEGs).
+        val targetW = drawW.toInt().coerceAtLeast(1)
+        val targetH = drawH.toInt().coerceAtLeast(1)
+        val toDraw: Bitmap
+        val recycleAfter: Boolean
+        if (bitmap.width > targetW * 2 || bitmap.height > targetH * 2) {
+            toDraw = Bitmap.createScaledBitmap(bitmap, targetW, targetH, true)
+            recycleAfter = toDraw !== bitmap
+        } else {
+            toDraw = bitmap
+            recycleAfter = false
+        }
+        val src = android.graphics.Rect(0, 0, toDraw.width, toDraw.height)
+        canvas.drawBitmap(toDraw, src, dst, paint)
+        if (recycleAfter && !toDraw.isRecycled) {
+            toDraw.recycle()
+        }
         return dst
     }
 
