@@ -260,13 +260,14 @@ object PdfGenerator {
                 links.forEach { link ->
                     if (link.pageIndex !in 0 until doc.numberOfPages) return@forEach
                     val page = doc.getPage(link.pageIndex)
-                    val media = page.mediaBox
-                    val pageW = if (media.width > 0f) media.width else 1080f
-                    val pageH = if (media.height > 0f) media.height else link.pageHeight.coerceAtLeast(1f)
-                    val srcW = 1080f
-                    val srcH = link.pageHeight.coerceAtLeast(1f)
-                    val scaleX = pageW / srcW
-                    val scaleY = pageH / srcH
+                    // Use the exact size this page was generated with instead of
+                    // page.mediaBox — PDFBox-Android can misread an inherited /MediaBox
+                    // on pages written by android.graphics.pdf.PdfDocument and silently
+                    // fall back to Letter size (612x792), corrupting the link rect.
+                    val pageW = 1080f
+                    val pageH = link.pageHeight.coerceAtLeast(1f)
+                    val scaleX = 1f
+                    val scaleY = 1f
 
                     // Canvas (top-left, Y down) → PDF user space (bottom-left, Y up)
                     val left = link.left * scaleX
