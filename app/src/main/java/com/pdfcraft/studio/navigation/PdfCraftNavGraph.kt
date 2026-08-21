@@ -1,6 +1,7 @@
 package com.pdfcraft.studio.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -11,14 +12,19 @@ import com.pdfcraft.studio.ui.editor.EditorScreen
 import com.pdfcraft.studio.ui.home.HomeScreen
 import com.pdfcraft.studio.ui.viewer.PdfViewerScreen
 
-/**
- * App-wide navigation graph. Each screen is its own self-contained
- * composable module (see ui/home, ui/editor). Future stages should add new
- * `composable(Screen.X.route) { ... }` entries here rather than nesting
- * screens inside one another.
- */
 @Composable
-fun PdfCraftNavGraph(navController: NavHostController = rememberNavController()) {
+fun PdfCraftNavGraph(
+    openPdfUri: String? = null,
+    navController: NavHostController = rememberNavController()
+) {
+    // When opened via "Open with" / VIEW intent, jump to the viewer
+    LaunchedEffect(openPdfUri) {
+        val uri = openPdfUri?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
+        navController.navigate(Screen.PdfViewer.routeWithUri(uri)) {
+            launchSingleTop = true
+        }
+    }
+
     NavHost(navController = navController, startDestination = Screen.Home.route) {
         composable(Screen.Home.route) {
             HomeScreen(
