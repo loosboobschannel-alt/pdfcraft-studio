@@ -8,4 +8,7 @@ package com.pdfcraft.studio.navigation
 sealed class Screen(val route: String) {
     data object Home : Screen("home")
     data object Editor : Screen("editor")
+    data object PdfViewer : Screen("pdf_viewer/{uri}") {
+        fun routeWithUri(uri: String): String = "pdf_viewer/${android.net.Uri.encode(uri)}"
+    }
 }

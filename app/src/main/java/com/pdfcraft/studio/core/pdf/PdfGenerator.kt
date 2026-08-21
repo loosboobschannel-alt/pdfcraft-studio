@@ -32,7 +32,8 @@ object PdfGenerator {
         val success: Boolean,
         val fileName: String = "",
         val message: String = "",
-        val linkWarning: String? = null
+        val linkWarning: String? = null,
+        val savedUri: Uri? = null
     )
 
     fun export(
@@ -171,7 +172,7 @@ object PdfGenerator {
             }
             val uri = saveBytesToDocuments(context, safeName, bytes)
             if (uri != null) {
-                Result(true, fileName = safeName, linkWarning = linkWarning)
+                Result(true, fileName = safeName, linkWarning = linkWarning, savedUri = uri)
             } else {
                 Result(false, message = "save_failed")
             }

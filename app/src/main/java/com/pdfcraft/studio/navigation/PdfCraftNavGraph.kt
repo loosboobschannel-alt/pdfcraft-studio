@@ -2,11 +2,14 @@ package com.pdfcraft.studio.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.pdfcraft.studio.ui.editor.EditorScreen
 import com.pdfcraft.studio.ui.home.HomeScreen
+import com.pdfcraft.studio.ui.viewer.PdfViewerScreen
 
 /**
  * App-wide navigation graph. Each screen is its own self-contained
@@ -26,6 +29,19 @@ fun PdfCraftNavGraph(navController: NavHostController = rememberNavController())
         }
         composable(Screen.Editor.route) {
             EditorScreen(
+                onBackClick = { navController.popBackStack() },
+                onViewPdfClick = { uriString ->
+                    navController.navigate(Screen.PdfViewer.routeWithUri(uriString))
+                }
+            )
+        }
+        composable(
+            route = Screen.PdfViewer.route,
+            arguments = listOf(navArgument("uri") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val encodedUri = backStackEntry.arguments?.getString("uri").orEmpty()
+            PdfViewerScreen(
+                pdfUriString = android.net.Uri.decode(encodedUri),
                 onBackClick = { navController.popBackStack() }
             )
         }

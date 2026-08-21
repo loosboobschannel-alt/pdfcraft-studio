@@ -80,7 +80,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditorScreen(onBackClick: () -> Unit) {
+fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {}) {
     val viewModel: EditorViewModel = viewModel()
 
     // Image edit dialogs / actions state (must be before use)
@@ -291,6 +291,7 @@ fun EditorScreen(onBackClick: () -> Unit) {
                     var errorMessage by remember { mutableStateOf("") }
                     var savedFileName by remember { mutableStateOf("") }
                     var linkWarning by remember { mutableStateOf<String?>(null) }
+                    var savedUri by remember { mutableStateOf<android.net.Uri?>(null) }
                     var nameField by remember {
                         mutableStateOf(TextFieldValue("Document.pdf", TextRange(0, 8)))
                     }
@@ -356,6 +357,7 @@ fun EditorScreen(onBackClick: () -> Unit) {
                                     if (result.success) {
                                         savedFileName = result.fileName
                                         linkWarning = result.linkWarning
+                                        savedUri = result.savedUri
                                         showSuccessDialog = true
                                     } else {
                                         errorMessage = if (result.message == "empty")
@@ -395,6 +397,14 @@ fun EditorScreen(onBackClick: () -> Unit) {
                                 }
                             },
                             confirmButton = {
+                                TextButton(onClick = {
+                                    showSuccessDialog = false
+                                    savedUri?.let { onViewPdfClick(it.toString()) }
+                                }) {
+                                    Text(stringResource(R.string.view_pdf_button))
+                                }
+                            },
+                            dismissButton = {
                                 TextButton(onClick = { showSuccessDialog = false }) {
                                     Text(stringResource(R.string.export_pdf_done))
                                 }

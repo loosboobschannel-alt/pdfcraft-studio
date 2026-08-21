@@ -142,6 +142,7 @@
     <string name="export_pdf_success_title">PDF Saved</string>
     <string name="export_pdf_success_message">Your PDF has been saved as "%1$s" in:\nDocuments / PDFCraftStudio</string>
     <string name="export_pdf_done">Done</string>
+    <string name="view_pdf_button">View PDF</string>
     <string name="export_pdf_failed">Failed to export PDF. Please try again.</string>
     <string name="export_pdf_empty">Nothing to export. Add images or text first.</string>
     <string name="cancel">Cancel</string>
