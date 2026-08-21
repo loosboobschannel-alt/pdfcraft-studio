@@ -359,6 +359,25 @@ fun EditorToolbar(
             confirmText = stringResource(R.string.page_duplicate_button)
         )
     }
+
+    if (showImageNumberingPicker) {
+        PageSizePickerDialog(
+            pageCount = pageCountForNumbering,
+            selectedPages = pageNumberingSelected,
+            onTogglePage = onTogglePageNumberingSelection,
+            onToggleSelectAll = onToggleSelectAllPagesForNumbering,
+            onOk = {
+                if (pageNumberingSelected.isNotEmpty()) {
+                    showImageNumberingPicker = false
+                    onStartImageNumbering()
+                }
+            },
+            onDismiss = { showImageNumberingPicker = false },
+            instructionText = stringResource(R.string.image_numbering_instruction),
+            confirmText = stringResource(R.string.image_numbering_next)
+        )
+    }
+
 }
 
 @Composable
@@ -450,23 +469,6 @@ private fun ToolChip(
 }
 
 
-    if (showImageNumberingPicker) {
-        PageSizePickerDialog(
-            pageCount = pageCountForNumbering,
-            selectedPages = pageNumberingSelected,
-            onTogglePage = onTogglePageNumberingSelection,
-            onToggleSelectAll = onToggleSelectAllPagesForNumbering,
-            onOk = {
-                if (pageNumberingSelected.isNotEmpty()) {
-                    showImageNumberingPicker = false
-                    onStartImageNumbering()
-                }
-            },
-            onDismiss = { showImageNumberingPicker = false },
-            instructionText = stringResource(R.string.image_numbering_instruction),
-            confirmText = stringResource(R.string.image_numbering_next)
-        )
-    }
 
 @Composable
 private fun ToolMenuItem(
