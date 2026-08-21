@@ -110,6 +110,19 @@ fun EditorToolbar(
     onToggleSelectAllPagesForDuplicate: () -> Unit = {},
     onClearPageDuplicateSelection: () -> Unit = {},
     onDuplicateSelectedPages: () -> Unit = {},
+    pageCountForNumbering: Int = 1,
+    pageNumberingSelected: Set<Int> = emptySet(),
+    onTogglePageNumberingSelection: (Int) -> Unit = {},
+    onToggleSelectAllPagesForNumbering: () -> Unit = {},
+    onClearPageNumberingSelection: () -> Unit = {},
+    onStartImageNumbering: () -> Unit = {},
+    numberingEditMode: Boolean = false,
+    numberingAlpha: Float = 0.9f,
+    onNumberingAlphaChange: (Float) -> Unit = {},
+    numberingSizeFrac: Float = 0.18f,
+    onNumberingSizeChange: (Float) -> Unit = {},
+    onNumberingNudge: (Float, Float) -> Unit = { _, _ -> },
+    onNumberingDone: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var resizeModeActive by remember { mutableStateOf(false) }
@@ -118,6 +131,7 @@ fun EditorToolbar(
     var cornersModeActive by remember { mutableStateOf(false) }
     var pageSizeModeActive by remember { mutableStateOf(false) }
     var showPageSizePicker by remember { mutableStateOf(false) }
+    var showImageNumberingPicker by remember { mutableStateOf(false) }
     var showPageBgColorPicker by remember { mutableStateOf(false) }
     var showPageDeletePicker by remember { mutableStateOf(false) }
     var showPageDuplicatePicker by remember { mutableStateOf(false) }
@@ -138,6 +152,14 @@ fun EditorToolbar(
                 imagesPerRow = imagesPerRow,
                 onImagesPerRowChange = onImagesPerRowSelected,
                 onDone = { resizeModeActive = false }
+            )
+            numberingEditMode -> ImageNumberingPanel(
+                alpha = numberingAlpha,
+                onAlphaChange = onNumberingAlphaChange,
+                sizeFrac = numberingSizeFrac,
+                onSizeChange = onNumberingSizeChange,
+                onNudge = onNumberingNudge,
+                onDone = onNumberingDone
             )
             spacingModeActive -> ImageSpacingSlider(
                 spacingDp = imageSpacingDp,
@@ -229,7 +251,11 @@ fun EditorToolbar(
                         onResizeImagesClick = { resizeModeActive = true },
                         onAdjustSpacingClick = { spacingModeActive = true },
                         onAdjustImageShapeClick = { shapeModeActive = true },
-                        onAdjustCornersClick = { cornersModeActive = true }
+                        onAdjustCornersClick = { cornersModeActive = true },
+                        onImageNumberingClick = {
+                            onClearPageNumberingSelection()
+                            showImageNumberingPicker = true
+                        }
                     )
                     TextToolsMenu(
                         onEnterTextClick = onAddTextClick,
@@ -423,6 +449,25 @@ private fun ToolChip(
     )
 }
 
+
+    if (showImageNumberingPicker) {
+        PageSizePickerDialog(
+            pageCount = pageCountForNumbering,
+            selectedPages = pageNumberingSelected,
+            onTogglePage = onTogglePageNumberingSelection,
+            onToggleSelectAll = onToggleSelectAllPagesForNumbering,
+            onOk = {
+                if (pageNumberingSelected.isNotEmpty()) {
+                    showImageNumberingPicker = false
+                    onStartImageNumbering()
+                }
+            },
+            onDismiss = { showImageNumberingPicker = false },
+            instructionText = stringResource(R.string.image_numbering_instruction),
+            confirmText = stringResource(R.string.image_numbering_next)
+        )
+    }
+
 @Composable
 private fun ToolMenuItem(
     label: String,
@@ -449,7 +494,8 @@ private fun ImageToolsMenu(
     onResizeImagesClick: () -> Unit,
     onAdjustSpacingClick: () -> Unit,
     onAdjustImageShapeClick: () -> Unit,
-    onAdjustCornersClick: () -> Unit
+    onAdjustCornersClick: () -> Unit,
+    onImageNumberingClick: () -> Unit = {}
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -490,6 +536,11 @@ private fun ImageToolsMenu(
             ToolMenuItem(stringResource(R.string.round_corners_tool)) {
                 menuExpanded = false
                 onAdjustCornersClick()
+            }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(stringResource(R.string.image_numbering_tool)) {
+                menuExpanded = false
+                onImageNumberingClick()
             }
         }
     }
@@ -822,6 +873,58 @@ private fun ImagesPerRowSlider(
             steps = 18,
             labelFormatter = { "${it.roundToInt()}" }
         )
+    }
+}
+
+
+@Composable
+private fun ImageNumberingPanel(
+    alpha: Float,
+    onAlphaChange: (Float) -> Unit,
+    sizeFrac: Float,
+    onSizeChange: (Float) -> Unit,
+    onNudge: (Float, Float) -> Unit,
+    onDone: () -> Unit
+) {
+    var showArrows by remember { mutableStateOf(false) }
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        SliderToolHeader(title = stringResource(R.string.image_numbering_title), onDone = onDone)
+        Text(stringResource(R.string.image_numbering_transparency), color = Color.Black)
+        Slider(
+            value = alpha,
+            onValueChange = onAlphaChange,
+            valueRange = 0.2f..1f
+        )
+        Text(stringResource(R.string.image_numbering_size), color = Color.Black)
+        Slider(
+            value = sizeFrac,
+            onValueChange = onSizeChange,
+            valueRange = 0.08f..0.35f
+        )
+        TextButton(onClick = { showArrows = !showArrows }) {
+            Text(stringResource(R.string.image_numbering_change_position))
+        }
+        if (showArrows) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                TextButton(onClick = { onNudge(0f, -1f) }) { Text("↑") }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                TextButton(onClick = { onNudge(-1f, 0f) }) { Text("←") }
+                TextButton(onClick = { onNudge(1f, 0f) }) { Text("→") }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                TextButton(onClick = { onNudge(0f, 1f) }) { Text("↓") }
+            }
+        }
     }
 }
 

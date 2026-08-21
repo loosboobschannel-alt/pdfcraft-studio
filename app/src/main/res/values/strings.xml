@@ -230,4 +230,14 @@
     <string name="image_link_done">Done</string>
     <string name="image_link_cancel">Cancel</string>
 
+
+    <string name="image_numbering_tool">6. Image Numbering</string>
+    <string name="image_numbering_title">Image Numbering</string>
+    <string name="image_numbering_instruction">Select the pages where you want to add image numbers.</string>
+    <string name="image_numbering_next">Next</string>
+    <string name="image_numbering_transparency">Icon Transparency</string>
+    <string name="image_numbering_size">Icon Size</string>
+    <string name="image_numbering_change_position">Change Icon Position</string>
+    <string name="image_numbering_done">Done</string>
+
 </resources>

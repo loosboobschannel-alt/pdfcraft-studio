@@ -540,6 +540,34 @@ Column(
                 },
                 imagesPerRow =
                     viewModel.imagesPerRow,
+                pageCountForNumbering = viewModel.currentPageCountEstimate(
+                    (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                ),
+                pageNumberingSelected = viewModel.pageNumberingSelection.toSet(),
+                onTogglePageNumberingSelection = viewModel::togglePageNumberingSelection,
+                onToggleSelectAllPagesForNumbering = {
+                    viewModel.toggleSelectAllPagesForNumbering(
+                        viewModel.currentPageCountEstimate((viewModel.imagesPerRow * 2).coerceAtLeast(1))
+                    )
+                },
+                onClearPageNumberingSelection = viewModel::clearPageNumberingSelection,
+                onStartImageNumbering = {
+                    viewModel.startNumberingEdit((viewModel.imagesPerRow * 2).coerceAtLeast(1))
+                },
+                numberingEditMode = viewModel.numberingEditMode,
+                numberingAlpha = viewModel.numberingAlpha,
+                onNumberingAlphaChange = { a ->
+                    viewModel.numberingAlpha = a
+                    viewModel.updateNumberingLiveStyle()
+                },
+                numberingSizeFrac = viewModel.numberingSizeFrac,
+                onNumberingSizeChange = { s ->
+                    viewModel.numberingSizeFrac = s
+                    viewModel.updateNumberingLiveStyle()
+                },
+                onNumberingNudge = { dx, dy -> viewModel.nudgeNumbering(dx, dy) },
+                onNumberingDone = { viewModel.finishNumberingEdit() },
+
                 onImagesPerRowSelected =
                     viewModel::updateImagesPerRow,
                 imageSpacingDp =

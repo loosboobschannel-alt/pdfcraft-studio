@@ -27,7 +27,16 @@ data class ImportedImage(
     val imageUri: Uri? = null,
     val bitmap: Bitmap? = null,
     val approxSizeBytes: Int? = null,
-    val linkUrl: String? = null
+    val linkUrl: String? = null,
+    /** 1-based label; null = no numbering icon */
+    val numberLabel: Int? = null,
+    /** Center of icon inside image, 0f..1f */
+    val numberXFrac: Float = 0.5f,
+    val numberYFrac: Float = 0.5f,
+    /** Relative icon diameter vs min(image side), \~0.08..0.35 */
+    val numberSizeFrac: Float = 0.18f,
+    /** 0f..1f */
+    val numberAlpha: Float = 0.9f
 )
 
 data class TextElement(
@@ -573,6 +582,79 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         val old = importedImages[idx]
         importedImages[idx] = old.copy(linkUrl = normalized)
         singleMenuImageId = null
+    }
+
+    
+    val pageNumberingSelection = mutableStateListOf<Int>()
+    var numberingEditMode: Boolean by mutableStateOf(false)
+    var numberingAlpha: Float by mutableStateOf(0.9f)
+    var numberingSizeFrac: Float by mutableStateOf(0.18f)
+    var numberingXFrac: Float by mutableStateOf(0.5f)
+    var numberingYFrac: Float by mutableStateOf(0.5f)
+
+    fun clearPageNumberingSelection() { pageNumberingSelection.clear() }
+
+    fun togglePageNumberingSelection(pageIndex: Int) {
+        if (pageNumberingSelection.contains(pageIndex)) pageNumberingSelection.remove(pageIndex)
+        else pageNumberingSelection.add(pageIndex)
+    }
+
+    fun toggleSelectAllPagesForNumbering(pageCount: Int) {
+        val count = pageCount.coerceAtLeast(1)
+        val all = pageNumberingSelection.size >= count && (0 until count).all { it in pageNumberingSelection }
+        pageNumberingSelection.clear()
+        if (!all) pageNumberingSelection.addAll(0 until count)
+    }
+
+    fun startNumberingEdit(imagesPerPage: Int) {
+        val perPage = imagesPerPage.coerceAtLeast(1)
+        val selected = pageNumberingSelection.filter { it >= 0 }.toSortedSet()
+        if (selected.isEmpty()) return
+        var n = 1
+        val total = currentPageCountEstimate(perPage)
+        for (p in 0 until total) {
+            if (p !in selected) continue
+            val start = p * perPage
+            val end = minOf(start + perPage, importedImages.size)
+            for (i in start until end) {
+                val img = importedImages[i]
+                importedImages[i] = img.copy(
+                    numberLabel = n++,
+                    numberXFrac = numberingXFrac,
+                    numberYFrac = numberingYFrac,
+                    numberSizeFrac = numberingSizeFrac,
+                    numberAlpha = numberingAlpha
+                )
+            }
+        }
+        numberingEditMode = true
+    }
+
+    fun updateNumberingLiveStyle() {
+        for (i in importedImages.indices) {
+            val img = importedImages[i]
+            if (img.numberLabel != null) {
+                importedImages[i] = img.copy(
+                    numberXFrac = numberingXFrac,
+                    numberYFrac = numberingYFrac,
+                    numberSizeFrac = numberingSizeFrac,
+                    numberAlpha = numberingAlpha
+                )
+            }
+        }
+    }
+
+    fun nudgeNumbering(dx: Float, dy: Float) {
+        val step = 0.04f
+        numberingXFrac = (numberingXFrac + dx * step).coerceIn(0.08f, 0.92f)
+        numberingYFrac = (numberingYFrac + dy * step).coerceIn(0.08f, 0.92f)
+        updateNumberingLiveStyle()
+    }
+
+    fun finishNumberingEdit() {
+        updateNumberingLiveStyle()
+        numberingEditMode = false
+        pageNumberingSelection.clear()
     }
 
     fun getImage(id: String): ImportedImage? =

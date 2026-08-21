@@ -130,6 +130,17 @@ object PdfGenerator {
                         dstHeight = cellHeight,
                         paint = paint
                     )
+                    if (drawn != null && img.numberLabel != null) {
+                        drawNumberBadge(
+                            canvas = canvas,
+                            label = img.numberLabel!!,
+                            bounds = drawn,
+                            xFrac = img.numberXFrac,
+                            yFrac = img.numberYFrac,
+                            sizeFrac = img.numberSizeFrac,
+                            alpha = img.numberAlpha
+                        )
+                    }
                     val url = img.linkUrl?.trim()?.takeIf { it.isNotEmpty() }
                     if (drawn != null && url != null) {
                         linkRects.add(
@@ -228,6 +239,40 @@ object PdfGenerator {
     )
 
     /** Draw bitmap centered inside dst rect using Fit (no crop). Returns drawn bounds. */
+    
+    private fun drawNumberBadge(
+        canvas: Canvas,
+        label: Int,
+        bounds: android.graphics.RectF,
+        xFrac: Float,
+        yFrac: Float,
+        sizeFrac: Float,
+        alpha: Float
+    ) {
+        val w = bounds.width()
+        val h = bounds.height()
+        if (w <= 0f || h <= 0f) return
+        val d = minOf(w, h) * sizeFrac.coerceIn(0.08f, 0.4f)
+        val cx = bounds.left + w * xFrac.coerceIn(0.08f, 0.92f)
+        val cy = bounds.top + h * yFrac.coerceIn(0.08f, 0.92f)
+        val a = (alpha.coerceIn(0.15f, 1f) * 255f).toInt().coerceIn(40, 255)
+        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = android.graphics.Color.argb(a, 0, 0, 0)
+        }
+        canvas.drawCircle(cx, cy, d / 2f, fill)
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = android.graphics.Color.argb(a, 255, 255, 255)
+            textAlign = Paint.Align.CENTER
+            isFakeBoldText = true
+            textSize = d * 0.55f
+        }
+        val fm = textPaint.fontMetrics
+        val textY = cy - (fm.ascent + fm.descent) / 2f
+        canvas.drawText(label.toString(), cx, textY, textPaint)
+    }
+
     private fun drawBitmapFit(
         canvas: Canvas,
         bitmap: Bitmap,

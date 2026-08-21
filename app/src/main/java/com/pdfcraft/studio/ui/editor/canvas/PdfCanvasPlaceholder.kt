@@ -707,6 +707,40 @@ private fun ImageCell(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit
                 )
+
+            // Image numbering badge
+            val label = image.numberLabel
+            if (label != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(2.dp)
+                ) {
+                    val sizeFrac = image.numberSizeFrac.coerceIn(0.08f, 0.4f)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(sizeFrac)
+                            .aspectRatio(1f)
+                            .align(Alignment.Center)
+                            .offset(
+                                x = ((image.numberXFrac - 0.5f) * 2f * 40f).dp,
+                                y = ((image.numberYFrac - 0.5f) * 2f * 40f).dp
+                            )
+                            .background(
+                                Color.Black.copy(alpha = image.numberAlpha.coerceIn(0.15f, 1f) * 0.55f),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label.toString(),
+                            color = Color.White.copy(alpha = image.numberAlpha.coerceIn(0.2f, 1f)),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
             } else {
                 CircularProgressIndicator(
                     modifier = Modifier.height(16.dp),
