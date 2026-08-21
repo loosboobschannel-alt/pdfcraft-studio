@@ -138,7 +138,9 @@ object PdfGenerator {
                             xFrac = img.numberXFrac,
                             yFrac = img.numberYFrac,
                             sizeFrac = img.numberSizeFrac,
-                            alpha = img.numberAlpha
+                            alpha = img.numberAlpha,
+                            bgArgb = img.numberBgArgb,
+                            fgArgb = img.numberFgArgb
                         )
                     }
                     val url = img.linkUrl?.trim()?.takeIf { it.isNotEmpty() }
@@ -240,6 +242,7 @@ object PdfGenerator {
 
     /** Draw bitmap centered inside dst rect using Fit (no crop). Returns drawn bounds. */
     
+    
     private fun drawNumberBadge(
         canvas: Canvas,
         label: Int,
@@ -247,23 +250,35 @@ object PdfGenerator {
         xFrac: Float,
         yFrac: Float,
         sizeFrac: Float,
-        alpha: Float
+        alpha: Float,
+        bgArgb: Long = 0xE6000000L,
+        fgArgb: Long = 0xFFFFFFFFL
     ) {
         val w = bounds.width()
         val h = bounds.height()
         if (w <= 0f || h <= 0f) return
         val d = minOf(w, h) * sizeFrac.coerceIn(0.08f, 0.4f)
-        val cx = bounds.left + w * xFrac.coerceIn(0.08f, 0.92f)
-        val cy = bounds.top + h * yFrac.coerceIn(0.08f, 0.92f)
+        val half = d / 2f
+        val cx = (bounds.left + w * xFrac.coerceIn(0f, 1f)).coerceIn(bounds.left + half, bounds.right - half)
+        val cy = (bounds.top + h * yFrac.coerceIn(0f, 1f)).coerceIn(bounds.top + half, bounds.bottom - half)
         val a = (alpha.coerceIn(0.15f, 1f) * 255f).toInt().coerceIn(40, 255)
+        fun withAlpha(argb: Long): Int {
+            val base = argb.toInt()
+            val r = (base shr 16) and 0xFF
+            val g = (base shr 8) and 0xFF
+            val b = base and 0xFF
+            val srcA = (base ushr 24) and 0xFF
+            val outA = (srcA * a) / 255
+            return android.graphics.Color.argb(outA, r, g, b)
+        }
         val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
-            color = android.graphics.Color.argb(a, 0, 0, 0)
+            color = withAlpha(bgArgb)
         }
-        canvas.drawCircle(cx, cy, d / 2f, fill)
+        canvas.drawCircle(cx, cy, half, fill)
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
-            color = android.graphics.Color.argb(a, 255, 255, 255)
+            color = withAlpha(fgArgb)
             textAlign = Paint.Align.CENTER
             isFakeBoldText = true
             textSize = d * 0.55f

@@ -33,6 +33,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -122,6 +125,11 @@ fun EditorToolbar(
     numberingSizeFrac: Float = 0.18f,
     onNumberingSizeChange: (Float) -> Unit = {},
     onNumberingNudge: (Float, Float) -> Unit = { _, _ -> },
+    onNumberingCenter: () -> Unit = {},
+    numberingBgArgb: Long = 0xE6000000L,
+    onNumberingBgChange: (Long) -> Unit = {},
+    numberingFgArgb: Long = 0xFFFFFFFFL,
+    onNumberingFgChange: (Long) -> Unit = {},
     onNumberingDone: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -158,7 +166,12 @@ fun EditorToolbar(
                 onAlphaChange = onNumberingAlphaChange,
                 sizeFrac = numberingSizeFrac,
                 onSizeChange = onNumberingSizeChange,
+                bgArgb = numberingBgArgb,
+                onBgChange = onNumberingBgChange,
+                fgArgb = numberingFgArgb,
+                onFgChange = onNumberingFgChange,
                 onNudge = onNumberingNudge,
+                onCenter = onNumberingCenter,
                 onDone = onNumberingDone
             )
             spacingModeActive -> ImageSpacingSlider(
@@ -879,56 +892,167 @@ private fun ImagesPerRowSlider(
 }
 
 
+
 @Composable
 private fun ImageNumberingPanel(
     alpha: Float,
     onAlphaChange: (Float) -> Unit,
     sizeFrac: Float,
     onSizeChange: (Float) -> Unit,
+    bgArgb: Long,
+    onBgChange: (Long) -> Unit,
+    fgArgb: Long,
+    onFgChange: (Long) -> Unit,
     onNudge: (Float, Float) -> Unit,
+    onCenter: () -> Unit,
     onDone: () -> Unit
 ) {
     var showArrows by remember { mutableStateOf(false) }
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+    var showMoreBg by remember { mutableStateOf(false) }
+    var showMoreFg by remember { mutableStateOf(false) }
+
+    val primaryColors = listOf(
+        0xFFFFFFFFL, 0xFF000000L, 0xFFFFEB3BL, 0xFF4CAF50L,
+        0xFF2196F3L, 0xFFE91E63L, 0xFFF44336L
+    )
+    val moreColors = listOf(
+        0xFFFF9800L, 0xFF9C27B0L, 0xFF7C4DFFL, 0xFF795548L, 0xFF9E9E9EL,
+        0xFFFFD700L, 0xFFC0C0C0L, 0xFF00BCD4L, 0xFFFF00FFL, 0xFF009688L,
+        0xFF001F5BL, 0xFF87CEEB, 0xFF87CEEB, 0xFF0D47A1L, 0xFFCDDC39L,
+        0xFF808000L, 0xFF800000L, 0xFFF5F5DCL, 0xFFFFFDD0L, 0xFFE6E6FAL,
+        0xFF40E0D0L, 0xFF3F51B5L, 0xFFFF7F50L, 0xFFFFE5B4L, 0xFF98FF98L,
+        0xFFF0E68CL, 0xFFCD7F32L, 0xFF800020L, 0xFFDC143CL, 0xFFFF2400L,
+        0xFF50C878L, 0xFF00FFFFL, 0xFFFFDB58L, 0xFFFF007FL, 0xFFFFBF00L,
+        0xFFD2B48CL, 0xFF7B3F00L, 0xFF36454FL, 0xFFFFFFF0L, 0xFFE0115FL,
+        0xFF0F52BAL, 0xFF39FF14L, 0xFFFF6EC7L, 0xFF1B03A3L, 0xFFCCFF00L
+    )
+
+    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
         SliderToolHeader(title = stringResource(R.string.image_numbering_title), onDone = onDone)
         Text(stringResource(R.string.image_numbering_transparency), color = Color.Black)
-        Slider(
-            value = alpha,
-            onValueChange = onAlphaChange,
-            valueRange = 0.2f..1f
-        )
+        Slider(value = alpha, onValueChange = onAlphaChange, valueRange = 0.2f..1f)
         Text(stringResource(R.string.image_numbering_size), color = Color.Black)
-        Slider(
-            value = sizeFrac,
-            onValueChange = onSizeChange,
-            valueRange = 0.08f..0.35f
+        Slider(value = sizeFrac, onValueChange = onSizeChange, valueRange = 0.08f..0.35f)
+
+        Text(stringResource(R.string.image_numbering_bg_color), color = Color.Black, modifier = Modifier.padding(top = 6.dp))
+        NumberingColorRow(
+            colors = primaryColors,
+            selected = bgArgb,
+            onSelect = onBgChange,
+            showMore = showMoreBg,
+            onToggleMore = { showMoreBg = !showMoreBg }
         )
+        if (showMoreBg) {
+            NumberingColorRow(colors = moreColors, selected = bgArgb, onSelect = onBgChange, showMore = false, onToggleMore = {})
+        }
+
+        Text(stringResource(R.string.image_numbering_text_color), color = Color.Black, modifier = Modifier.padding(top = 6.dp))
+        NumberingColorRow(
+            colors = primaryColors,
+            selected = fgArgb,
+            onSelect = onFgChange,
+            showMore = showMoreFg,
+            onToggleMore = { showMoreFg = !showMoreFg }
+        )
+        if (showMoreFg) {
+            NumberingColorRow(colors = moreColors, selected = fgArgb, onSelect = onFgChange, showMore = false, onToggleMore = {})
+        }
+
         TextButton(onClick = { showArrows = !showArrows }) {
             Text(stringResource(R.string.image_numbering_change_position))
         }
         if (showArrows) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                TextButton(onClick = { onNudge(0f, -1f) }) { Text("↑") }
+            Row(Modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                NumberingNudgeButton("↑") { onNudge(0f, -1f) }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                TextButton(onClick = { onNudge(-1f, 0f) }) { Text("←") }
-                TextButton(onClick = { onNudge(1f, 0f) }) { Text("→") }
+            Row(Modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                NumberingNudgeButton("←") { onNudge(-1f, 0f) }
+                NumberingNudgeButton("●") { onCenter() }
+                NumberingNudgeButton("→") { onNudge(1f, 0f) }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                TextButton(onClick = { onNudge(0f, 1f) }) { Text("↓") }
+            Row(Modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                NumberingNudgeButton("↓") { onNudge(0f, 1f) }
             }
         }
     }
 }
+
+@Composable
+private fun NumberingColorRow(
+    colors: List<Long>,
+    selected: Long,
+    onSelect: (Long) -> Unit,
+    showMore: Boolean,
+    onToggleMore: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        colors.take(7).forEach { col ->
+            val isSel = (col and 0x00FFFFFFL) == (selected and 0x00FFFFFFL) || col == selected
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .background(Color(col), CircleShape)
+                    .border(
+                        width = if (isSel) 2.dp else 1.dp,
+                        color = if (isSel) Color(0xFF1976D2) else Color.LightGray,
+                        shape = CircleShape
+                    )
+                    .clickable { onSelect(col) }
+            )
+        }
+        if (colors.size <= 7) {
+            Text(
+                text = stringResource(R.string.image_numbering_more),
+                color = Color(0xFF1976D2),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier
+                    .clickable(onClick = onToggleMore)
+                    .padding(horizontal = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun NumberingNudgeButton(label: String, onTick: () -> Unit) {
+    var pressed by remember { mutableStateOf(false) }
+    LaunchedEffect(pressed) {
+        if (!pressed) return@LaunchedEffect
+        onTick()
+        while (pressed) {
+            kotlinx.coroutines.delay(55)
+            onTick()
+        }
+    }
+    Text(
+        text = label,
+        color = Color.Black,
+        style = MaterialTheme.typography.titleLarge,
+        modifier = Modifier
+            .padding(8.dp)
+            .background(Color(0xFFF0F0F0), RoundedCornerShape(8.dp))
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        pressed = true
+                        try {
+                            tryAwaitRelease()
+                        } finally {
+                            pressed = false
+                        }
+                    }
+                )
+            }
+    )
+}
+
 
 @Composable
 private fun ImageSpacingSlider(

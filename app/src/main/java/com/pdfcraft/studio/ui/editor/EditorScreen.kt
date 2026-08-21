@@ -566,6 +566,17 @@ Column(
                     viewModel.updateNumberingLiveStyle()
                 },
                 onNumberingNudge = { dx, dy -> viewModel.nudgeNumbering(dx, dy) },
+                onNumberingCenter = { viewModel.centerNumbering() },
+                numberingBgArgb = viewModel.numberingBgArgb,
+                onNumberingBgChange = { col ->
+                    viewModel.numberingBgArgb = col
+                    viewModel.updateNumberingLiveStyle()
+                },
+                numberingFgArgb = viewModel.numberingFgArgb,
+                onNumberingFgChange = { col ->
+                    viewModel.numberingFgArgb = col
+                    viewModel.updateNumberingLiveStyle()
+                },
                 onNumberingDone = { viewModel.finishNumberingEdit() },
 
                 onImagesPerRowSelected =

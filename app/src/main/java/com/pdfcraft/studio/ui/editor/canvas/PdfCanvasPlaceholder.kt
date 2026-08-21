@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -708,35 +709,52 @@ private fun ImageCell(
                     contentScale = ContentScale.Fit
                 )
 
-            // Image numbering badge
+            // Image numbering badge — position inside ContentScale.Fit bounds
             val label = image.numberLabel
-            if (label != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(2.dp)
-                ) {
+            if (label != null && image.bitmap != null) {
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                    val cellW = maxWidth
+                    val cellH = maxHeight
+                    val bmp = image.bitmap
+                    val bmpAspect = bmp.width.toFloat() / bmp.height.toFloat().coerceAtLeast(1f)
+                    val cellAspect = cellW / cellH
+                    val drawW: androidx.compose.ui.unit.Dp
+                    val drawH: androidx.compose.ui.unit.Dp
+                    if (bmpAspect > cellAspect) {
+                        drawW = cellW
+                        drawH = cellW / bmpAspect
+                    } else {
+                        drawH = cellH
+                        drawW = cellH * bmpAspect
+                    }
+                    val originX = (cellW - drawW) / 2f
+                    val originY = (cellH - drawH) / 2f
                     val sizeFrac = image.numberSizeFrac.coerceIn(0.08f, 0.4f)
+                    val iconD = minOf(drawW, drawH) * sizeFrac
+                    val half = iconD / 2f
+                    val xf = image.numberXFrac.coerceIn(0f, 1f)
+                    val yf = image.numberYFrac.coerceIn(0f, 1f)
+                    val cx = originX + drawW * xf
+                    val cy = originY + drawH * yf
+                    // Keep fully inside fitted image
+                    val clampedCx = cx.coerceIn(originX + half, originX + drawW - half)
+                    val clampedCy = cy.coerceIn(originY + half, originY + drawH - half)
+                    val bg = Color(image.numberBgArgb)
+                    val fg = Color(image.numberFgArgb)
+                    val a = image.numberAlpha.coerceIn(0.2f, 1f)
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(sizeFrac)
-                            .aspectRatio(1f)
-                            .align(Alignment.Center)
-                            .offset(
-                                x = ((image.numberXFrac - 0.5f) * 2f * 40f).dp,
-                                y = ((image.numberYFrac - 0.5f) * 2f * 40f).dp
-                            )
-                            .background(
-                                Color.Black.copy(alpha = image.numberAlpha.coerceIn(0.15f, 1f) * 0.55f),
-                                CircleShape
-                            ),
+                            .offset(x = clampedCx - half, y = clampedCy - half)
+                            .size(iconD)
+                            .background(bg.copy(alpha = bg.alpha * a), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = label.toString(),
-                            color = Color.White.copy(alpha = image.numberAlpha.coerceIn(0.2f, 1f)),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold
+                            color = fg.copy(alpha = fg.alpha * a),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = (iconD.value * 0.42f).sp,
+                            maxLines = 1
                         )
                     }
                 }

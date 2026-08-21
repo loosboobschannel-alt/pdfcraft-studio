@@ -240,4 +240,10 @@
     <string name="image_numbering_change_position">Change Icon Position</string>
     <string name="image_numbering_done">Done</string>
 
+
+    <string name="image_numbering_bg_color">Icon Background Color</string>
+    <string name="image_numbering_text_color">Icon Text Color</string>
+    <string name="image_numbering_more">More…</string>
+    <string name="image_numbering_center">Center</string>
+
 </resources>

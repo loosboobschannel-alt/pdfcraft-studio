@@ -36,7 +36,11 @@ data class ImportedImage(
     /** Relative icon diameter vs min(image side), \~0.08..0.35 */
     val numberSizeFrac: Float = 0.18f,
     /** 0f..1f */
-    val numberAlpha: Float = 0.9f
+    val numberAlpha: Float = 0.9f,
+    /** Icon circle fill ARGB */
+    val numberBgArgb: Long = 0xE6000000L,
+    /** Icon digit color ARGB */
+    val numberFgArgb: Long = 0xFFFFFFFFL
 )
 
 data class TextElement(
@@ -591,6 +595,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var numberingSizeFrac: Float by mutableStateOf(0.18f)
     var numberingXFrac: Float by mutableStateOf(0.5f)
     var numberingYFrac: Float by mutableStateOf(0.5f)
+    var numberingBgArgb: Long by mutableStateOf(0xE6000000L)
+    var numberingFgArgb: Long by mutableStateOf(0xFFFFFFFFL)
 
     fun clearPageNumberingSelection() { pageNumberingSelection.clear() }
 
@@ -623,7 +629,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     numberXFrac = numberingXFrac,
                     numberYFrac = numberingYFrac,
                     numberSizeFrac = numberingSizeFrac,
-                    numberAlpha = numberingAlpha
+                    numberAlpha = numberingAlpha,
+                    numberBgArgb = numberingBgArgb,
+                    numberFgArgb = numberingFgArgb
                 )
             }
         }
@@ -638,16 +646,25 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     numberXFrac = numberingXFrac,
                     numberYFrac = numberingYFrac,
                     numberSizeFrac = numberingSizeFrac,
-                    numberAlpha = numberingAlpha
+                    numberAlpha = numberingAlpha,
+                    numberBgArgb = numberingBgArgb,
+                    numberFgArgb = numberingFgArgb
                 )
             }
         }
     }
 
     fun nudgeNumbering(dx: Float, dy: Float) {
-        val step = 0.04f
-        numberingXFrac = (numberingXFrac + dx * step).coerceIn(0.08f, 0.92f)
-        numberingYFrac = (numberingYFrac + dy * step).coerceIn(0.08f, 0.92f)
+        val step = 0.02f
+        val half = (numberingSizeFrac.coerceIn(0.08f, 0.4f) / 2f).coerceAtLeast(0.04f)
+        numberingXFrac = (numberingXFrac + dx * step).coerceIn(half, 1f - half)
+        numberingYFrac = (numberingYFrac + dy * step).coerceIn(half, 1f - half)
+        updateNumberingLiveStyle()
+    }
+
+    fun centerNumbering() {
+        numberingXFrac = 0.5f
+        numberingYFrac = 0.5f
         updateNumberingLiveStyle()
     }
 
