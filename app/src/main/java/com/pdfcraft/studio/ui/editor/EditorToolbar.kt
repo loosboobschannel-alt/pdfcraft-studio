@@ -916,15 +916,15 @@ private fun ImageNumberingPanel(
         0xFF2196F3L, 0xFFE91E63L, 0xFFF44336L
     )
     val moreColors = listOf(
-        0xFFFF9800L, 0xFF9C27B0L, 0xFF7C4DFFL, 0xFF795548L, 0xFF9E9E9EL,
-        0xFFFFD700L, 0xFFC0C0C0L, 0xFF00BCD4L, 0xFFFF00FFL, 0xFF009688L,
-        0xFF001F5BL, 0xFF87CEEB, 0xFF87CEEB, 0xFF0D47A1L, 0xFFCDDC39L,
-        0xFF808000L, 0xFF800000L, 0xFFF5F5DCL, 0xFFFFFDD0L, 0xFFE6E6FAL,
-        0xFF40E0D0L, 0xFF3F51B5L, 0xFFFF7F50L, 0xFFFFE5B4L, 0xFF98FF98L,
-        0xFFF0E68CL, 0xFFCD7F32L, 0xFF800020L, 0xFFDC143CL, 0xFFFF2400L,
-        0xFF50C878L, 0xFF00FFFFL, 0xFFFFDB58L, 0xFFFF007FL, 0xFFFFBF00L,
-        0xFFD2B48CL, 0xFF7B3F00L, 0xFF36454FL, 0xFFFFFFF0L, 0xFFE0115FL,
-        0xFF0F52BAL, 0xFF39FF14L, 0xFFFF6EC7L, 0xFF1B03A3L, 0xFFCCFF00L
+        0xFFFF9800LL, 0xFF9C27B0LL, 0xFF7C4DFFLL, 0xFF795548LL, 0xFF9E9E9ELL,
+        0xFFFFD700LL, 0xFFC0C0C0LL, 0xFF00BCD4LL, 0xFFFF00FFLL, 0xFF009688LL,
+        0xFF001F5BLL, 0xFF87CEEBLL, 0xFF87CEEBLL, 0xFF0D47A1LL, 0xFFCDDC39LL,
+        0xFF808000LL, 0xFF800000LL, 0xFFF5F5DCLL, 0xFFFFFDD0LL, 0xFFE6E6FALL,
+        0xFF40E0D0LL, 0xFF3F51B5LL, 0xFFFF7F50LL, 0xFFFFE5B4LL, 0xFF98FF98LL,
+        0xFFF0E68CLL, 0xFFCD7F32LL, 0xFF800020LL, 0xFFDC143CLL, 0xFFFF2400LL,
+        0xFF50C878LL, 0xFF00FFFFLL, 0xFFFFDB58LL, 0xFFFF007FLL, 0xFFFFBF00LL,
+        0xFFD2B48CLL, 0xFF7B3F00LL, 0xFF36454FLL, 0xFFFFFFF0LL, 0xFFE0115FLL,
+        0xFF0F52BALL, 0xFF39FF14LL, 0xFFFF6EC7LL, 0xFF1B03A3LL, 0xFFCCFF00LL
     )
 
     Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
@@ -988,11 +988,13 @@ private fun NumberingColorRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        colors.take(7).forEach { col ->
+        val displayColors = colors
+        displayColors.forEach { col ->
             val isSel = (col and 0x00FFFFFFL) == (selected and 0x00FFFFFFL) || col == selected
             Box(
                 modifier = Modifier
@@ -1000,7 +1002,7 @@ private fun NumberingColorRow(
                     .background(Color(col), CircleShape)
                     .border(
                         width = if (isSel) 2.dp else 1.dp,
-                        color = if (isSel) Color(0xFF1976D2) else Color.LightGray,
+                        color = if (isSel) Color(0xFF1976D2L) else Color.LightGray,
                         shape = CircleShape
                     )
                     .clickable { onSelect(col) }
@@ -1009,7 +1011,7 @@ private fun NumberingColorRow(
         if (colors.size <= 7) {
             Text(
                 text = stringResource(R.string.image_numbering_more),
-                color = Color(0xFF1976D2),
+                color = Color(0xFF1976D2L),
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier
                     .clickable(onClick = onToggleMore)
