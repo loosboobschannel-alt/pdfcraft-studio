@@ -14,10 +14,6 @@ import androidx.compose.ui.Modifier
 import com.pdfcraft.studio.navigation.PdfCraftNavGraph
 import com.pdfcraft.studio.ui.theme.PDFCraftStudioTheme
 
-/**
- * Single-activity host. Handles VIEW intents for application/pdf so the app
- * appears in the system "Open with" sheet and can show PdfViewerScreen.
- */
 class MainActivity : ComponentActivity() {
 
     private var openPdfUri by mutableStateOf<String?>(null)
@@ -43,22 +39,26 @@ class MainActivity : ComponentActivity() {
 
     private fun extractPdfUri(intent: Intent?): String? {
         if (intent == null) return null
+        if (intent.action != Intent.ACTION_VIEW && intent.action != Intent.ACTION_SEND) {
+            // Still allow VIEW only for open-with
+        }
         if (intent.action != Intent.ACTION_VIEW) return null
         val uri: Uri = intent.data ?: return null
+
+        // Ensure we can read for this session (file managers usually grant this)
         try {
-            // Temporary read access from file managers / Downloads
-            val flags = intent.flags and (
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                )
-            if (flags != 0) {
-                contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+            val takeFlags = intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION
+            if (takeFlags != 0) {
+                try {
+                    contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                } catch (_: SecurityException) {
+                    // Non-persistable grant — openFileDescriptor still works this session
+                }
             }
         } catch (_: Exception) {
-            // Many providers only grant non-persistable access — still OK for this session
         }
         return uri.toString()
     }

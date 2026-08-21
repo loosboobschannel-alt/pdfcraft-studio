@@ -17,7 +17,6 @@ fun PdfCraftNavGraph(
     openPdfUri: String? = null,
     navController: NavHostController = rememberNavController()
 ) {
-    // When opened via "Open with" / VIEW intent, jump to the viewer
     LaunchedEffect(openPdfUri) {
         val uri = openPdfUri?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
         navController.navigate(Screen.PdfViewer.routeWithUri(uri)) {
@@ -45,9 +44,10 @@ fun PdfCraftNavGraph(
             route = Screen.PdfViewer.route,
             arguments = listOf(navArgument("uri") { type = NavType.StringType })
         ) { backStackEntry ->
-            val encodedUri = backStackEntry.arguments?.getString("uri").orEmpty()
+            val encoded = backStackEntry.arguments?.getString("uri").orEmpty()
+            val uriString = Screen.PdfViewer.decodeUriArg(encoded)
             PdfViewerScreen(
-                pdfUriString = android.net.Uri.decode(encodedUri),
+                pdfUriString = uriString,
                 onBackClick = { navController.popBackStack() }
             )
         }
