@@ -2,23 +2,28 @@ package com.pdfcraft.studio.ui.editor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,128 +32,304 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.pdfcraft.studio.R
-import kotlin.math.roundToInt
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 
-/** HSV spectrum picker — no third-party library. */
+private data class NamedColor(val name: String, val hex: Long)
+
+private data class ColorCategory(val title: String, val colors: List<NamedColor>)
+
+private val COLOR_CATEGORIES = listOf(
+    ColorCategory(
+        "Basic Colors",
+        listOf(
+            NamedColor("Black", 0xFF000000),
+            NamedColor("White", 0xFFFFFFFF),
+            NamedColor("Red", 0xFFFF0000),
+            NamedColor("Green", 0xFF008000),
+            NamedColor("Blue", 0xFF0000FF),
+            NamedColor("Yellow", 0xFFFFFF00),
+            NamedColor("Orange", 0xFFFFA500),
+            NamedColor("Purple", 0xFF800080),
+            NamedColor("Pink", 0xFFFFC0CB),
+            NamedColor("Brown", 0xFFA52A2A),
+            NamedColor("Gray", 0xFF808080)
+        )
+    ),
+    ColorCategory(
+        "Reds",
+        listOf(
+            NamedColor("Crimson", 0xFFDC143C),
+            NamedColor("Scarlet", 0xFFFF2400),
+            NamedColor("Ruby", 0xFF9B111E),
+            NamedColor("Cherry", 0xFFD2042D),
+            NamedColor("Burgundy", 0xFF800020),
+            NamedColor("Maroon", 0xFF800000),
+            NamedColor("Rose", 0xFFFF007F),
+            NamedColor("Coral", 0xFFFF7F50)
+        )
+    ),
+    ColorCategory(
+        "Oranges",
+        listOf(
+            NamedColor("Orange", 0xFFFF6600),
+            NamedColor("Tangerine", 0xFFF28500),
+            NamedColor("Amber", 0xFFFFBF00),
+            NamedColor("Apricot", 0xFFFBCEB1),
+            NamedColor("Peach", 0xFFFFE5B4),
+            NamedColor("Pumpkin", 0xFFFF7518)
+        )
+    ),
+    ColorCategory(
+        "Yellows",
+        listOf(
+            NamedColor("Gold", 0xFFFFD700),
+            NamedColor("Lemon", 0xFFFFF44F),
+            NamedColor("Mustard", 0xFFFFDB58),
+            NamedColor("Canary", 0xFFFFEF00),
+            NamedColor("Khaki", 0xFFF0E68C),
+            NamedColor("Cream", 0xFFFFFDD0)
+        )
+    ),
+    ColorCategory(
+        "Greens",
+        listOf(
+            NamedColor("Lime", 0xFF32CD32),
+            NamedColor("Green", 0xFF008000),
+            NamedColor("Emerald", 0xFF50C878),
+            NamedColor("Mint", 0xFF98FF98),
+            NamedColor("Olive", 0xFF808000),
+            NamedColor("Forest", 0xFF228B22),
+            NamedColor("Teal", 0xFF008080)
+        )
+    ),
+    ColorCategory(
+        "Blues",
+        listOf(
+            NamedColor("Sky Blue", 0xFF87CEEB),
+            NamedColor("Cyan", 0xFF00FFFF),
+            NamedColor("Azure", 0xFF007FFF),
+            NamedColor("Blue", 0xFF0000FF),
+            NamedColor("Royal Blue", 0xFF4169E1),
+            NamedColor("Navy", 0xFF000080),
+            NamedColor("Aqua", 0xFF00CED1)
+        )
+    ),
+    ColorCategory(
+        "Purples",
+        listOf(
+            NamedColor("Lavender", 0xFFE6E6FA),
+            NamedColor("Violet", 0xFF8F00FF),
+            NamedColor("Purple", 0xFF800080),
+            NamedColor("Orchid", 0xFFDA70D6),
+            NamedColor("Plum", 0xFF8E4585),
+            NamedColor("Magenta", 0xFFFF00FF)
+        )
+    ),
+    ColorCategory(
+        "Pinks",
+        listOf(
+            NamedColor("Light Pink", 0xFFFFB6C1),
+            NamedColor("Pink", 0xFFFFC0CB),
+            NamedColor("Hot Pink", 0xFFFF69B4),
+            NamedColor("Rose", 0xFFFF007F),
+            NamedColor("Salmon", 0xFFFA8072),
+            NamedColor("Fuchsia", 0xFFFF00FF)
+        )
+    ),
+    ColorCategory(
+        "Browns",
+        listOf(
+            NamedColor("Beige", 0xFFF5F5DC),
+            NamedColor("Tan", 0xFFD2B48C),
+            NamedColor("Caramel", 0xFFC68E17),
+            NamedColor("Copper", 0xFFB87333),
+            NamedColor("Chocolate", 0xFF7B3F00),
+            NamedColor("Brown", 0xFFA52A2A)
+        )
+    ),
+    ColorCategory(
+        "Grays / Neutrals",
+        listOf(
+            NamedColor("Light Gray", 0xFFD3D3D3),
+            NamedColor("Silver", 0xFFC0C0C0),
+            NamedColor("Gray", 0xFF808080),
+            NamedColor("Slate", 0xFF708090),
+            NamedColor("Charcoal", 0xFF36454F),
+            NamedColor("Dark Gray", 0xFF555555)
+        )
+    )
+)
+
+/** Full-page color selection window — replaces old HSV Hue/Saturation/Brightness picker. */
 @Composable
 fun ColorPickerDialog(
     initialColor: Long,
     onConfirm: (Long) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val init = Color(initialColor)
-    var hue by remember { mutableStateOf(init.hue()) }
-    var sat by remember { mutableStateOf(init.saturation()) }
-    var value by remember { mutableStateOf(init.brightness()) }
+    var selectedColor by remember { mutableStateOf(initialColor) }
 
-    val current = Color.hsv(hue, sat, value)
-    val argb = current.toArgb().toLong() and 0xFFFFFFFFL
-
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.color_picker_title), color = Color.Black) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false
+        )
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color.White
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Fixed live preview — does NOT scroll
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
-                        .background(current, RoundedCornerShape(8.dp))
-                        .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
-                )
-                Text(stringResource(R.string.color_picker_hue), color = Color.Black)
-                Slider(
-                    value = hue,
-                    onValueChange = { hue = it },
-                    valueRange = 0f..360f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary
-                    )
-                )
-                Text(stringResource(R.string.color_picker_sat), color = Color.Black)
-                Slider(
-                    value = sat,
-                    onValueChange = { sat = it },
-                    valueRange = 0f..1f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary
-                    )
-                )
-                Text(stringResource(R.string.color_picker_value), color = Color.Black)
-                Slider(
-                    value = value,
-                    onValueChange = { value = it },
-                    valueRange = 0f..1f,
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary
-                    )
-                )
-                Text(
-                    text = "#%06X".format(argb and 0xFFFFFF),
-                    color = Color.Black,
-                    style = MaterialTheme.typography.labelLarge
-                )
-                // Quick presets row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .background(Color(0xFFF5F5F5))
+                        .padding(vertical = 28.dp, horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    listOf(
-                        0xFF000000L, 0xFFFFFFFFL, 0xFFFF0000L, 0xFF00FF00L,
-                        0xFF0000FFL, 0xFFFFFF00L, 0xFFFF00FFL, 0xFF00FFFFL
-                    ).forEach { c ->
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .background(Color(c), CircleShape)
-                                .border(1.dp, Color.LightGray, CircleShape)
-                                .padding(0.dp)
-                                .then(
-                                    Modifier.padding(0.dp)
-                                )
+                    Text(
+                        text = "Elon Musk",
+                        color = Color(selectedColor),
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // Scrollable color categories
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(COLOR_CATEGORIES) { category ->
+                        Column {
+                            Text(
+                                text = category.title,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Color.Black,
+                                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+                            )
+                            // 5 colors per row
+                            category.colors.chunked(5).forEach { rowColors ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    rowColors.forEach { named ->
+                                        ColorItem(
+                                            named = named,
+                                            isSelected = selectedColor == named.hex,
+                                            onClick = { selectedColor = named.hex }
+                                        )
+                                    }
+                                    // Fill empty slots so alignment stays consistent
+                                    repeat(5 - rowColors.size) {
+                                        Spacer(modifier = Modifier.width(64.dp))
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(10.dp))
+                            }
+                        }
+                    }
+                }
+
+                // Fixed OK button at bottom
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White)
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Button(
+                        onClick = { onConfirm(selectedColor) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Text(
+                            text = "OK",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White
                         )
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(argb) }) {
-                Text(stringResource(R.string.dialog_ok), color = MaterialTheme.colorScheme.primary)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.dialog_cancel), color = Color.Black)
+        }
+    }
+}
+
+@Composable
+private fun ColorItem(
+    named: NamedColor,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(64.dp)
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(Color(named.hex), CircleShape)
+                .then(
+                    if (isSelected) {
+                        Modifier.border(3.dp, Color(0xFF1976D2), CircleShape)
+                    } else {
+                        Modifier.border(1.dp, Color.LightGray, CircleShape)
+                    }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(Color.White, CircleShape)
+                )
             }
         }
-    )
-}
-
-private fun Color.hue(): Float {
-    val r = red; val g = green; val b = blue
-    val max = maxOf(r, g, b); val min = minOf(r, g, b)
-    val d = max - min
-    if (d == 0f) return 0f
-    val h = when (max) {
-        r -> ((g - b) / d + (if (g < b) 6 else 0))
-        g -> ((b - r) / d + 2)
-        else -> ((r - g) / d + 4)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = named.name,
+            fontSize = 9.sp,
+            color = Color.Black,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text(
+            text = "#%06X".format(named.hex and 0xFFFFFF),
+            fontSize = 8.sp,
+            color = Color.Gray,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
-    return (h * 60f).coerceIn(0f, 360f)
 }
-
-private fun Color.saturation(): Float {
-    val max = maxOf(red, green, blue)
-    val min = minOf(red, green, blue)
-    if (max == 0f) return 0f
-    return (max - min) / max
-}
-
-private fun Color.brightness(): Float = maxOf(red, green, blue)
