@@ -171,7 +171,8 @@ private val COLOR_CATEGORIES = listOf(
 fun ColorPickerDialog(
     initialColor: Long,
     onConfirm: (Long) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    previewAsBackground: Boolean = false
 ) {
     var selectedColor by remember { mutableStateOf(initialColor) }
 
@@ -198,12 +199,19 @@ fun ColorPickerDialog(
                 ) {
                     Text(
                         text = "Elon Musk",
-                        color = Color(selectedColor),
+                        color = if (previewAsBackground) Color.Black else Color(selectedColor),
                         fontSize = 36.sp,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = if (previewAsBackground) {
+                            Modifier
+                                .background(Color(selectedColor), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        } else {
+                            Modifier
+                        }
                     )
                 }
 

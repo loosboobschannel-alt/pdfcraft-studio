@@ -537,7 +537,8 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                 viewModel.updateSelectedTextBgColor(it)
                 showTextBgColorPicker = false
             },
-            onDismiss = { showTextBgColorPicker = false }
+            onDismiss = { showTextBgColorPicker = false },
+            previewAsBackground = true
         )
     }
 

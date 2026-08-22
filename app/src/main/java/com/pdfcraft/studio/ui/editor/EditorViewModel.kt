@@ -45,6 +45,11 @@ data class ImportedImage(
     val numberWeight: Float = 0.85f
 )
 
+data class ColorRange(
+    val range: IntRange,
+    val colorArgb: Long
+)
+
 data class TextElement(
     val id: String,
     val pageIndex: Int,
@@ -53,6 +58,8 @@ data class TextElement(
     val yFraction: Float = 0.1f,
     val boldRanges: List<IntRange> = emptyList(),
     val italicRanges: List<IntRange> = emptyList(),
+    val colorRanges: List<ColorRange> = emptyList(),
+    val bgColorRanges: List<ColorRange> = emptyList(),
     val fontId: String = FontCatalog.ID_DEFAULT,
     val fontSizeSp: Float = 16f,
     val textColorArgb: Long = 0xFF000000L,
@@ -121,6 +128,86 @@ private fun toggleStyleRange(
     }
     if (rangeStart != -1) result.add(rangeStart until flags.size)
     return result
+}
+
+
+private fun applyColorRange(
+    existing: List<ColorRange>,
+    start: Int,
+    end: Int,
+    colorArgb: Long,
+    textLength: Int
+): List<ColorRange> {
+    if (textLength <= 0 || start >= end) return existing
+    val s = start.coerceIn(0, textLength)
+    val e = end.coerceIn(0, textLength)
+    if (s >= e) return existing
+
+    val result = mutableListOf<ColorRange>()
+    for (cr in existing) {
+        val rs = cr.range.first
+        val re = cr.range.last + 1
+        if (re <= s || rs >= e) {
+            result.add(cr)
+        } else {
+            if (rs < s) {
+                result.add(ColorRange(rs until s, cr.colorArgb))
+            }
+            if (re > e) {
+                result.add(ColorRange(e until re, cr.colorArgb))
+            }
+        }
+    }
+    result.add(ColorRange(s until e, colorArgb))
+    val sorted = result.sortedBy { it.range.first }
+    val merged = mutableListOf<ColorRange>()
+    for (cr in sorted) {
+        if (merged.isEmpty()) {
+            merged.add(cr)
+        } else {
+            val last = merged.last()
+            if (last.colorArgb == cr.colorArgb && last.range.last + 1 >= cr.range.first) {
+                merged[merged.lastIndex] = ColorRange(
+                    last.range.first..(maxOf(last.range.last, cr.range.last)),
+                    cr.colorArgb
+                )
+            } else {
+                merged.add(cr)
+            }
+        }
+    }
+    return merged
+}
+
+private fun adjustColorRangesForEdit(
+    oldText: String,
+    newText: String,
+    ranges: List<ColorRange>
+): List<ColorRange> {
+    var prefix = 0
+    val minLen = minOf(oldText.length, newText.length)
+    while (prefix < minLen && oldText[prefix] == newText[prefix]) prefix++
+
+    var suffix = 0
+    while (
+        suffix < (minLen - prefix) &&
+        oldText[oldText.length - 1 - suffix] == newText[newText.length - 1 - suffix]
+    ) suffix++
+
+    val oldEditEnd = oldText.length - suffix
+    val lengthDelta = newText.length - oldText.length
+
+    return ranges.mapNotNull { cr ->
+        val range = cr.range
+        when {
+            range.last < prefix -> cr
+            range.first >= oldEditEnd -> ColorRange(
+                (range.first + lengthDelta)..(range.last + lengthDelta),
+                cr.colorArgb
+            )
+            else -> null
+        }
+    }
 }
 
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
@@ -296,10 +383,22 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             } else {
                 current.italicRanges
             }
+            val adjustedColors = if (newText != current.text) {
+                adjustColorRangesForEdit(current.text, newText, current.colorRanges)
+            } else {
+                current.colorRanges
+            }
+            val adjustedBgColors = if (newText != current.text) {
+                adjustColorRangesForEdit(current.text, newText, current.bgColorRanges)
+            } else {
+                current.bgColorRanges
+            }
             textElements[index] = current.copy(
                 text = newText,
                 boldRanges = adjustedBold,
-                italicRanges = adjustedItalic
+                italicRanges = adjustedItalic,
+                colorRanges = adjustedColors,
+                bgColorRanges = adjustedBgColors
             )
         }
         currentSelection = newSelection
@@ -1431,17 +1530,59 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun updateSelectedTextColor(colorArgb: Long) {
-        val id = focusedTextId ?: selectedTextId ?: return
-        val index = textElements.indexOfFirst { it.id == id }
+        val index = activeTextIndex()
         if (index < 0) return
-        textElements[index] = textElements[index].copy(textColorArgb = colorArgb)
+        val element = textElements[index]
+        val selection = currentSelection
+        val start = selection.min.coerceIn(0, element.text.length)
+        val end = selection.max.coerceIn(0, element.text.length)
+
+        if (!selection.collapsed && start < end) {
+            // Apply color only to the selected range (same behavior as Bold)
+            val newRanges = applyColorRange(
+                element.colorRanges,
+                start,
+                end,
+                colorArgb,
+                element.text.length
+            )
+            textElements[index] = element.copy(colorRanges = newRanges)
+        } else {
+            // No selection → apply to entire text element
+            textElements[index] = element.copy(
+                textColorArgb = colorArgb,
+                colorRanges = emptyList()
+            )
+        }
     }
 
     fun updateSelectedTextBgColor(colorArgb: Long?) {
-        val id = focusedTextId ?: selectedTextId ?: return
-        val index = textElements.indexOfFirst { it.id == id }
+        val index = activeTextIndex()
         if (index < 0) return
-        textElements[index] = textElements[index].copy(bgColorArgb = colorArgb)
+        val element = textElements[index]
+        if (colorArgb == null) {
+            textElements[index] = element.copy(bgColorArgb = null, bgColorRanges = emptyList())
+            return
+        }
+        val selection = currentSelection
+        val start = selection.min.coerceIn(0, element.text.length)
+        val end = selection.max.coerceIn(0, element.text.length)
+
+        if (!selection.collapsed && start < end) {
+            val newRanges = applyColorRange(
+                element.bgColorRanges,
+                start,
+                end,
+                colorArgb,
+                element.text.length
+            )
+            textElements[index] = element.copy(bgColorRanges = newRanges)
+        } else {
+            textElements[index] = element.copy(
+                bgColorArgb = colorArgb,
+                bgColorRanges = emptyList()
+            )
+        }
     }
 
     fun updateSelectedTextShadow(colorArgb: Long? = null, offsetPx: Float? = null, blurPx: Float? = null) {
@@ -1457,12 +1598,40 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun selectedTextColorArgb(): Long {
-        val id = focusedTextId ?: selectedTextId ?: return 0xFF000000L
-        return textElements.firstOrNull { it.id == id }?.textColorArgb ?: 0xFF000000L
+        val index = activeTextIndex()
+        if (index < 0) return 0xFF000000L
+        val element = textElements[index]
+        val selection = currentSelection
+        if (!selection.collapsed) {
+            val start = selection.min.coerceIn(0, element.text.length)
+            val end = selection.max.coerceIn(0, element.text.length)
+            if (start < end) {
+                val colorsInSel = element.colorRanges
+                    .filter { it.range.first < end && it.range.last + 1 > start }
+                    .map { it.colorArgb }
+                    .distinct()
+                if (colorsInSel.size == 1) return colorsInSel[0]
+            }
+        }
+        return element.textColorArgb
     }
 
     fun selectedTextBgColorArgb(): Long? {
-        val id = focusedTextId ?: selectedTextId ?: return null
-        return textElements.firstOrNull { it.id == id }?.bgColorArgb
+        val index = activeTextIndex()
+        if (index < 0) return null
+        val element = textElements[index]
+        val selection = currentSelection
+        if (!selection.collapsed) {
+            val start = selection.min.coerceIn(0, element.text.length)
+            val end = selection.max.coerceIn(0, element.text.length)
+            if (start < end) {
+                val colorsInSel = element.bgColorRanges
+                    .filter { it.range.first < end && it.range.last + 1 > start }
+                    .map { it.colorArgb }
+                    .distinct()
+                if (colorsInSel.size == 1) return colorsInSel[0]
+            }
+        }
+        return element.bgColorArgb
     }
 }

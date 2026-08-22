@@ -92,6 +92,7 @@ import com.pdfcraft.studio.R
 import com.pdfcraft.studio.core.text.AppFont
 import com.pdfcraft.studio.core.text.FontCatalog
 import com.pdfcraft.studio.ui.editor.ImportedImage
+import com.pdfcraft.studio.ui.editor.ColorRange
 import com.pdfcraft.studio.ui.editor.TextElement
 
 private const val PAGE_ASPECT_RATIO = 9f / 16f
@@ -344,10 +345,20 @@ fun PdfPagesPreview(
 
 private class TextStyleRangesVisualTransformation(
     private val boldRanges: List<IntRange>,
-    private val italicRanges: List<IntRange>
+    private val italicRanges: List<IntRange>,
+    private val colorRanges: List<ColorRange> = emptyList(),
+    private val bgColorRanges: List<ColorRange> = emptyList(),
+    private val wholeBgColorArgb: Long? = null
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val builder = AnnotatedString.Builder(text.text)
+        if (wholeBgColorArgb != null && text.text.isNotEmpty()) {
+            builder.addStyle(
+                SpanStyle(background = Color(wholeBgColorArgb)),
+                0,
+                text.text.length
+            )
+        }
         boldRanges.forEach { range ->
             val start = range.first.coerceIn(0, text.text.length)
             val end = (range.last + 1).coerceIn(0, text.text.length)
@@ -360,6 +371,20 @@ private class TextStyleRangesVisualTransformation(
             val end = (range.last + 1).coerceIn(0, text.text.length)
             if (start < end) {
                 builder.addStyle(SpanStyle(fontStyle = FontStyle.Italic), start, end)
+            }
+        }
+        colorRanges.forEach { cr ->
+            val start = cr.range.first.coerceIn(0, text.text.length)
+            val end = (cr.range.last + 1).coerceIn(0, text.text.length)
+            if (start < end) {
+                builder.addStyle(SpanStyle(color = Color(cr.colorArgb)), start, end)
+            }
+        }
+        bgColorRanges.forEach { cr ->
+            val start = cr.range.first.coerceIn(0, text.text.length)
+            val end = (cr.range.last + 1).coerceIn(0, text.text.length)
+            if (start < end) {
+                builder.addStyle(SpanStyle(background = Color(cr.colorArgb)), start, end)
             }
         }
         return TransformedText(builder.toAnnotatedString(), OffsetMapping.Identity)
@@ -467,7 +492,10 @@ private fun PageTextOverlay(
                     },
                     visualTransformation = TextStyleRangesVisualTransformation(
                         boldRanges = textElement.boldRanges,
-                        italicRanges = textElement.italicRanges
+                        italicRanges = textElement.italicRanges,
+                        colorRanges = textElement.colorRanges,
+                        bgColorRanges = textElement.bgColorRanges,
+                        wholeBgColorArgb = textElement.bgColorArgb
                     ),
                     textStyle = TextStyle(
                         color = Color(textElement.textColorArgb),

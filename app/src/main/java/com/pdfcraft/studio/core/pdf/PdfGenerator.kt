@@ -162,13 +162,51 @@ object PdfGenerator {
                 }
             }
 
-            // Text: only elements for this page index
+            // Text: only elements for this page index (supports partial color + bg ranges)
             textElements.filter { it.pageIndex == pageIndex }.forEach { te ->
-                textPaint.color = te.textColorArgb.toInt()
                 textPaint.textSize = te.fontSizeSp * (pageWidth / 360f)
-                val x = te.xFraction * pageWidth
+                val baseX = te.xFraction * pageWidth
                 val y = te.yFraction * thisPageHeight + textPaint.textSize
-                canvas.drawText(te.text, x, y, textPaint)
+                val fullText = te.text
+                if (fullText.isEmpty()) return@forEach
+
+                val fg = LongArray(fullText.length) { te.textColorArgb }
+                te.colorRanges.forEach { cr ->
+                    val s = cr.range.first.coerceIn(0, fullText.length)
+                    val e = (cr.range.last + 1).coerceIn(0, fullText.length)
+                    for (i in s until e) fg[i] = cr.colorArgb
+                }
+                val bg = arrayOfNulls<Long>(fullText.length)
+                if (te.bgColorArgb != null) {
+                    for (i in fullText.indices) bg[i] = te.bgColorArgb
+                }
+                te.bgColorRanges.forEach { cr ->
+                    val s = cr.range.first.coerceIn(0, fullText.length)
+                    val e = (cr.range.last + 1).coerceIn(0, fullText.length)
+                    for (i in s until e) bg[i] = cr.colorArgb
+                }
+
+                var i = 0
+                var x = baseX
+                val bgPaint = Paint(textPaint).apply { style = Paint.Style.FILL }
+                while (i < fullText.length) {
+                    val cFg = fg[i]
+                    val cBg = bg[i]
+                    var j = i + 1
+                    while (j < fullText.length && fg[j] == cFg && bg[j] == cBg) j++
+                    val segment = fullText.substring(i, j)
+                    val w = textPaint.measureText(segment)
+                    if (cBg != null) {
+                        bgPaint.color = cBg.toInt()
+                        val top = y - textPaint.textSize * 0.85f
+                        val bottom = y + textPaint.textSize * 0.2f
+                        canvas.drawRect(x, top, x + w, bottom, bgPaint)
+                    }
+                    textPaint.color = cFg.toInt()
+                    canvas.drawText(segment, x, y, textPaint)
+                    x += w
+                    i = j
+                }
             }
 
             pdf.finishPage(page)
