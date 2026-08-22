@@ -80,17 +80,6 @@ object PdfGenerator {
         // Auto-flow images by how many fit per page (same as editor preview).
         val imagesPerPage = (perRow * rowsPerPage).coerceAtLeast(1)
         val imagePages = if (images.isEmpty()) emptyList() else images.chunked(imagesPerPage)
- else {
-                val base = images.size / pageCount
-                val rem = images.size % pageCount
-                var offset = 0
-                List(pageCount) { idx ->
-                    val size = base + if (idx < rem) 1 else 0
-                    val slice = images.subList(offset, (offset + size).coerceAtMost(images.size))
-                    offset += size
-                    slice
-                }
-            }
 
         // Include every page that has text OR blank pages the user added in the editor.
         // Previously text-only page 2+ were dropped because export only used image chunks.
