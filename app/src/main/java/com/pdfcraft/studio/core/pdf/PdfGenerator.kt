@@ -253,7 +253,8 @@ object PdfGenerator {
         sizeFrac: Float,
         alpha: Float,
         bgArgb: Long = 0xE6000000L,
-        fgArgb: Long = 0xFFFFFFFFL
+        fgArgb: Long = 0xFFFFFFFFL,
+        weight: Float = 0.85f
     ) {
         val w = bounds.width()
         val h = bounds.height()
@@ -282,7 +283,6 @@ object PdfGenerator {
             color = withAlpha(fgArgb)
             textAlign = Paint.Align.CENTER
             isFakeBoldText = weight >= 0.67f
-            isElegantTextHeight = true
             textSize = d * 0.55f
             strokeWidth = if (weight < 0.34f) 0f else if (weight < 0.67f) 0.5f else 1.2f
             style = if (weight >= 0.85f) Paint.Style.FILL_AND_STROKE else Paint.Style.FILL

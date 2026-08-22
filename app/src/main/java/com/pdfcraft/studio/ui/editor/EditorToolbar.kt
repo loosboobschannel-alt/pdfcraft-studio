@@ -1,4 +1,7 @@
 package com.pdfcraft.studio.ui.editor
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.AlertDialog
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.PlatformTextStyle
 

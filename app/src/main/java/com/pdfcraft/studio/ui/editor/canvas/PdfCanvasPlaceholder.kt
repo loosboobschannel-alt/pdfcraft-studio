@@ -1,4 +1,5 @@
 package com.pdfcraft.studio.ui.editor.canvas
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.material3.LocalTextStyle
 
 import androidx.compose.foundation.layout.wrapContentSize
