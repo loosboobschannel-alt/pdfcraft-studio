@@ -721,6 +721,12 @@ private fun PageToolsMenu(
             }
             HorizontalDivider(color = Color.LightGray)
 
+            // 6. Page Spacing
+            ToolMenuItem(stringResource(R.string.page_tool_margin)) {
+                menuExpanded = false
+                onSetPageMargin()
+            }
+            HorizontalDivider(color = Color.LightGray)
 
             // 7. Background
             ToolMenuItem(stringResource(R.string.page_tool_background_color)) {

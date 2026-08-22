@@ -93,7 +93,7 @@
     <string name="page_tool_orientation">5. Page Layout</string>
     <string name="page_tool_margin">6. Page Spacing</string>
     <string name="page_tool_delete_page">8. Delete Page</string>
-    <string name="page_tool_background_color">7. Background</string>
+    <string name="page_tool_background_color">7. Change Background</string>
     <string name="page_bg_select_pages">Apply to pages</string>
     <string name="page_bg_import_gallery">Import From Gallery</string>
     <string name="page_tool_page_numbers">7. Page Numbers Setting</string>
