@@ -103,7 +103,7 @@ fun PdfPagesPreview(
     pageAspectRatio: Float = PAGE_ASPECT_RATIO,
     pageAspectRatioForPage: ((Int) -> Float)? = null,
     pageMarginDp: Int = 10,
-    pageBackgroundColor: Long = 0xFFFFFFFF,
+    pageBackgroundColor: Long = 0xFFFFFFFFL,
     pageBackgroundColorForPage: ((Int) -> Long)? = null,
     pageBackgroundBitmap: android.graphics.Bitmap? = null,
     pageBackgroundBitmapForPage: ((Int) -> android.graphics.Bitmap?)? = null,
@@ -1129,7 +1129,7 @@ private fun EmptyStatePage(
 @Composable
 private fun PageCard(
     aspectRatio: Float = PAGE_ASPECT_RATIO,
-    backgroundColor: Long = 0xFFFFFFFF,
+    backgroundColor: Long = 0xFFFFFFFFL,
     backgroundBitmap: android.graphics.Bitmap? = null,
     pageNumberText: String? = null,
     pageNumberPosition: com.pdfcraft.studio.ui.editor.EditorViewModel.PageNumberPosition =

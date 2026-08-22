@@ -53,9 +53,9 @@ data class TextElement(
     val italicRanges: List<IntRange> = emptyList(),
     val fontId: String = FontCatalog.ID_DEFAULT,
     val fontSizeSp: Float = 16f,
-    val textColorArgb: Long = 0xFF000000,
+    val textColorArgb: Long = 0xFF000000L,
     val bgColorArgb: Long? = null,
-    val shadowColorArgb: Long = 0x80000000,
+    val shadowColorArgb: Long = 0x80000000L,
     val shadowOffsetPx: Float = 0f,
     val shadowBlurPx: Float = 0f
 )
@@ -1384,8 +1384,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun selectedTextColorArgb(): Long {
-        val id = focusedTextId ?: selectedTextId ?: return 0xFF000000
-        return textElements.firstOrNull { it.id == id }?.textColorArgb ?: 0xFF000000
+        val id = focusedTextId ?: selectedTextId ?: return 0xFF000000L
+        return textElements.firstOrNull { it.id == id }?.textColorArgb ?: 0xFF000000L
     }
 
     fun selectedTextBgColorArgb(): Long? {
