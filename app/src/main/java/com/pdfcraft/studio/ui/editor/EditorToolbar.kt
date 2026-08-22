@@ -39,7 +39,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.ui.Modifier.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -962,15 +962,16 @@ private fun ImageNumberingPanel(
             Text(stringResource(R.string.image_numbering_change_position))
         }
         if (showArrows) {
-            Row(Modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 NumberingNudgeButton("↑") { onNudge(0f, -1f) }
-            }
-            Row(Modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                NumberingNudgeButton("←") { onNudge(-1f, 0f) }
-                NumberingNudgeButton("●") { onCenter() }
-                NumberingNudgeButton("→") { onNudge(1f, 0f) }
-            }
-            Row(Modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                Row(horizontalArrangement = Arrangement.Center) {
+                    NumberingNudgeButton("←") { onNudge(-1f, 0f) }
+                    NumberingNudgeButton("●") { onCenter() }
+                    NumberingNudgeButton("→") { onNudge(1f, 0f) }
+                }
                 NumberingNudgeButton("↓") { onNudge(0f, 1f) }
             }
         }
