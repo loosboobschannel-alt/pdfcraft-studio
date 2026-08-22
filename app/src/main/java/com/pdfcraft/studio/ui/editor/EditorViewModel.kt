@@ -618,16 +618,13 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun startNumberingEdit(imagesPerPage: Int) {
-        val perPage = imagesPerPage.coerceAtLeast(1)
         val selected = pageNumberingSelection.filter { it >= 0 }.toSortedSet()
         if (selected.isEmpty()) return
         var n = 1
-        val total = currentPageCountEstimate(perPage)
-        for (p in 0 until total) {
-            if (p !in selected) continue
-            val start = p * perPage
-            val end = minOf(start + perPage, importedImages.size)
-            for (i in start until end) {
+        val total = documentPageCount()
+        for (p in selected) {
+            if (p !in 0 until total) continue
+            for (i in imageRangeForPage(p, total)) {
                 val img = importedImages[i]
                 importedImages[i] = img.copy(
                     numberLabel = n++,
@@ -910,19 +907,19 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun duplicateSelectedPages(imagesPerPage: Int) {
-        val perPage = imagesPerPage.coerceAtLeast(1)
-        val total = currentPageCountEstimate(perPage)
+        val total = documentPageCount()
         val selected = pageDuplicateSelection.filter { it in 0 until total }.sortedDescending()
         if (selected.isEmpty()) return
 
         for (pageIdx in selected) {
-            val start = pageIdx * perPage
-            val end = minOf(start + perPage, importedImages.size)
-            val slice = if (start < importedImages.size) {
-                importedImages.subList(start, end).toList()
+            val range = imageRangeForPage(pageIdx, total)
+            val slice = if (!range.isEmpty()) {
+                importedImages.subList(range.first, range.last + 1).toList()
             } else {
                 emptyList()
             }
+            val start = if (!range.isEmpty()) range.first else 0
+            val end = if (!range.isEmpty()) range.last + 1 else 0
             val copies = slice.map { img ->
                 img.copy(id = java.util.UUID.randomUUID().toString())
             }
@@ -1004,7 +1001,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
      */
     fun movePageTo(fromIndex: Int, toIndex: Int, imagesPerPage: Int) {
         val perPage = imagesPerPage.coerceAtLeast(1)
-        val total = currentPageCountEstimate(perPage)
+        val total = documentPageCount()
         if (fromIndex == toIndex) return
         if (fromIndex !in 0 until total || toIndex !in 0 until total) return
 
@@ -1020,7 +1017,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun reorderPages(newOrder: List<Int>, imagesPerPage: Int) {
         val perPage = imagesPerPage.coerceAtLeast(1)
-        val total = currentPageCountEstimate(perPage)
+        val total = documentPageCount()
         if (newOrder.size != total || newOrder.toSet() != (0 until total).toSet()) return
 
         val pageImages = (0 until total).map { p ->
@@ -1071,8 +1068,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun deleteSelectedPages(imagesPerPage: Int) {
-        val perPage = imagesPerPage.coerceAtLeast(1)
-        val total = currentPageCountEstimate(perPage)
+        val total = documentPageCount()
         val toDelete = pageDeleteSelection.filter { it in 0 until total }.toSortedSet()
         if (toDelete.isEmpty()) return
 
@@ -1140,12 +1136,29 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         return pageAspectOverrides[pageIndex] ?: pageAspectRatio
     }
 
-    fun currentPageCountEstimate(imagesPerPage: Int): Int {
-        val perPage = imagesPerPage.coerceAtLeast(1)
-        val imagePages = if (importedImages.isEmpty()) 0
-            else (importedImages.size + perPage - 1) / perPage
+    /**
+     * Actual document page count only.
+     * Image count / images-per-row / layout must NEVER create extra pages.
+     * [imagesPerPage] kept for call-site compatibility; ignored for counting.
+     */
+    fun currentPageCountEstimate(imagesPerPage: Int): Int = documentPageCount()
+
+    fun documentPageCount(): Int {
         val textPages = (textElements.maxOfOrNull { it.pageIndex } ?: -1) + 1
-        return maxOf(imagePages, textPages, minPageCount, 1)
+        return maxOf(minPageCount, textPages, 1)
+    }
+
+    /** Image index range belonging to a document page (even split across pages). */
+    fun imageRangeForPage(pageIndex: Int, pageCount: Int = documentPageCount()): IntRange {
+        val n = importedImages.size
+        val pc = pageCount.coerceAtLeast(1)
+        if (n == 0 || pageIndex < 0 || pageIndex >= pc) return IntRange.EMPTY
+        val base = n / pc
+        val rem = n % pc
+        val start = pageIndex * base + minOf(pageIndex, rem)
+        val size = base + if (pageIndex < rem) 1 else 0
+        if (size <= 0) return IntRange.EMPTY
+        return start until (start + size)
     }
 
     fun selectAllPagesForSize(pageCount: Int) {

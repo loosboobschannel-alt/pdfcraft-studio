@@ -77,8 +77,23 @@ object PdfGenerator {
         } else {
             1
         }
-        val imagesPerPage = (perRow * rowsPerPage).coerceAtLeast(1)
-        val imagePages = if (images.isEmpty()) emptyList() else images.chunked(imagesPerPage)
+        // Document pages only (minPageCount / text) — do NOT invent pages from image grid.
+        val textPages = (textElements.maxOfOrNull { it.pageIndex } ?: -1) + 1
+        val pageCount = maxOf(minPageCount, textPages, 1)
+        val imagePages: List<List<ImportedImage>> =
+            if (images.isEmpty()) {
+                List(pageCount) { emptyList() }
+            } else {
+                val base = images.size / pageCount
+                val rem = images.size % pageCount
+                var offset = 0
+                List(pageCount) { idx ->
+                    val size = base + if (idx < rem) 1 else 0
+                    val slice = images.subList(offset, (offset + size).coerceAtMost(images.size))
+                    offset += size
+                    slice
+                }
+            }
 
         // Include every page that has text OR blank pages the user added in the editor.
         // Previously text-only page 2+ were dropped because export only used image chunks.
@@ -115,7 +130,7 @@ object PdfGenerator {
                 val row = idx / perRow
                 val col = idx % perRow
                 // Safety: never draw a row that would go past the page bottom
-                if (row >= rowsPerPage) return@forEachIndexed
+                if (false && row >= rowsPerPage) return@forEachIndexed // allow all images on document page
 
                 val left = margin + col * (cellWidth + spacing)
                 val top = margin + row * (cellHeight + spacing)
