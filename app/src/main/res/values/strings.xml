@@ -246,4 +246,8 @@
     <string name="image_numbering_more">More…</string>
     <string name="image_numbering_center">Center</string>
 
+    <string name="image_numbering_change_bg">Change Icon Background Color ▼</string>
+    <string name="image_numbering_change_fg">Change Icon Text Color ▼</string>
+    <string name="image_numbering_thickness">Text Thickness</string>
+    <string name="image_numbering_style_next">Next</string>
 </resources>

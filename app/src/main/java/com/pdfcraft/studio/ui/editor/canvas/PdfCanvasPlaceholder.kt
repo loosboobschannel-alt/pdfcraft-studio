@@ -1,4 +1,8 @@
 package com.pdfcraft.studio.ui.editor.canvas
+import androidx.compose.material3.LocalTextStyle
+
+import androidx.compose.foundation.layout.wrapContentSize
+
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -741,6 +745,13 @@ private fun ImageCell(
                     val bg = Color(image.numberBgArgb.toInt())
                     val fg = Color(image.numberFgArgb.toInt())
                     val a = image.numberAlpha.coerceIn(0.2f, 1f)
+                    val w = image.numberWeight.coerceIn(0f, 1f)
+                    val fw = when {
+                        w < 0.34f -> FontWeight.Light
+                        w < 0.67f -> FontWeight.Normal
+                        else -> FontWeight.Bold
+                    }
+                    val fs = (iconD.value * 0.42f).sp
                     Box(
                         modifier = Modifier
                             .offset(x = clampedCx - half, y = clampedCy - half)
@@ -751,9 +762,16 @@ private fun ImageCell(
                         Text(
                             text = label.toString(),
                             color = fg.copy(alpha = fg.alpha * a),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = (iconD.value * 0.42f).sp,
-                            maxLines = 1
+                            fontWeight = fw,
+                            fontSize = fs,
+                            maxLines = 1,
+                            softWrap = false,
+                            textAlign = TextAlign.Center,
+                            style = LocalTextStyle.current.copy(
+                                platformStyle = PlatformTextStyle(includeFontPadding = false),
+                                lineHeight = fs
+                            ),
+                            modifier = Modifier.wrapContentSize(Alignment.Center)
                         )
                     }
                 }

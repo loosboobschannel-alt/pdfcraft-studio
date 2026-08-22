@@ -1,4 +1,6 @@
 package com.pdfcraft.studio.ui.editor
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.PlatformTextStyle
 
 
 import androidx.compose.foundation.background
@@ -121,6 +123,11 @@ fun EditorToolbar(
     onClearPageNumberingSelection: () -> Unit = {},
     onStartImageNumbering: () -> Unit = {},
     numberingEditMode: Boolean = false,
+    numberingStyleScreen: Boolean = false,
+    numberingWeight: Float = 0.85f,
+    onNumberingWeightChange: (Float) -> Unit = {},
+    onConfirmNumberingStyle: () -> Unit = {},
+    onCancelNumberingStyle: () -> Unit = {},
     numberingAlpha: Float = 0.9f,
     onNumberingAlphaChange: (Float) -> Unit = {},
     numberingSizeFrac: Float = 0.18f,
@@ -371,6 +378,20 @@ fun EditorToolbar(
             onDismiss = { showPageDuplicatePicker = false },
             instructionText = stringResource(R.string.page_duplicate_picker_instruction),
             confirmText = stringResource(R.string.page_duplicate_button)
+        )
+    }
+
+
+    if (numberingStyleScreen) {
+        ImageNumberingStyleScreen(
+            bgArgb = numberingBgArgb,
+            onBgChange = onNumberingBgChange,
+            fgArgb = numberingFgArgb,
+            onFgChange = onNumberingFgChange,
+            weight = numberingWeight,
+            onWeightChange = onNumberingWeightChange,
+            onNext = onConfirmNumberingStyle,
+            onDismiss = onCancelNumberingStyle
         )
     }
 
@@ -909,114 +930,50 @@ private fun ImageNumberingPanel(
     onCenter: () -> Unit,
     onDone: () -> Unit
 ) {
-    var showArrows by remember { mutableStateOf(false) }
-    var showMoreBg by remember { mutableStateOf(false) }
-    var showMoreFg by remember { mutableStateOf(false) }
-
-    val primaryColors = listOf(
-        0xFFFFFFFFL, 0xFF000000L, 0xFFFFEB3BL, 0xFF4CAF50L,
-        0xFF2196F3L, 0xFFE91E63L, 0xFFF44336L
-    )
-    val moreColors = listOf(
-        0xFFFF9800L, 0xFF9C27B0L, 0xFF7C4DFFL, 0xFF795548L, 0xFF9E9E9EL,
-        0xFFFFD700L, 0xFFC0C0C0L, 0xFF00BCD4L, 0xFFFF00FFL, 0xFF009688L,
-        0xFF001F5BL, 0xFF87CEEBL, 0xFF0D47A1L, 0xFFCDDC39L, 0xFF808000L,
-        0xFF800000L, 0xFFF5F5DCL, 0xFFFFFDD0L, 0xFFE6E6FAL, 0xFF40E0D0L,
-        0xFF3F51B5L, 0xFFFF7F50L, 0xFFFFE5B4L, 0xFF98FF98L, 0xFFF0E68CL,
-        0xFFCD7F32L, 0xFF800020L, 0xFFDC143CL, 0xFFFF2400L, 0xFF50C878L,
-        0xFF00FFFFL, 0xFFFFDB58L, 0xFFFF007FL, 0xFFFFBF00L, 0xFFD2B48CL,
-        0xFF7B3F00L, 0xFF36454FL, 0xFFFFFFF0L, 0xFFE0115FL, 0xFF0F52BAL,
-        0xFF39FF14L, 0xFFFF6EC7L, 0xFF1B03A3L, 0xFFCCFF00L
-    )
-
+    // Position / size / transparency mode (colors already chosen on style screen)
     Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
         SliderToolHeader(
             title = stringResource(R.string.image_numbering_title),
             onDone = onDone
         )
-        Text(
-            text = stringResource(R.string.image_numbering_transparency),
-            color = Color.Black
-        )
-        Slider(
-            value = alpha,
-            onValueChange = onAlphaChange,
-            valueRange = 0.2f..1f
-        )
-        Text(
-            text = stringResource(R.string.image_numbering_size),
-            color = Color.Black
-        )
-        Slider(
-            value = sizeFrac,
-            onValueChange = onSizeChange,
-            valueRange = 0.08f..0.35f
-        )
-
-        Text(
-            text = stringResource(R.string.image_numbering_bg_color),
-            color = Color.Black,
-            modifier = Modifier.padding(top = 6.dp)
-        )
-        NumberingColorRow(
-            colors = primaryColors,
-            selected = bgArgb,
-            onSelect = onBgChange,
-            showMoreLabel = true,
-            moreExpanded = showMoreBg,
-            onToggleMore = { showMoreBg = !showMoreBg }
-        )
-        if (showMoreBg) {
-            NumberingColorRow(
-                colors = moreColors,
-                selected = bgArgb,
-                onSelect = onBgChange,
-                showMoreLabel = false,
-                moreExpanded = false,
-                onToggleMore = {}
+        // Live mini preview
+        Box(
+            modifier = Modifier
+                .padding(bottom = 8.dp)
+                .size(56.dp)
+                .align(Alignment.CenterHorizontally)
+                .background(Color(bgArgb.toInt()), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "1",
+                color = Color(fgArgb.toInt()),
+                fontWeight = FontWeight.Bold,
+                fontSize = 22.sp,
+                textAlign = TextAlign.Center
             )
         }
+        Text(text = stringResource(R.string.image_numbering_transparency), color = Color.Black)
+        Slider(value = alpha, onValueChange = onAlphaChange, valueRange = 0.2f..1f)
+        Text(text = stringResource(R.string.image_numbering_size), color = Color.Black)
+        Slider(value = sizeFrac, onValueChange = onSizeChange, valueRange = 0.08f..0.35f)
 
         Text(
-            text = stringResource(R.string.image_numbering_text_color),
+            text = stringResource(R.string.image_numbering_change_position),
             color = Color.Black,
-            modifier = Modifier.padding(top = 6.dp)
+            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
         )
-        NumberingColorRow(
-            colors = primaryColors,
-            selected = fgArgb,
-            onSelect = onFgChange,
-            showMoreLabel = true,
-            moreExpanded = showMoreFg,
-            onToggleMore = { showMoreFg = !showMoreFg }
-        )
-        if (showMoreFg) {
-            NumberingColorRow(
-                colors = moreColors,
-                selected = fgArgb,
-                onSelect = onFgChange,
-                showMoreLabel = false,
-                moreExpanded = false,
-                onToggleMore = {}
-            )
-        }
-
-        TextButton(onClick = { showArrows = !showArrows }) {
-            Text(text = stringResource(R.string.image_numbering_change_position))
-        }
-        if (showArrows) {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                NumberingNudgeButton(label = "↑", onTick = { onNudge(0f, -1f) })
-                Row(horizontalArrangement = Arrangement.Center) {
-                    NumberingNudgeButton(label = "←", onTick = { onNudge(-1f, 0f) })
-                    NumberingNudgeButton(label = "●", onTick = onCenter)
-                    NumberingNudgeButton(label = "→", onTick = { onNudge(1f, 0f) })
-                }
-                NumberingNudgeButton(label = "↓", onTick = { onNudge(0f, 1f) })
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            NumberingNudgeButton(label = "↑", onTick = { onNudge(0f, -1f) })
+            Row(horizontalArrangement = Arrangement.Center) {
+                NumberingNudgeButton(label = "←", onTick = { onNudge(-1f, 0f) })
+                NumberingNudgeButton(label = stringResource(R.string.image_numbering_center), onTick = onCenter)
+                NumberingNudgeButton(label = "→", onTick = { onNudge(1f, 0f) })
             }
+            NumberingNudgeButton(label = "↓", onTick = { onNudge(0f, 1f) })
         }
     }
 }
@@ -1658,6 +1615,171 @@ private fun TextSizeSlider(
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyMedium
             )
+        }
+    }
+}
+
+@Composable
+private fun ImageNumberingStyleScreen(
+    bgArgb: Long,
+    onBgChange: (Long) -> Unit,
+    fgArgb: Long,
+    onFgChange: (Long) -> Unit,
+    weight: Float,
+    onWeightChange: (Float) -> Unit,
+    onNext: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    var expandBg by remember { mutableStateOf(false) }
+    var expandFg by remember { mutableStateOf(false) }
+
+    val primaryColors = listOf(
+        0xFFFFFFFFL, 0xFF000000L, 0xFFFFEB3BL, 0xFF4CAF50L,
+        0xFF2196F3L, 0xFFE91E63L, 0xFFF44336L, 0xFFFF9800L
+    )
+    val moreColors = listOf(
+        0xFF9C27B0L, 0xFF7C4DFFL, 0xFF795548L, 0xFF9E9E9EL,
+        0xFFFFD700L, 0xFFC0C0C0L, 0xFF00BCD4L, 0xFFFF00FFL,
+        0xFF009688L, 0xFF001F5BL, 0xFF87CEEBL, 0xFF0D47A1L,
+        0xFFCDDC39L, 0xFF808000L, 0xFF800000L, 0xFFF5F5DCL,
+        0xFFFFFDD0L, 0xFFE6E6FAL, 0xFF40E0D0L, 0xFF3F51B5L,
+        0xFFFF7F50L, 0xFFFFE5B4L, 0xFF98FF98L, 0xFFF0E68CL
+    )
+    val allColors = primaryColors + moreColors
+
+    val previewWeight = when {
+        weight < 0.34f -> FontWeight.Light
+        weight < 0.67f -> FontWeight.Normal
+        else -> FontWeight.Bold
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {},
+        dismissButton = {},
+        title = {
+            Text(stringResource(R.string.image_numbering_title), color = Color.Black)
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Live preview
+                Box(
+                    modifier = Modifier
+                        .padding(vertical = 12.dp)
+                        .size(72.dp)
+                        .align(Alignment.CenterHorizontally)
+                        .background(Color(bgArgb.toInt()), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "12",
+                        color = Color(fgArgb.toInt()),
+                        fontWeight = previewWeight,
+                        fontSize = 28.sp,
+                        textAlign = TextAlign.Center,
+                        style = LocalTextStyle.current.copy(
+                            platformStyle = PlatformTextStyle(includeFontPadding = false),
+                            lineHeight = 28.sp
+                        )
+                    )
+                }
+
+                // BG expandable
+                Text(
+                    text = stringResource(R.string.image_numbering_change_bg),
+                    color = Color.Black,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            expandBg = !expandBg
+                            if (expandBg) expandFg = false
+                        }
+                        .padding(vertical = 8.dp)
+                )
+                if (expandBg) {
+                    NumberingColorGrid(
+                        colors = allColors,
+                        selected = bgArgb,
+                        onSelect = onBgChange
+                    )
+                }
+
+                // FG expandable
+                Text(
+                    text = stringResource(R.string.image_numbering_change_fg),
+                    color = Color.Black,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            expandFg = !expandFg
+                            if (expandFg) expandBg = false
+                        }
+                        .padding(vertical = 8.dp)
+                )
+                if (expandFg) {
+                    NumberingColorGrid(
+                        colors = allColors,
+                        selected = fgArgb,
+                        onSelect = onFgChange
+                    )
+                }
+
+                Text(
+                    text = stringResource(R.string.image_numbering_thickness),
+                    color = Color.Black,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+                Slider(
+                    value = weight,
+                    onValueChange = onWeightChange,
+                    valueRange = 0f..1f
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onNext) {
+                        Text(
+                            text = stringResource(R.string.image_numbering_style_next),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+    )
+}
+
+@Composable
+private fun NumberingColorGrid(
+    colors: List<Long>,
+    selected: Long,
+    onSelect: (Long) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        colors.chunked(8).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                row.forEach { col ->
+                    val isSel = (col and 0x00FFFFFFL) == (selected and 0x00FFFFFFL) || col == selected
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .background(Color(col.toInt()), CircleShape)
+                            .border(
+                                width = if (isSel) 2.dp else 1.dp,
+                                color = if (isSel) Color(0xFF1976D2L) else Color.LightGray,
+                                shape = CircleShape
+                            )
+                            .clickable { onSelect(col) }
+                    )
+                }
+            }
         }
     }
 }

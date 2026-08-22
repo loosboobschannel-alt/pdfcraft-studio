@@ -40,7 +40,9 @@ data class ImportedImage(
     /** Icon circle fill ARGB */
     val numberBgArgb: Long = 0xE6000000L,
     /** Icon digit color ARGB */
-    val numberFgArgb: Long = 0xFFFFFFFFL
+    val numberFgArgb: Long = 0xFFFFFFFFL,
+    /** 0f=Thin .. 1f=Bold */
+    val numberWeight: Float = 0.85f
 )
 
 data class TextElement(
@@ -597,6 +599,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var numberingYFrac: Float by mutableStateOf(0.5f)
     var numberingBgArgb: Long by mutableStateOf(0xE6000000L)
     var numberingFgArgb: Long by mutableStateOf(0xFFFFFFFFL)
+    var numberingWeight: Float by mutableStateOf(0.85f)
+    /** true = style screen (colors + thickness) before position edit */
+    var numberingStyleScreen: Boolean by mutableStateOf(false)
 
     fun clearPageNumberingSelection() { pageNumberingSelection.clear() }
 
@@ -631,7 +636,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     numberSizeFrac = numberingSizeFrac,
                     numberAlpha = numberingAlpha,
                     numberBgArgb = numberingBgArgb,
-                    numberFgArgb = numberingFgArgb
+                    numberFgArgb = numberingFgArgb,
+                    numberWeight = numberingWeight
                 )
             }
         }
@@ -648,17 +654,18 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     numberSizeFrac = numberingSizeFrac,
                     numberAlpha = numberingAlpha,
                     numberBgArgb = numberingBgArgb,
-                    numberFgArgb = numberingFgArgb
+                    numberFgArgb = numberingFgArgb,
+                    numberWeight = numberingWeight
                 )
             }
         }
     }
 
     fun nudgeNumbering(dx: Float, dy: Float) {
+        // Allow full 0..1; each image clamps using its own width/height + icon size at draw/export time.
         val step = 0.02f
-        val half = (numberingSizeFrac.coerceIn(0.08f, 0.4f) / 2f).coerceAtLeast(0.04f)
-        numberingXFrac = (numberingXFrac + dx * step).coerceIn(half, 1f - half)
-        numberingYFrac = (numberingYFrac + dy * step).coerceIn(half, 1f - half)
+        numberingXFrac = (numberingXFrac + dx * step).coerceIn(0f, 1f)
+        numberingYFrac = (numberingYFrac + dy * step).coerceIn(0f, 1f)
         updateNumberingLiveStyle()
     }
 
@@ -668,9 +675,25 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         updateNumberingLiveStyle()
     }
 
+    
+    fun openNumberingStyleScreen() {
+        if (pageNumberingSelection.isEmpty()) return
+        numberingStyleScreen = true
+    }
+
+    fun confirmNumberingStyleAndEdit(imagesPerPage: Int) {
+        numberingStyleScreen = false
+        startNumberingEdit(imagesPerPage)
+    }
+
+    fun cancelNumberingStyleScreen() {
+        numberingStyleScreen = false
+    }
+
     fun finishNumberingEdit() {
         updateNumberingLiveStyle()
         numberingEditMode = false
+        numberingStyleScreen = false
         pageNumberingSelection.clear()
     }
 

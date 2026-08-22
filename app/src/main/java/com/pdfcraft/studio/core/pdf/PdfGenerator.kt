@@ -140,7 +140,8 @@ object PdfGenerator {
                             sizeFrac = img.numberSizeFrac,
                             alpha = img.numberAlpha,
                             bgArgb = img.numberBgArgb,
-                            fgArgb = img.numberFgArgb
+                            fgArgb = img.numberFgArgb,
+                            weight = img.numberWeight
                         )
                     }
                     val url = img.linkUrl?.trim()?.takeIf { it.isNotEmpty() }
@@ -280,12 +281,17 @@ object PdfGenerator {
             style = Paint.Style.FILL
             color = withAlpha(fgArgb)
             textAlign = Paint.Align.CENTER
-            isFakeBoldText = true
+            isFakeBoldText = weight >= 0.67f
+            isElegantTextHeight = true
             textSize = d * 0.55f
+            strokeWidth = if (weight < 0.34f) 0f else if (weight < 0.67f) 0.5f else 1.2f
+            style = if (weight >= 0.85f) Paint.Style.FILL_AND_STROKE else Paint.Style.FILL
         }
+        val text = label.toString()
         val fm = textPaint.fontMetrics
+        // True vertical center using font metrics (works for 1, 10, 100...)
         val textY = cy - (fm.ascent + fm.descent) / 2f
-        canvas.drawText(label.toString(), cx, textY, textPaint)
+        canvas.drawText(text, cx, textY, textPaint)
     }
 
     private fun drawBitmapFit(

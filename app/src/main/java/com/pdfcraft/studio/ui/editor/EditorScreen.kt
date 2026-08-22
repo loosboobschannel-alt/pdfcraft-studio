@@ -552,9 +552,19 @@ Column(
                 },
                 onClearPageNumberingSelection = viewModel::clearPageNumberingSelection,
                 onStartImageNumbering = {
-                    viewModel.startNumberingEdit((viewModel.imagesPerRow * 2).coerceAtLeast(1))
+                    viewModel.openNumberingStyleScreen()
                 },
                 numberingEditMode = viewModel.numberingEditMode,
+                numberingStyleScreen = viewModel.numberingStyleScreen,
+                numberingWeight = viewModel.numberingWeight,
+                onNumberingWeightChange = { w ->
+                    viewModel.numberingWeight = w
+                    viewModel.updateNumberingLiveStyle()
+                },
+                onConfirmNumberingStyle = {
+                    viewModel.confirmNumberingStyleAndEdit((viewModel.imagesPerRow * 2).coerceAtLeast(1))
+                },
+                onCancelNumberingStyle = { viewModel.cancelNumberingStyleScreen() },
                 numberingAlpha = viewModel.numberingAlpha,
                 onNumberingAlphaChange = { a ->
                     viewModel.numberingAlpha = a
