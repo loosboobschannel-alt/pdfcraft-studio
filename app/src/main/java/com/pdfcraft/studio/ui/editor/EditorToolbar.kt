@@ -893,6 +893,7 @@ private fun ImagesPerRowSlider(
 
 
 
+
 @Composable
 private fun ImageNumberingPanel(
     alpha: Float,
@@ -918,61 +919,102 @@ private fun ImageNumberingPanel(
     val moreColors = listOf(
         0xFFFF9800L, 0xFF9C27B0L, 0xFF7C4DFFL, 0xFF795548L, 0xFF9E9E9EL,
         0xFFFFD700L, 0xFFC0C0C0L, 0xFF00BCD4L, 0xFFFF00FFL, 0xFF009688L,
-        0xFF001F5BL, 0xFF87CEEBL, 0xFF87CEEBL, 0xFF0D47A1L, 0xFFCDDC39L,
-        0xFF808000L, 0xFF800000L, 0xFFF5F5DCL, 0xFFFFFDD0L, 0xFFE6E6FAL,
-        0xFF40E0D0L, 0xFF3F51B5L, 0xFFFF7F50L, 0xFFFFE5B4L, 0xFF98FF98L,
-        0xFFF0E68CL, 0xFFCD7F32L, 0xFF800020L, 0xFFDC143CL, 0xFFFF2400L,
-        0xFF50C878L, 0xFF00FFFFL, 0xFFFFDB58L, 0xFFFF007FL, 0xFFFFBF00L,
-        0xFFD2B48CL, 0xFF7B3F00L, 0xFF36454FL, 0xFFFFFFF0L, 0xFFE0115FL,
-        0xFF0F52BAL, 0xFF39FF14L, 0xFFFF6EC7L, 0xFF1B03A3L, 0xFFCCFF00L
+        0xFF001F5BL, 0xFF87CEEBL, 0xFF0D47A1L, 0xFFCDDC39L, 0xFF808000L,
+        0xFF800000L, 0xFFF5F5DCL, 0xFFFFFDD0L, 0xFFE6E6FAL, 0xFF40E0D0L,
+        0xFF3F51B5L, 0xFFFF7F50L, 0xFFFFE5B4L, 0xFF98FF98L, 0xFFF0E68CL,
+        0xFFCD7F32L, 0xFF800020L, 0xFFDC143CL, 0xFFFF2400L, 0xFF50C878L,
+        0xFF00FFFFL, 0xFFFFDB58L, 0xFFFF007FL, 0xFFFFBF00L, 0xFFD2B48CL,
+        0xFF7B3F00L, 0xFF36454FL, 0xFFFFFFF0L, 0xFFE0115FL, 0xFF0F52BAL,
+        0xFF39FF14L, 0xFFFF6EC7L, 0xFF1B03A3L, 0xFFCCFF00L
     )
 
     Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-        SliderToolHeader(title = stringResource(R.string.image_numbering_title), onDone = onDone)
-        Text(stringResource(R.string.image_numbering_transparency), color = Color.Black)
-        Slider(value = alpha, onValueChange = onAlphaChange, valueRange = 0.2f..1f)
-        Text(stringResource(R.string.image_numbering_size), color = Color.Black)
-        Slider(value = sizeFrac, onValueChange = onSizeChange, valueRange = 0.08f..0.35f)
+        SliderToolHeader(
+            title = stringResource(R.string.image_numbering_title),
+            onDone = onDone
+        )
+        Text(
+            text = stringResource(R.string.image_numbering_transparency),
+            color = Color.Black
+        )
+        Slider(
+            value = alpha,
+            onValueChange = onAlphaChange,
+            valueRange = 0.2f..1f
+        )
+        Text(
+            text = stringResource(R.string.image_numbering_size),
+            color = Color.Black
+        )
+        Slider(
+            value = sizeFrac,
+            onValueChange = onSizeChange,
+            valueRange = 0.08f..0.35f
+        )
 
-        Text(stringResource(R.string.image_numbering_bg_color), color = Color.Black, modifier = Modifier.padding(top = 6.dp))
+        Text(
+            text = stringResource(R.string.image_numbering_bg_color),
+            color = Color.Black,
+            modifier = Modifier.padding(top = 6.dp)
+        )
         NumberingColorRow(
             colors = primaryColors,
             selected = bgArgb,
             onSelect = onBgChange,
-            showMore = showMoreBg,
+            showMoreLabel = true,
+            moreExpanded = showMoreBg,
             onToggleMore = { showMoreBg = !showMoreBg }
         )
         if (showMoreBg) {
-            NumberingColorRow(colors = moreColors, selected = bgArgb, onSelect = onBgChange, showMore = false, onToggleMore = {})
+            NumberingColorRow(
+                colors = moreColors,
+                selected = bgArgb,
+                onSelect = onBgChange,
+                showMoreLabel = false,
+                moreExpanded = false,
+                onToggleMore = {}
+            )
         }
 
-        Text(stringResource(R.string.image_numbering_text_color), color = Color.Black, modifier = Modifier.padding(top = 6.dp))
+        Text(
+            text = stringResource(R.string.image_numbering_text_color),
+            color = Color.Black,
+            modifier = Modifier.padding(top = 6.dp)
+        )
         NumberingColorRow(
             colors = primaryColors,
             selected = fgArgb,
             onSelect = onFgChange,
-            showMore = showMoreFg,
+            showMoreLabel = true,
+            moreExpanded = showMoreFg,
             onToggleMore = { showMoreFg = !showMoreFg }
         )
         if (showMoreFg) {
-            NumberingColorRow(colors = moreColors, selected = fgArgb, onSelect = onFgChange, showMore = false, onToggleMore = {})
+            NumberingColorRow(
+                colors = moreColors,
+                selected = fgArgb,
+                onSelect = onFgChange,
+                showMoreLabel = false,
+                moreExpanded = false,
+                onToggleMore = {}
+            )
         }
 
         TextButton(onClick = { showArrows = !showArrows }) {
-            Text(stringResource(R.string.image_numbering_change_position))
+            Text(text = stringResource(R.string.image_numbering_change_position))
         }
         if (showArrows) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                NumberingNudgeButton("↑") { onNudge(0f, -1f) }
+                NumberingNudgeButton(label = "↑", onTick = { onNudge(0f, -1f) })
                 Row(horizontalArrangement = Arrangement.Center) {
-                    NumberingNudgeButton("←") { onNudge(-1f, 0f) }
-                    NumberingNudgeButton("●") { onCenter() }
-                    NumberingNudgeButton("→") { onNudge(1f, 0f) }
+                    NumberingNudgeButton(label = "←", onTick = { onNudge(-1f, 0f) })
+                    NumberingNudgeButton(label = "●", onTick = onCenter)
+                    NumberingNudgeButton(label = "→", onTick = { onNudge(1f, 0f) })
                 }
-                NumberingNudgeButton("↓") { onNudge(0f, 1f) }
+                NumberingNudgeButton(label = "↓", onTick = { onNudge(0f, 1f) })
             }
         }
     }
@@ -983,7 +1025,8 @@ private fun NumberingColorRow(
     colors: List<Long>,
     selected: Long,
     onSelect: (Long) -> Unit,
-    showMore: Boolean,
+    showMoreLabel: Boolean,
+    moreExpanded: Boolean,
     onToggleMore: () -> Unit
 ) {
     Row(
@@ -994,8 +1037,7 @@ private fun NumberingColorRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val displayColors = colors
-        displayColors.forEach { col ->
+        colors.forEach { col ->
             val isSel = (col and 0x00FFFFFFL) == (selected and 0x00FFFFFFL) || col == selected
             Box(
                 modifier = Modifier
@@ -1009,7 +1051,7 @@ private fun NumberingColorRow(
                     .clickable { onSelect(col) }
             )
         }
-        if (colors.size <= 7) {
+        if (showMoreLabel) {
             Text(
                 text = stringResource(R.string.image_numbering_more),
                 color = Color(0xFF1976D2L),
@@ -1023,7 +1065,10 @@ private fun NumberingColorRow(
 }
 
 @Composable
-private fun NumberingNudgeButton(label: String, onTick: () -> Unit) {
+private fun NumberingNudgeButton(
+    label: String,
+    onTick: () -> Unit
+) {
     var pressed by remember { mutableStateOf(false) }
     LaunchedEffect(pressed) {
         if (!pressed) return@LaunchedEffect
