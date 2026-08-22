@@ -68,6 +68,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
@@ -328,8 +329,12 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                     // --- Name dialog ---
                     if (showNameDialog) {
                         val nameFocusRequester = remember { FocusRequester() }
+                        val keyboardController = LocalSoftwareKeyboardController.current
                         LaunchedEffect(Unit) {
+                            // Wait until dialog + TextField are composed, then show keyboard
+                            kotlinx.coroutines.delay(200)
                             nameFocusRequester.requestFocus()
+                            keyboardController?.show()
                         }
                         AlertDialog(
                             onDismissRequest = { showNameDialog = false },
