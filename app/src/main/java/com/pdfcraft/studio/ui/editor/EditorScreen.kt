@@ -68,6 +68,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -293,7 +295,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                     var linkWarning by remember { mutableStateOf<String?>(null) }
                     var savedUri by remember { mutableStateOf<android.net.Uri?>(null) }
                     var nameField by remember {
-                        mutableStateOf(TextFieldValue("Document.pdf", TextRange(0, 8)))
+                        mutableStateOf(TextFieldValue("Project.pdf", TextRange(0, 7)))
                     }
 
                     Box {
@@ -315,7 +317,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                         errorMessage = context.getString(R.string.export_pdf_empty)
                                         showErrorDialog = true
                                     } else {
-                                        nameField = TextFieldValue("Document.pdf", TextRange(0, 8))
+                                        nameField = TextFieldValue("Project.pdf", TextRange(0, 7))
                                         showNameDialog = true
                                     }
                                 }
@@ -325,6 +327,10 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
 
                     // --- Name dialog ---
                     if (showNameDialog) {
+                        val nameFocusRequester = remember { FocusRequester() }
+                        LaunchedEffect(Unit) {
+                            nameFocusRequester.requestFocus()
+                        }
                         AlertDialog(
                             onDismissRequest = { showNameDialog = false },
                             title = { Text(stringResource(R.string.export_pdf_dialog_title)) },
@@ -333,13 +339,14 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                     value = nameField,
                                     onValueChange = { nameField = it },
                                     label = { Text(stringResource(R.string.export_pdf_name_hint)) },
-                                    singleLine = true
+                                    singleLine = true,
+                                    modifier = Modifier.focusRequester(nameFocusRequester)
                                 )
                             },
                             confirmButton = {
                                 TextButton(onClick = {
                                     showNameDialog = false
-                                    val raw = nameField.text.trim().ifEmpty { "Document.pdf" }
+                                    val raw = nameField.text.trim().ifEmpty { "Project.pdf" }
                                     val result = PdfGenerator.export(
                                         context = context,
                                         fileName = raw,
@@ -397,16 +404,16 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                 }
                             },
                             confirmButton = {
+                                TextButton(onClick = { showSuccessDialog = false }) {
+                                    Text(stringResource(R.string.export_pdf_done))
+                                }
+                            },
+                            dismissButton = {
                                 TextButton(onClick = {
                                     showSuccessDialog = false
                                     savedUri?.let { onViewPdfClick(it.toString()) }
                                 }) {
                                     Text(stringResource(R.string.view_pdf_button))
-                                }
-                            },
-                            dismissButton = {
-                                TextButton(onClick = { showSuccessDialog = false }) {
-                                    Text(stringResource(R.string.export_pdf_done))
                                 }
                             }
                         )
