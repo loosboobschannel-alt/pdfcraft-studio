@@ -541,13 +541,13 @@ Column(
                 imagesPerRow =
                     viewModel.imagesPerRow,
                 pageCountForNumbering = viewModel.currentPageCountEstimate(
-                    (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                    viewModel.imagesPerPageCapacity()
                 ),
                 pageNumberingSelected = viewModel.pageNumberingSelection.toSet(),
                 onTogglePageNumberingSelection = viewModel::togglePageNumberingSelection,
                 onToggleSelectAllPagesForNumbering = {
                     viewModel.toggleSelectAllPagesForNumbering(
-                        viewModel.currentPageCountEstimate((viewModel.imagesPerRow * 2).coerceAtLeast(1))
+                        viewModel.currentPageCountEstimate(viewModel.imagesPerPageCapacity())
                     )
                 },
                 onClearPageNumberingSelection = viewModel::clearPageNumberingSelection,
@@ -562,7 +562,7 @@ Column(
                     viewModel.updateNumberingLiveStyle()
                 },
                 onConfirmNumberingStyle = {
-                    viewModel.confirmNumberingStyleAndEdit((viewModel.imagesPerRow * 2).coerceAtLeast(1))
+                    viewModel.confirmNumberingStyleAndEdit(viewModel.imagesPerPageCapacity())
                 },
                 onCancelNumberingStyle = { viewModel.cancelNumberingStyleScreen() },
                 numberingAlpha = viewModel.numberingAlpha,
@@ -626,7 +626,7 @@ Column(
                     viewModel::applyPageSizeToSelection,
                 pageCountForSize =
                     viewModel.currentPageCountEstimate(
-                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        viewModel.imagesPerPageCapacity()
                     ),
                 pageSizeSelected =
                     viewModel.pageSizeSelection.toSet(),
@@ -635,7 +635,7 @@ Column(
                 onToggleSelectAllPagesForSize = {
                     viewModel.toggleSelectAllPagesForSize(
                         viewModel.currentPageCountEstimate(
-                            (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                            viewModel.imagesPerPageCapacity()
                         )
                     )
                 },
@@ -659,7 +659,7 @@ Column(
                     viewModel::applyBackgroundColorToSelection,
                 pageCountForBgColor =
                     viewModel.currentPageCountEstimate(
-                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        viewModel.imagesPerPageCapacity()
                     ),
                 pageBgColorSelected =
                     viewModel.pageBgColorSelection.toSet(),
@@ -668,7 +668,7 @@ Column(
                 onToggleSelectAllPagesForBgColor = {
                     viewModel.toggleSelectAllPagesForBgColor(
                         viewModel.currentPageCountEstimate(
-                            (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                            viewModel.imagesPerPageCapacity()
                         )
                     )
                 },
@@ -699,7 +699,7 @@ Column(
                     viewModel::deleteLastPage,
                 pageCountForDelete =
                     viewModel.currentPageCountEstimate(
-                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        viewModel.imagesPerPageCapacity()
                     ),
                 pageDeleteSelected =
                     viewModel.pageDeleteSelection.toSet(),
@@ -708,7 +708,7 @@ Column(
                 onToggleSelectAllPagesForDelete = {
                     viewModel.toggleSelectAllPagesForDelete(
                         viewModel.currentPageCountEstimate(
-                            (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                            viewModel.imagesPerPageCapacity()
                         )
                     )
                 },
@@ -716,12 +716,12 @@ Column(
                     viewModel::clearPageDeleteSelection,
                 onDeleteSelectedPages = {
                     viewModel.deleteSelectedPages(
-                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        viewModel.imagesPerPageCapacity()
                     )
                 },
                 pageCountForDuplicate =
                     viewModel.currentPageCountEstimate(
-                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        viewModel.imagesPerPageCapacity()
                     ),
                 pageDuplicateSelected =
                     viewModel.pageDuplicateSelection.toSet(),
@@ -730,7 +730,7 @@ Column(
                 onToggleSelectAllPagesForDuplicate = {
                     viewModel.toggleSelectAllPagesForDuplicate(
                         viewModel.currentPageCountEstimate(
-                            (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                            viewModel.imagesPerPageCapacity()
                         )
                     )
                 },
@@ -738,24 +738,24 @@ Column(
                     viewModel::clearPageDuplicateSelection,
                 onDuplicateSelectedPages = {
                     viewModel.duplicateSelectedPages(
-                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        viewModel.imagesPerPageCapacity()
                     )
                 },
                 pageCountForArrange =
                     viewModel.currentPageCountEstimate(
-                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        viewModel.imagesPerPageCapacity()
                     ),
                 onReorderPages = { order ->
                     viewModel.reorderPages(
                         order,
-                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        viewModel.imagesPerPageCapacity()
                     )
                 },
                 onMovePage = { from, to ->
                     viewModel.movePageTo(
                         from,
                         to,
-                        (viewModel.imagesPerRow * 2).coerceAtLeast(1)
+                        viewModel.imagesPerPageCapacity()
                     )
                 }
             )

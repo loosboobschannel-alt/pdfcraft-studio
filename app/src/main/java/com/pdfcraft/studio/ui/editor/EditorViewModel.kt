@@ -1138,28 +1138,64 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /**
-     * Actual document page count only.
-     * Image count / images-per-row / layout must NEVER create extra pages.
-     * [imagesPerPage] kept for call-site compatibility; ignored for counting.
+     * How many images fit on one page — SAME math as PdfPagesPreview / PdfGenerator.
+     * Uses page aspect, margin, spacing, cell aspect, imagesPerRow.
      */
-    fun currentPageCountEstimate(imagesPerPage: Int): Int = documentPageCount()
-
-    fun documentPageCount(): Int {
-        val textPages = (textElements.maxOfOrNull { it.pageIndex } ?: -1) + 1
-        return maxOf(minPageCount, textPages, 1)
+    fun imagesPerPageCapacity(
+        imagesPerRowOverride: Int = imagesPerRow,
+        pageAspect: Float = pageAspectRatio,
+        spacingDp: Int = imageSpacingDp,
+        cellAspect: Float = imageCellAspectRatio,
+        marginDp: Int = pageMarginDp
+    ): Int {
+        val pageWidthDp = 360f
+        val aspect = pageAspect.coerceAtLeast(0.1f)
+        val pageHeightDp = pageWidthDp / aspect
+        val pad = marginDp.toFloat().coerceAtLeast(0f)
+        val gridW = (pageWidthDp - pad * 2f).coerceAtLeast(1f)
+        val gridH = (pageHeightDp - pad * 2f).coerceAtLeast(1f)
+        val spacing = spacingDp.toFloat().coerceAtLeast(0f)
+        val perRow = imagesPerRowOverride.coerceAtLeast(1)
+        val cellW = (gridW - spacing * (perRow - 1)) / perRow
+        val cellH = cellW / cellAspect.coerceAtLeast(0.1f)
+        val rows = if (cellH > 0f) {
+            (((gridH + spacing) / (cellH + spacing)).toInt()).coerceAtLeast(1)
+        } else {
+            1
+        }
+        return (perRow * rows).coerceAtLeast(1)
     }
 
-    /** Image index range belonging to a document page (even split across pages). */
-    fun imageRangeForPage(pageIndex: Int, pageCount: Int = documentPageCount()): IntRange {
+    /**
+     * Visible page count for pickers + tools:
+     * max( pages needed for images at real capacity, text pages, minPageCount ).
+     * Does NOT use the old wrong imagesPerRow*2 shortcut.
+     */
+    fun currentPageCountEstimate(imagesPerPage: Int = imagesPerPageCapacity()): Int {
+        val perPage = imagesPerPage.coerceAtLeast(1)
+        val imagePages = if (importedImages.isEmpty()) 0
+            else (importedImages.size + perPage - 1) / perPage
+        val textPages = (textElements.maxOfOrNull { it.pageIndex } ?: -1) + 1
+        return maxOf(imagePages, textPages, minPageCount, 1)
+    }
+
+    fun documentPageCount(): Int = currentPageCountEstimate(imagesPerPageCapacity())
+
+    /** Image indices on a layout page (fixed capacity slices, not even-split). */
+    fun imageRangeForPage(
+        pageIndex: Int,
+        pageCount: Int = documentPageCount(),
+        perPage: Int = imagesPerPageCapacity()
+    ): IntRange {
         val n = importedImages.size
-        val pc = pageCount.coerceAtLeast(1)
-        if (n == 0 || pageIndex < 0 || pageIndex >= pc) return IntRange.EMPTY
-        val base = n / pc
-        val rem = n % pc
-        val start = pageIndex * base + minOf(pageIndex, rem)
-        val size = base + if (pageIndex < rem) 1 else 0
-        if (size <= 0) return IntRange.EMPTY
-        return start until (start + size)
+        val capacity = perPage.coerceAtLeast(1)
+        if (n == 0 || pageIndex < 0 || pageIndex >= pageCount.coerceAtLeast(1)) {
+            return IntRange.EMPTY
+        }
+        val start = pageIndex * capacity
+        if (start >= n) return IntRange.EMPTY
+        val end = minOf(start + capacity, n)
+        return start until end
     }
 
     fun selectAllPagesForSize(pageCount: Int) {

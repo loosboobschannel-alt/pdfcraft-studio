@@ -77,13 +77,10 @@ object PdfGenerator {
         } else {
             1
         }
-        // Document pages only (minPageCount / text) — do NOT invent pages from image grid.
-        val textPages = (textElements.maxOfOrNull { it.pageIndex } ?: -1) + 1
-        val pageCount = maxOf(minPageCount, textPages, 1)
-        val imagePages: List<List<ImportedImage>> =
-            if (images.isEmpty()) {
-                List(pageCount) { emptyList() }
-            } else {
+        // Auto-flow images by how many fit per page (same as editor preview).
+        val imagesPerPage = (perRow * rowsPerPage).coerceAtLeast(1)
+        val imagePages = if (images.isEmpty()) emptyList() else images.chunked(imagesPerPage)
+ else {
                 val base = images.size / pageCount
                 val rem = images.size % pageCount
                 var offset = 0
@@ -130,7 +127,7 @@ object PdfGenerator {
                 val row = idx / perRow
                 val col = idx % perRow
                 // Safety: never draw a row that would go past the page bottom
-                if (false && row >= rowsPerPage) return@forEachIndexed // allow all images on document page
+                if (row >= rowsPerPage) return@forEachIndexed
 
                 val left = margin + col * (cellWidth + spacing)
                 val top = margin + row * (cellHeight + spacing)

@@ -247,23 +247,11 @@ fun PdfPagesPreview(
             1
         }
 
-        // Document pages only — image count / grid must NOT create extra pages.
-        val textPages = (textElements.maxOfOrNull { it.pageIndex } ?: -1) + 1
-        val pageCount = maxOf(minPageCount, textPages, 1)
-        val pages: List<List<com.pdfcraft.studio.ui.editor.ImportedImage>> =
-            if (images.isEmpty()) {
-                List(pageCount) { emptyList() }
-            } else {
-                val base = images.size / pageCount
-                val rem = images.size % pageCount
-                var offset = 0
-                List(pageCount) { idx ->
-                    val size = base + if (idx < rem) 1 else 0
-                    val slice = images.subList(offset, offset + size)
-                    offset += size
-                    slice
-                }
-            }
+        // Auto-flow: only as many images as fit on a page; overflow goes to next page.
+        val imagesPerPage = (imagesPerRow * rowsPerPage).coerceAtLeast(1)
+        val contentPages = if (images.isEmpty()) emptyList() else images.chunked(imagesPerPage)
+        val pages = if (contentPages.size >= minPageCount) contentPages
+            else contentPages + List(minPageCount - contentPages.size) { emptyList() }
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
