@@ -999,10 +999,10 @@ private fun NumberingColorRow(
             Box(
                 modifier = Modifier
                     .size(28.dp)
-                    .background(Color(col), CircleShape)
+                    .background(Color(col.toInt()), CircleShape)
                     .border(
                         width = if (isSel) 2.dp else 1.dp,
-                        color = if (isSel) Color(0xFF1976D2L) else Color.LightGray,
+                        color = if (isSel) Color(0xFF1976D2.toInt()) else Color.LightGray,
                         shape = CircleShape
                     )
                     .clickable { onSelect(col) }
@@ -1011,7 +1011,7 @@ private fun NumberingColorRow(
         if (colors.size <= 7) {
             Text(
                 text = stringResource(R.string.image_numbering_more),
-                color = Color(0xFF1976D2L),
+                color = Color(0xFF1976D2.toInt()),
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier
                     .clickable(onClick = onToggleMore)
@@ -1038,7 +1038,7 @@ private fun NumberingNudgeButton(label: String, onTick: () -> Unit) {
         style = MaterialTheme.typography.titleLarge,
         modifier = Modifier
             .padding(8.dp)
-            .background(Color(0xFFF0F0F0), RoundedCornerShape(8.dp))
+            .background(Color(0xFFF0F0F0.toInt()), RoundedCornerShape(8.dp))
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .pointerInput(Unit) {
                 detectTapGestures(
@@ -1395,7 +1395,7 @@ private fun PageSizePickerDialog(
                     Text(
                         text = confirmText.ifEmpty { stringResource(R.string.page_size_ok) },
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF1976D2)
+                        color = Color(0xFF1976D2.toInt())
                     )
                 }
             }

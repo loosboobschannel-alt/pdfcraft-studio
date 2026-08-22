@@ -711,13 +711,13 @@ private fun ImageCell(
 
             // Image numbering badge — position inside ContentScale.Fit bounds
             val label = image.numberLabel
-            if (label != null && image.bitmap != null) {
+            val badgeBmp = image.bitmap
+            if (label != null && badgeBmp != null) {
                 BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                     val cellW = maxWidth
                     val cellH = maxHeight
-                    val bmp = image.bitmap
-                    val bmpAspect = bmp.width.toFloat() / bmp.height.toFloat().coerceAtLeast(1f)
-                    val cellAspect = cellW / cellH
+                    val bmpAspect = badgeBmp.width.toFloat() / badgeBmp.height.toFloat().coerceAtLeast(1f)
+                    val cellAspect = (cellW / cellH)
                     val drawW: androidx.compose.ui.unit.Dp
                     val drawH: androidx.compose.ui.unit.Dp
                     if (bmpAspect > cellAspect) {
@@ -727,20 +727,19 @@ private fun ImageCell(
                         drawH = cellH
                         drawW = cellH * bmpAspect
                     }
-                    val originX = (cellW - drawW) / 2f
-                    val originY = (cellH - drawH) / 2f
+                    val originX = (cellW - drawW) / 2
+                    val originY = (cellH - drawH) / 2
                     val sizeFrac = image.numberSizeFrac.coerceIn(0.08f, 0.4f)
                     val iconD = minOf(drawW, drawH) * sizeFrac
-                    val half = iconD / 2f
+                    val half = iconD / 2
                     val xf = image.numberXFrac.coerceIn(0f, 1f)
                     val yf = image.numberYFrac.coerceIn(0f, 1f)
                     val cx = originX + drawW * xf
                     val cy = originY + drawH * yf
-                    // Keep fully inside fitted image
                     val clampedCx = cx.coerceIn(originX + half, originX + drawW - half)
                     val clampedCy = cy.coerceIn(originY + half, originY + drawH - half)
-                    val bg = Color(image.numberBgArgb)
-                    val fg = Color(image.numberFgArgb)
+                    val bg = Color(image.numberBgArgb.toInt())
+                    val fg = Color(image.numberFgArgb.toInt())
                     val a = image.numberAlpha.coerceIn(0.2f, 1f)
                     Box(
                         modifier = Modifier
