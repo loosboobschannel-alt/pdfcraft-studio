@@ -1080,11 +1080,13 @@ private const val SHAPE_MAX_RATIO = 2.0f
 
 private fun shapeRatioToPercent(ratio: Float): Int {
     val t = ((ratio - SHAPE_MIN_RATIO) / (SHAPE_MAX_RATIO - SHAPE_MIN_RATIO)).coerceIn(0f, 1f)
-    return (t * 100f).roundToInt()
+    // Map 0..1 -> 1..100 so the control shows 1..100
+    return (1 + t * 99f).roundToInt().coerceIn(1, 100)
 }
 
 private fun shapePercentToRatio(percent: Int): Float {
-    val t = percent.coerceIn(0, 100) / 100f
+    // UI range 1..100 (not 0..100)
+    val t = (percent.coerceIn(1, 100) - 1) / 99f
     return SHAPE_MIN_RATIO + t * (SHAPE_MAX_RATIO - SHAPE_MIN_RATIO)
 }
 
@@ -1122,7 +1124,7 @@ private fun ImageShapeSlider(
                     val filtered = input.filter(Char::isDigit).take(3)
                     percentText = filtered
                     val percent = filtered.toIntOrNull()
-                    if (percent != null && percent in 0..100) {
+                    if (percent != null && percent in 1..100) {
                         onAspectRatioChange(shapePercentToRatio(percent))
                     }
                 },

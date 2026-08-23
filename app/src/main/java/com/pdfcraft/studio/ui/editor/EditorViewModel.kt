@@ -530,7 +530,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun updateImageCellAspectRatio(ratio: Float) {
-        imageCellAspectRatio = ratio.coerceIn(0.4f, 2.5f)
+        imageCellAspectRatio = ratio.coerceIn(0.3f, 2.0f)
     }
 
     fun updateImageCornerRadiusPercent(percent: Int) {
