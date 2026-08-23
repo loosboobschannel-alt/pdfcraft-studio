@@ -807,10 +807,14 @@ private fun ImageCell(
                 }
             }
             } else {
-                CircularProgressIndicator(
-                    modifier = Modifier.height(16.dp),
-                    color = MaterialTheme.colorScheme.primary
-                )
+                // Real imports (have uri) show loading while bitmap decodes.
+                // Spacer slots used for "start on page N" stay empty — no endless spinner.
+                if (image.imageUri != null) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.height(16.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
             if (selected) {

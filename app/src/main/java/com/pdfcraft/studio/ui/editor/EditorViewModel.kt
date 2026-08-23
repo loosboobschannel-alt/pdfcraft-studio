@@ -597,6 +597,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun openImageMenu(id: String) {
+        // Ignore empty spacer slots (used only to offset import start page)
+        if (id.startsWith("spacer_")) return
         if (imagePositionMode != 0 && imagePositionSourceId != null) {
             val src = imagePositionSourceId!!
             if (id != src) {
