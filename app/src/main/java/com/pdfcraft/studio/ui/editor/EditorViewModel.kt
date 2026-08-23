@@ -227,7 +227,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var imageSpacingDp: Int by mutableStateOf(6)
         private set
 
-    var imageCellAspectRatio: Float by mutableStateOf(1.106f)
+    var imageCellAspectRatio: Float by mutableStateOf(1.192929f)
         private set
 
     var imageCornerRadiusPercent: Int by mutableStateOf(0)
