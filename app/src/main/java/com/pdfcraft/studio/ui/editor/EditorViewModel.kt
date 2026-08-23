@@ -521,6 +521,39 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         imageSizePreferences.saveOption(option)
     }
 
+
+    /** Page Size slider 1..100 → aspect (same as PageSizeSlider). */
+    private fun pageSizePercentToRatio(percent: Int): Float {
+        val t = percent.coerceIn(1, 100) / 100f
+        return 0.4f + t * (2.5f - 0.4f)
+    }
+
+    /** Set Image Length slider 1..100 → cell aspect (same as ImageShapeSlider). */
+    private fun imageLengthPercentToRatio(percent: Int): Float {
+        val minR = 0.3f
+        val maxR = 2.0f
+        val t = (percent.coerceIn(1, 100) - 1) / 99f
+        return minR + t * (maxR - minR)
+    }
+
+    /**
+     * Import Images ratio presets.
+     * Currently only "portrait" (9:16) applies settings; others reserved.
+     */
+    fun applyImportRatioPreset(key: String) {
+        when (key) {
+            "portrait" -> {
+                // Page Size → 8, Images Per Row → 4, Spacing → 7, Image Length → 15
+                pageAspectRatio = pageSizePercentToRatio(8)
+                pageAspectOverrides.clear()
+                imagesPerRow = 4
+                imageSpacingDp = 7
+                imageCellAspectRatio = imageLengthPercentToRatio(15)
+            }
+            // "landscape", "square" — later
+        }
+    }
+
     fun updateImagesPerRow(count: Int) {
         imagesPerRow = count.coerceIn(1, 20)
     }

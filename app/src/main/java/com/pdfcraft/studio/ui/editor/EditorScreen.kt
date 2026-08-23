@@ -487,7 +487,8 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                 },
                 pageCount = viewModel.documentPageCount(),
                 selectedStartPageIndex = importStartPageIndex,
-                onStartPageSelected = { importStartPageIndex = it }
+                onStartPageSelected = { importStartPageIndex = it },
+                onRatioSelected = { key -> viewModel.applyImportRatioPreset(key) }
             )
         }
 

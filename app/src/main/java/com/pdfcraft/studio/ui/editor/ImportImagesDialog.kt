@@ -59,7 +59,8 @@ fun ImportImagesDialog(
     onDismiss: () -> Unit,
     pageCount: Int = 1,
     selectedStartPageIndex: Int? = null,
-    onStartPageSelected: (Int?) -> Unit = {}
+    onStartPageSelected: (Int?) -> Unit = {},
+    onRatioSelected: (String) -> Unit = {}
 ) {
     var showPagePicker by remember { mutableStateOf(false) }
     // UI-only for now: portrait | landscape | square
@@ -189,7 +190,10 @@ fun ImportImagesDialog(
                         label = "9:16",
                         icon = "▯",
                         selected = selectedImportRatio == "portrait",
-                        onClick = { selectedImportRatio = "portrait" },
+                        onClick = {
+                            selectedImportRatio = "portrait"
+                            onRatioSelected("portrait")
+                        },
                         modifier = Modifier.weight(1f)
                     )
                     ImportRatioButton(
