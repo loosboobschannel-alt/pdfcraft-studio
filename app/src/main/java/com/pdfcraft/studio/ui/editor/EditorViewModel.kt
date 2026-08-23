@@ -548,12 +548,21 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 idx
             } else importedImages.size
         } else {
-            // Optional start page: insert at first slot of that page (layout order).
-            // Page 1 => index 0; Page 3 => 2 * imagesPerPage (clamped to list size).
+            // Start at first slot of selected page (0-based page index).
+            // Page 1 -> 0, Page 2 -> perPage, Page 3 -> 2*perPage, ...
+            // If the list is shorter, pad with empty spacer slots so layout
+            // actually places new images on that page (not earlier pages).
             val perPage = imagesPerPageCapacity().coerceAtLeast(1)
             val pageIdx = startPageIndex.coerceAtLeast(0)
+            val targetSlot = pageIdx * perPage
             minPageCount = maxOf(minPageCount, pageIdx + 1)
-            (pageIdx * perPage).coerceIn(0, importedImages.size)
+            while (importedImages.size < targetSlot) {
+                val spacerId = "spacer_" + System.nanoTime() + "_" + importedImages.size
+                importedImages.add(
+                    ImportedImage(id = spacerId, imageUri = null, bitmap = null)
+                )
+            }
+            targetSlot
         }
         pendingReplaceImageId = null
 
