@@ -42,7 +42,10 @@ data class ImportedImage(
     /** Icon digit color ARGB */
     val numberFgArgb: Long = 0xFFFFFFFFL,
     /** 0f=Thin .. 1f=Bold */
-    val numberWeight: Float = 0.85f
+    val numberWeight: Float = 0.85f,
+    /** Extra shift from grid cell, as fraction of page width/height (-1..1). */
+    val dragOffsetXFrac: Float = 0f,
+    val dragOffsetYFrac: Float = 0f
 )
 
 data class ColorRange(
@@ -566,6 +569,104 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 imageSpacingDp = 6
                 imageCellAspectRatio = imageLengthPercentToRatio(53)
             }
+        }
+    }
+
+
+    // ---- Drag Images (offset from grid cell; stays on same page) ----
+    var dragModeActive: Boolean by mutableStateOf(false)
+    var dragPageIndex: Int by mutableStateOf(0)
+    val dragSelectedIds: SnapshotStateList<String> = mutableStateListOf()
+
+    fun startDragImagesOnPage(pageIndex: Int) {
+        dragPageIndex = pageIndex.coerceAtLeast(0)
+        dragSelectedIds.clear()
+        dragModeActive = false
+    }
+
+    fun setDragImageSelection(ids: Collection<String>) {
+        dragSelectedIds.clear()
+        dragSelectedIds.addAll(ids)
+    }
+
+    fun enterDragMoveMode() {
+        if (dragSelectedIds.isEmpty()) return
+        dragModeActive = true
+    }
+
+    fun exitDragImages() {
+        dragModeActive = false
+        dragSelectedIds.clear()
+    }
+
+    /** Images currently laid out on [pageIndex] (skips spacers). */
+    fun imagesOnPage(pageIndex: Int): List<ImportedImage> {
+        val per = imagesPerPageCapacity().coerceAtLeast(1)
+        val start = pageIndex.coerceAtLeast(0) * per
+        val end = minOf(start + per, importedImages.size)
+        if (start >= importedImages.size) return emptyList()
+        return importedImages.subList(start, end).filter { !it.id.startsWith("spacer_") }
+    }
+
+    private fun groupDragCenter(): Pair<Float, Float> {
+        val imgs = dragSelectedIds.mapNotNull { id -> importedImages.firstOrNull { it.id == id } }
+        if (imgs.isEmpty()) return 0.5f to 0.5f
+        val cx = imgs.map { 0.5f + it.dragOffsetXFrac }.average().toFloat()
+        val cy = imgs.map { 0.5f + it.dragOffsetYFrac }.average().toFloat()
+        return cx to cy
+    }
+
+    fun dragGroupXPercent(): Int =
+        ((groupDragCenter().first).coerceIn(0f, 1f) * 100f).toInt().coerceIn(0, 100)
+
+    fun dragGroupYPercent(): Int =
+        ((groupDragCenter().second).coerceIn(0f, 1f) * 100f).toInt().coerceIn(0, 100)
+
+    fun nudgeDragImages(dx: Float, dy: Float) {
+        if (dragSelectedIds.isEmpty()) return
+        val step = 0.01f
+        val ids = dragSelectedIds.toList()
+        for (id in ids) {
+            val idx = importedImages.indexOfFirst { it.id == id }
+            if (idx < 0) continue
+            val img = importedImages[idx]
+            val nx = (img.dragOffsetXFrac + dx * step).coerceIn(-0.45f, 0.45f)
+            val ny = (img.dragOffsetYFrac + dy * step).coerceIn(-0.45f, 0.45f)
+            importedImages[idx] = img.copy(dragOffsetXFrac = nx, dragOffsetYFrac = ny)
+        }
+    }
+
+    fun centerDragImages() {
+        if (dragSelectedIds.isEmpty()) return
+        val (cx, cy) = groupDragCenter()
+        val dx = 0.5f - cx
+        val dy = 0.5f - cy
+        for (id in dragSelectedIds.toList()) {
+            val idx = importedImages.indexOfFirst { it.id == id }
+            if (idx < 0) continue
+            val img = importedImages[idx]
+            importedImages[idx] = img.copy(
+                dragOffsetXFrac = (img.dragOffsetXFrac + dx).coerceIn(-0.45f, 0.45f),
+                dragOffsetYFrac = (img.dragOffsetYFrac + dy).coerceIn(-0.45f, 0.45f)
+            )
+        }
+    }
+
+    fun setDragGroupPositionPercent(xPercent: Int?, yPercent: Int?) {
+        if (dragSelectedIds.isEmpty()) return
+        val (cx, cy) = groupDragCenter()
+        val tx = if (xPercent != null) xPercent.coerceIn(0, 100) / 100f else cx
+        val ty = if (yPercent != null) yPercent.coerceIn(0, 100) / 100f else cy
+        val dx = tx - cx
+        val dy = ty - cy
+        for (id in dragSelectedIds.toList()) {
+            val idx = importedImages.indexOfFirst { it.id == id }
+            if (idx < 0) continue
+            val img = importedImages[idx]
+            importedImages[idx] = img.copy(
+                dragOffsetXFrac = (img.dragOffsetXFrac + dx).coerceIn(-0.45f, 0.45f),
+                dragOffsetYFrac = (img.dragOffsetYFrac + dy).coerceIn(-0.45f, 0.45f)
+            )
         }
     }
 

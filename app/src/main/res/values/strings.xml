@@ -259,4 +259,15 @@
     <string name="import_ratio_169">16:9</string>
     <string name="import_ratio_11">1:1</string>
     <string name="import_ratio_manual_hint">If you do not want to use the presets above, you can change Page Size, Images Per Row, Image Spacing, and Set Image Length manually from the tools menus.</string>
+    <string name="image_drag_tool">7. Drag Images</string>
+    <string name="image_drag_select_page_instruction">Select the page that contains the images you want to reposition.</string>
+    <string name="image_drag_select_images_instruction">Select one or more images to move on this page.</string>
+    <string name="image_drag_select_all">Select All</string>
+    <string name="image_drag_next">Next</string>
+    <string name="image_drag_image_item">Image %1$d</string>
+    <string name="image_drag_position">Position</string>
+    <string name="image_drag_x">X</string>
+    <string name="image_drag_y">Y</string>
+    <string name="image_drag_center">Center</string>
+    <string name="image_drag_done">Done</string>
 </resources>

@@ -142,6 +142,15 @@ fun EditorToolbar(
     numberingFgArgb: Long = 0xFFFFFFFFL,
     onNumberingFgChange: (Long) -> Unit = {},
     onNumberingDone: () -> Unit = {},
+    dragModeActive: Boolean = false,
+    dragXPercent: Int = 50,
+    dragYPercent: Int = 50,
+    onDragXPercentChange: (Int) -> Unit = {},
+    onDragYPercentChange: (Int) -> Unit = {},
+    onDragNudge: (Float, Float) -> Unit = { _, _ -> },
+    onDragCenter: () -> Unit = {},
+    onDragDone: () -> Unit = {},
+    onDragImagesMenuClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var resizeModeActive by remember { mutableStateOf(false) }
@@ -151,6 +160,10 @@ fun EditorToolbar(
     var pageSizeModeActive by remember { mutableStateOf(false) }
     var showPageSizePicker by remember { mutableStateOf(false) }
     var showImageNumberingPicker by remember { mutableStateOf(false) }
+    var showDragPagePicker by remember { mutableStateOf(false) }
+    var showDragImagePicker by remember { mutableStateOf(false) }
+    var dragPickerPage by remember { mutableStateOf(0) }
+    var dragPickerSelected by remember { mutableStateOf(setOf<String>()) }
     var showPageBgColorPicker by remember { mutableStateOf(false) }
     var showPageDeletePicker by remember { mutableStateOf(false) }
     var showPageDuplicatePicker by remember { mutableStateOf(false) }
@@ -171,6 +184,15 @@ fun EditorToolbar(
                 imagesPerRow = imagesPerRow,
                 onImagesPerRowChange = onImagesPerRowSelected,
                 onDone = { resizeModeActive = false }
+            )
+            dragModeActive -> ImageDragPanel(
+                xPercent = dragXPercent,
+                yPercent = dragYPercent,
+                onXPercentChange = onDragXPercentChange,
+                onYPercentChange = onDragYPercentChange,
+                onNudge = onDragNudge,
+                onCenter = onDragCenter,
+                onDone = onDragDone
             )
             numberingEditMode -> ImageNumberingPanel(
                 alpha = numberingAlpha,
@@ -272,6 +294,7 @@ fun EditorToolbar(
                     )
                     ImageToolsMenu(
                         onImportImagesClick = onImportImagesClick,
+                        onDragImagesClick = onDragImagesMenuClick,
                         onResizeImagesClick = { resizeModeActive = true },
                         onAdjustSpacingClick = { spacingModeActive = true },
                         onAdjustImageShapeClick = { shapeModeActive = true },
@@ -279,6 +302,9 @@ fun EditorToolbar(
                         onImageNumberingClick = {
                             onClearPageNumberingSelection()
                             showImageNumberingPicker = true
+                        },
+                        onDragImagesClick = {
+                            showDragPagePicker = true
                         }
                     )
                     TextToolsMenu(
@@ -531,6 +557,7 @@ private fun ToolMenuItem(
 @Composable
 private fun ImageToolsMenu(
     onImportImagesClick: () -> Unit,
+    onDragImagesClick: () -> Unit = {},
     onResizeImagesClick: () -> Unit,
     onAdjustSpacingClick: () -> Unit,
     onAdjustImageShapeClick: () -> Unit,
@@ -912,6 +939,74 @@ private fun ImagesPerRowSlider(
 
 
 
+
+
+@Composable
+private fun ImageDragPanel(
+    xPercent: Int,
+    yPercent: Int,
+    onXPercentChange: (Int) -> Unit,
+    onYPercentChange: (Int) -> Unit,
+    onNudge: (Float, Float) -> Unit,
+    onCenter: () -> Unit,
+    onDone: () -> Unit
+) {
+    var xText by remember(xPercent) { mutableStateOf(xPercent.toString()) }
+    var yText by remember(yPercent) { mutableStateOf(yPercent.toString()) }
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        SliderToolHeader(title = stringResource(R.string.image_drag_tool), onDone = onDone)
+        Text(
+            text = stringResource(R.string.image_drag_position),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.Black
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text("X:", color = Color.Black)
+            OutlinedTextField(
+                value = xText,
+                onValueChange = { input ->
+                    val f = input.filter { it.isDigit() }.take(3)
+                    xText = f
+                    f.toIntOrNull()?.let { if (it in 0..100) onXPercentChange(it) }
+                },
+                modifier = Modifier.width(72.dp),
+                singleLine = true,
+                suffix = { Text("%") }
+            )
+            Text("Y:", color = Color.Black)
+            OutlinedTextField(
+                value = yText,
+                onValueChange = { input ->
+                    val f = input.filter { it.isDigit() }.take(3)
+                    yText = f
+                    f.toIntOrNull()?.let { if (it in 0..100) onYPercentChange(it) }
+                },
+                modifier = Modifier.width(72.dp),
+                singleLine = true,
+                suffix = { Text("%") }
+            )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            NumberingNudgeButton(label = "↑", onTick = { onNudge(0f, -1f) })
+            Row(horizontalArrangement = Arrangement.Center) {
+                NumberingNudgeButton(label = "←", onTick = { onNudge(-1f, 0f) })
+                NumberingNudgeButton(label = stringResource(R.string.image_drag_center), onTick = onCenter)
+                NumberingNudgeButton(label = "→", onTick = { onNudge(1f, 0f) })
+            }
+            NumberingNudgeButton(label = "↓", onTick = { onNudge(0f, 1f) })
+        }
+    }
+}
 
 @Composable
 private fun ImageNumberingPanel(

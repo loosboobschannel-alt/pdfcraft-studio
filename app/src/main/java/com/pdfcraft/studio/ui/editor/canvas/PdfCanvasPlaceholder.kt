@@ -690,6 +690,10 @@ private fun ImageCell(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+            .offset(
+                x = (image.dragOffsetXFrac * 120f).dp,
+                y = (image.dragOffsetYFrac * 200f).dp
+            )
                 .clip(RoundedCornerShape(percent = cornerRadiusPercent))
                 
                 .then(

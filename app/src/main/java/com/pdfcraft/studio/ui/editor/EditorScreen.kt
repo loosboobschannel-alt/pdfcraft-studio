@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -48,6 +49,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -68,6 +71,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -208,6 +212,10 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showImportSettings by remember { mutableStateOf(false) }
+    var showDragPagePicker by remember { mutableStateOf(false) }
+    var showDragImagePicker by remember { mutableStateOf(false) }
+    var dragPageForPicker by remember { mutableStateOf(0) }
+    var dragImagePickSelected by remember { mutableStateOf(setOf<String>()) }
     var importStartPageIndex by remember { mutableStateOf<Int?>(null) }
     var showTextColorPicker by remember { mutableStateOf(false) }
     var showTextBgColorPicker by remember { mutableStateOf(false) }
@@ -470,6 +478,115 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
             )
         }
 
+        
+        // ---- Drag Images: Step 1 page picker ----
+        if (showDragPagePicker) {
+            val pageCount = viewModel.documentPageCount().coerceAtLeast(1)
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showDragPagePicker = false },
+                title = { Text(stringResource(R.string.image_drag_tool)) },
+                text = {
+                    Column {
+                        Text(
+                            stringResource(R.string.image_drag_select_page_instruction),
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Column(Modifier.verticalScroll(rememberScrollState()).heightIn(max = 280.dp)) {
+                            for (i in 0 until pageCount) {
+                                Row(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable { dragPageForPicker = i }
+                                        .padding(vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = dragPageForPicker == i,
+                                        onClick = { dragPageForPicker = i }
+                                    )
+                                    Text(stringResource(R.string.import_page_item, i + 1))
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.startDragImagesOnPage(dragPageForPicker)
+                        dragImagePickSelected = emptySet()
+                        showDragPagePicker = false
+                        showDragImagePicker = true
+                    }) { Text(stringResource(R.string.image_drag_next)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDragPagePicker = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
+
+        // ---- Drag Images: Step 2 image picker ----
+        if (showDragImagePicker) {
+            val pageImgs = viewModel.imagesOnPage(dragPageForPicker)
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showDragImagePicker = false },
+                title = { Text(stringResource(R.string.image_drag_tool)) },
+                text = {
+                    Column {
+                        Text(
+                            stringResource(R.string.image_drag_select_images_instruction),
+                            fontWeight = FontWeight.Bold
+                        )
+                        TextButton(onClick = {
+                            dragImagePickSelected = pageImgs.map { it.id }.toSet()
+                        }) { Text(stringResource(R.string.image_drag_select_all)) }
+                        Column(Modifier.verticalScroll(rememberScrollState()).heightIn(max = 280.dp)) {
+                            pageImgs.forEachIndexed { idx, img ->
+                                val checked = img.id in dragImagePickSelected
+                                Row(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            dragImagePickSelected =
+                                                if (checked) dragImagePickSelected - img.id
+                                                else dragImagePickSelected + img.id
+                                        }
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(
+                                        checked = checked,
+                                        onCheckedChange = { on ->
+                                            dragImagePickSelected =
+                                                if (on) dragImagePickSelected + img.id
+                                                else dragImagePickSelected - img.id
+                                        }
+                                    )
+                                    Text(stringResource(R.string.image_drag_image_item, idx + 1))
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        if (dragImagePickSelected.isNotEmpty()) {
+                            viewModel.setDragImageSelection(dragImagePickSelected)
+                            viewModel.enterDragMoveMode()
+                            showDragImagePicker = false
+                        }
+                    }) { Text(stringResource(R.string.image_drag_next)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDragImagePicker = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
+        }
+
         if (showImportSettings) {
             ImportImagesDialog(
                 selectedOption = viewModel.selectedImageSizeOption,
@@ -608,6 +725,15 @@ Column(
                     viewModel.numberingFgArgb = col
                     viewModel.updateNumberingLiveStyle()
                 },
+                dragModeActive = viewModel.dragModeActive,
+                dragXPercent = viewModel.dragGroupXPercent(),
+                dragYPercent = viewModel.dragGroupYPercent(),
+                onDragXPercentChange = { viewModel.setDragGroupPositionPercent(it, null) },
+                onDragYPercentChange = { viewModel.setDragGroupPositionPercent(null, it) },
+                onDragNudge = viewModel::nudgeDragImages,
+                onDragCenter = viewModel::centerDragImages,
+                onDragDone = viewModel::exitDragImages,
+                onDragImagesMenuClick = { showDragPagePicker = true },
                 onNumberingDone = { viewModel.finishNumberingEdit() },
 
                 onImagesPerRowSelected =
