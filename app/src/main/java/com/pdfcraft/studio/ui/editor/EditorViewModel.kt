@@ -221,20 +221,20 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var selectedImageSizeOption: ImageSizeOption by mutableStateOf(imageSizePreferences.getSavedOption())
         private set
 
-    var imagesPerRow: Int by mutableStateOf(3)
+    var imagesPerRow: Int by mutableStateOf(4)
         private set
 
     var imageSpacingDp: Int by mutableStateOf(6)
         private set
 
-    var imageCellAspectRatio: Float by mutableStateOf(0.526f)
+    var imageCellAspectRatio: Float by mutableStateOf(1.106f)
         private set
 
     var imageCornerRadiusPercent: Int by mutableStateOf(0)
         private set
 
     // ---- Page Tools state ----
-    var pageAspectRatio: Float by mutableStateOf(9f / 16f)
+    var pageAspectRatio: Float by mutableStateOf(0.673f)
     /** Per-page aspect overrides; missing key uses [pageAspectRatio]. */
     val pageAspectOverrides = mutableStateMapOf<Int, Float>()
     /** Page indices selected in Set Page Size tool. */
@@ -558,7 +558,14 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 imageSpacingDp = 6
                 imageCellAspectRatio = imageLengthPercentToRatio(84)
             }
-            // "square" — later
+            "square" -> {
+                // 1:1 — Page Size 13, Per Row 4, Spacing 6, Image Length 48
+                pageAspectRatio = pageSizePercentToRatio(13)
+                pageAspectOverrides.clear()
+                imagesPerRow = 4
+                imageSpacingDp = 6
+                imageCellAspectRatio = imageLengthPercentToRatio(48)
+            }
         }
     }
 

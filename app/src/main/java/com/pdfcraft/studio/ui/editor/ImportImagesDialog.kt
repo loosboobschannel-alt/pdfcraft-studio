@@ -64,7 +64,7 @@ fun ImportImagesDialog(
 ) {
     var showPagePicker by remember { mutableStateOf(false) }
     // UI-only for now: portrait | landscape | square
-    var selectedImportRatio by remember { mutableStateOf("portrait") }
+    var selectedImportRatio by remember { mutableStateOf<String?>(null) }
     var draftPageIndex by remember(selectedStartPageIndex) {
         mutableStateOf(selectedStartPageIndex ?: 0)
     }
@@ -210,10 +210,21 @@ fun ImportImagesDialog(
                         label = "1:1",
                         icon = "□",
                         selected = selectedImportRatio == "square",
-                        onClick = { selectedImportRatio = "square" },
+                        onClick = {
+                            selectedImportRatio = "square"
+                            onRatioSelected("square")
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = stringResource(R.string.import_ratio_manual_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.DarkGray
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 

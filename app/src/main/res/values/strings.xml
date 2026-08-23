@@ -258,4 +258,5 @@
     <string name="import_ratio_916">9:16</string>
     <string name="import_ratio_169">16:9</string>
     <string name="import_ratio_11">1:1</string>
+    <string name="import_ratio_manual_hint">If you do not want to use the presets above, you can change Page Size, Images Per Row, Image Spacing, and Set Image Length manually from the tools menus.</string>
 </resources>
