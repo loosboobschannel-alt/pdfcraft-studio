@@ -200,7 +200,10 @@ fun ImportImagesDialog(
                         label = "16:9",
                         icon = "▭",
                         selected = selectedImportRatio == "landscape",
-                        onClick = { selectedImportRatio = "landscape" },
+                        onClick = {
+                            selectedImportRatio = "landscape"
+                            onRatioSelected("landscape")
+                        },
                         modifier = Modifier.weight(1f)
                     )
                     ImportRatioButton(

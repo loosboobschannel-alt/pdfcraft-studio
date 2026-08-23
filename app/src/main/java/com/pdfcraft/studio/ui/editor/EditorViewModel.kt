@@ -543,14 +543,22 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun applyImportRatioPreset(key: String) {
         when (key) {
             "portrait" -> {
-                // Page Size → 8, Images Per Row → 4, Spacing → 7, Image Length → 15
+                // 9:16 — Page Size 8, Per Row 4, Spacing 7, Image Length 15
                 pageAspectRatio = pageSizePercentToRatio(8)
                 pageAspectOverrides.clear()
                 imagesPerRow = 4
                 imageSpacingDp = 7
                 imageCellAspectRatio = imageLengthPercentToRatio(15)
             }
-            // "landscape", "square" — later
+            "landscape" -> {
+                // 16:9 — Page Size 8, Per Row 3, Spacing 6, Image Length 84
+                pageAspectRatio = pageSizePercentToRatio(8)
+                pageAspectOverrides.clear()
+                imagesPerRow = 3
+                imageSpacingDp = 6
+                imageCellAspectRatio = imageLengthPercentToRatio(84)
+            }
+            // "square" — later
         }
     }
 
