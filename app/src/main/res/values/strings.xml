@@ -250,4 +250,9 @@
     <string name="image_numbering_change_fg">Change Icon Text Color ▼</string>
     <string name="image_numbering_thickness">Text Thickness</string>
     <string name="image_numbering_style_next">Next</string>
+    <string name="import_select_page">Select Page</string>
+    <string name="import_page_selected">Page %1$d Selected</string>
+    <string name="import_select_page_instruction">Select the page where you want the imported images to start.</string>
+    <string name="import_select_page_next">Next</string>
+    <string name="import_page_item">Page %1$d</string>
 </resources>

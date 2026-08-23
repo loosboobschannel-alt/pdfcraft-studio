@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -23,10 +21,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -55,8 +56,16 @@ fun ImportImagesDialog(
     selectedOption: ImageSizeOption,
     onOptionSelected: (ImageSizeOption) -> Unit,
     onImportClick: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    pageCount: Int = 1,
+    selectedStartPageIndex: Int? = null,
+    onStartPageSelected: (Int?) -> Unit = {}
 ) {
+    var showPagePicker by remember { mutableStateOf(false) }
+    var draftPageIndex by remember(selectedStartPageIndex) {
+        mutableStateOf(selectedStartPageIndex ?: 0)
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -108,7 +117,6 @@ fun ImportImagesDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Original — slightly more prominent
                 SizeSelectCard(
                     label = stringResource(R.string.original_image_size_label),
                     selected = selectedOption is ImageSizeOption.Default,
@@ -119,7 +127,6 @@ fun ImportImagesDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Preset KB pills in a compact flow grid
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -138,13 +145,38 @@ fun ImportImagesDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Custom card + compact input when selected
                 CustomSizeCard(
                     selectedOption = selectedOption,
                     onOptionSelected = onOptionSelected
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Select Page (optional) — between size options and Import
+                val pageBtnLabel = if (selectedStartPageIndex != null) {
+                    stringResource(R.string.import_page_selected, selectedStartPageIndex + 1)
+                } else {
+                    stringResource(R.string.import_select_page)
+                }
+                OutlinedButton(
+                    onClick = {
+                        draftPageIndex = selectedStartPageIndex ?: 0
+                        showPagePicker = true
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = pageBtnLabel,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = AccentBlue
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
                     onClick = onImportClick,
@@ -165,6 +197,86 @@ fun ImportImagesDialog(
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
+    }
+
+    if (showPagePicker) {
+        ImportStartPagePickerDialog(
+            pageCount = pageCount.coerceAtLeast(1),
+            selectedIndex = draftPageIndex.coerceIn(0, (pageCount.coerceAtLeast(1) - 1)),
+            onSelect = { draftPageIndex = it },
+            onNext = {
+                onStartPageSelected(draftPageIndex)
+                showPagePicker = false
+            },
+            onDismiss = { showPagePicker = false }
+        )
+    }
+}
+
+@Composable
+private fun ImportStartPagePickerDialog(
+    pageCount: Int,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    onNext: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White, RoundedCornerShape(12.dp))
+                .padding(16.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.import_select_page_instruction),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                for (i in 0 until pageCount) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(i) }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = i == selectedIndex,
+                            onClick = { onSelect(i) }
+                        )
+                        Text(
+                            text = stringResource(R.string.import_page_item, i + 1),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Black
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                OutlinedButton(onClick = onNext) {
+                    Text(
+                        text = stringResource(R.string.import_select_page_next),
+                        color = AccentBlue
+                    )
+                }
             }
         }
     }
@@ -235,7 +347,6 @@ private fun CustomSizeCard(
                 if (kb != null && kb > 0) {
                     onOptionSelected(ImageSizeOption.Custom(kb))
                 } else {
-                    // Select custom mode; user can type next
                     onOptionSelected(ImageSizeOption.Custom(text.toIntOrNull() ?: 100))
                 }
             },

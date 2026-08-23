@@ -208,6 +208,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
     var showImportSettings by remember { mutableStateOf(false) }
+    var importStartPageIndex by remember { mutableStateOf<Int?>(null) }
     var showTextColorPicker by remember { mutableStateOf(false) }
     var showTextBgColorPicker by remember { mutableStateOf(false) }
     var showTextShadowPanel by remember { mutableStateOf(false) }
@@ -233,7 +234,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                 }
             } else {
                 val replaceId = viewModel.pendingReplaceImageId
-                viewModel.importImages(uris, replaceId = replaceId)
+                viewModel.importImages(uris, replaceId = replaceId, startPageIndex = importStartPageIndex ?: 0)
             }
         }
 
@@ -481,7 +482,12 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                         )
                     )
                 },
-                onDismiss = { showImportSettings = false }
+                onDismiss = {
+                    showImportSettings = false
+                },
+                pageCount = viewModel.documentPageCount(),
+                selectedStartPageIndex = importStartPageIndex,
+                onStartPageSelected = { importStartPageIndex = it }
             )
         }
 
@@ -549,6 +555,7 @@ Column(
         ) {
             EditorToolbar(
                 onImportImagesClick = {
+                    importStartPageIndex = null
                     showImportSettings = true
                 },
                 imagesPerRow =

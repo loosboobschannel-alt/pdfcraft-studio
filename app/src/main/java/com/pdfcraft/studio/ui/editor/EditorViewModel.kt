@@ -537,7 +537,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         imageCornerRadiusPercent = percent.coerceIn(0, 100)
     }
 
-    fun importImages(uris: List<Uri>, replaceId: String? = null) {
+    fun importImages(uris: List<Uri>, replaceId: String? = null, startPageIndex: Int = 0) {
         val targetBytes = selectedImageSizeOption.targetBytes
         isImporting = true
 
@@ -548,7 +548,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 idx
             } else importedImages.size
         } else {
-            importedImages.size
+            // Optional start page: insert at first slot of that page (layout order).
+            // Page 1 => index 0; Page 3 => 2 * imagesPerPage (clamped to list size).
+            val perPage = imagesPerPageCapacity().coerceAtLeast(1)
+            val pageIdx = startPageIndex.coerceAtLeast(0)
+            minPageCount = maxOf(minPageCount, pageIdx + 1)
+            (pageIdx * perPage).coerceIn(0, importedImages.size)
         }
         pendingReplaceImageId = null
 
