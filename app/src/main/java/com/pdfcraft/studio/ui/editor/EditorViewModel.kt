@@ -551,20 +551,20 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 imageCellAspectRatio = imageLengthPercentToRatio(15)
             }
             "landscape" -> {
-                // 16:9 — Page Size 8, Per Row 3, Spacing 6, Image Length 84
-                pageAspectRatio = pageSizePercentToRatio(8)
+                // 16:9 — Page Size 11, Per Row 3, Spacing 6, Image Length 84
+                pageAspectRatio = pageSizePercentToRatio(11)
                 pageAspectOverrides.clear()
                 imagesPerRow = 3
                 imageSpacingDp = 6
                 imageCellAspectRatio = imageLengthPercentToRatio(84)
             }
             "square" -> {
-                // 1:1 — Page Size 13, Per Row 4, Spacing 6, Image Length 48
+                // 1:1 — Page Size 13, Per Row 4, Spacing 6, Image Length 53
                 pageAspectRatio = pageSizePercentToRatio(13)
                 pageAspectOverrides.clear()
                 imagesPerRow = 4
                 imageSpacingDp = 6
-                imageCellAspectRatio = imageLengthPercentToRatio(48)
+                imageCellAspectRatio = imageLengthPercentToRatio(53)
             }
         }
     }
