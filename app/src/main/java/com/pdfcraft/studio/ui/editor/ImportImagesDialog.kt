@@ -62,6 +62,8 @@ fun ImportImagesDialog(
     onStartPageSelected: (Int?) -> Unit = {}
 ) {
     var showPagePicker by remember { mutableStateOf(false) }
+    // UI-only for now: portrait | landscape | square
+    var selectedImportRatio by remember { mutableStateOf("portrait") }
     var draftPageIndex by remember(selectedStartPageIndex) {
         mutableStateOf(selectedStartPageIndex ?: 0)
     }
@@ -173,6 +175,36 @@ fun ImportImagesDialog(
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = AccentBlue
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Ratio buttons — UI + selection only (behavior later)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    ImportRatioButton(
+                        label = "9:16",
+                        icon = "▯",
+                        selected = selectedImportRatio == "portrait",
+                        onClick = { selectedImportRatio = "portrait" },
+                        modifier = Modifier.weight(1f)
+                    )
+                    ImportRatioButton(
+                        label = "16:9",
+                        icon = "▭",
+                        selected = selectedImportRatio == "landscape",
+                        onClick = { selectedImportRatio = "landscape" },
+                        modifier = Modifier.weight(1f)
+                    )
+                    ImportRatioButton(
+                        label = "1:1",
+                        icon = "□",
+                        selected = selectedImportRatio == "square",
+                        onClick = { selectedImportRatio = "square" },
+                        modifier = Modifier.weight(1f)
                     )
                 }
 
@@ -377,6 +409,49 @@ private fun CustomSizeCard(
                     unfocusedBorderColor = CardBorder,
                     focusedLabelColor = AccentBlue
                 )
+            )
+        }
+    }
+}
+
+@Composable
+private fun ImportRatioButton(
+    label: String,
+    icon: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bg = if (selected) SelectedBg else Color.White
+    val borderColor = if (selected) AccentBlue else CardBorder
+    val borderWidth = if (selected) 2.dp else 1.dp
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.height(48.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = bg,
+            contentColor = if (selected) AccentBlue else Color.Black
+        ),
+        border = androidx.compose.foundation.BorderStroke(borderWidth, borderColor)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = AccentBlue,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = icon,
+                style = MaterialTheme.typography.titleSmall,
+                color = if (selected) AccentBlue else Color.Black
             )
         }
     }
