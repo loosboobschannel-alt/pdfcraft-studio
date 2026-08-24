@@ -4,15 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,7 +26,6 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -37,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -47,10 +46,14 @@ import com.pdfcraft.studio.R
 import com.pdfcraft.studio.core.image.ImageSizeOption
 
 private val AccentBlue = Color(0xFF1976D2)
-private val CardBorder = Color(0xFFBDBDBD)
+private val CardBorder = Color(0xFFE0E0E0)
 private val SelectedBg = Color(0xFFE3F2FD)
+private val PageBg = Color(0xFFFAFAFA)
+private val ShapeLg = RoundedCornerShape(14.dp)
+private val ShapeMd = RoundedCornerShape(12.dp)
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ImportImagesDialog(
     selectedOption: ImageSizeOption,
@@ -63,7 +66,6 @@ fun ImportImagesDialog(
     onRatioSelected: (String) -> Unit = {}
 ) {
     var showPagePicker by remember { mutableStateOf(false) }
-    // UI-only for now: portrait | landscape | square
     var selectedImportRatio by remember { mutableStateOf<String?>(null) }
     var draftPageIndex by remember(selectedStartPageIndex) {
         mutableStateOf(selectedStartPageIndex ?: 0)
@@ -74,13 +76,15 @@ fun ImportImagesDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Scaffold(
+            containerColor = Color.White,
             topBar = {
                 TopAppBar(
                     title = {
                         Text(
                             text = stringResource(R.string.import_images),
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.Black
+                            color = Color.Black,
+                            style = MaterialTheme.typography.titleLarge
                         )
                     },
                     navigationIcon = {
@@ -89,21 +93,47 @@ fun ImportImagesDialog(
                             style = MaterialTheme.typography.titleLarge,
                             color = Color.Black,
                             modifier = Modifier
-                                .padding(horizontal = 16.dp)
+                                .padding(start = 8.dp, end = 8.dp)
                                 .clickable(onClick = onDismiss)
+                                .padding(8.dp)
                         )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
                 )
             },
-            containerColor = Color.White
+            bottomBar = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White)
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                ) {
+                    Button(
+                        onClick = onImportClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = ShapeLg,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = AccentBlue,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text(
+                            text = stringResource(R.string.import_images_action),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
         ) { innerPadding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = stringResource(R.string.image_import_instructions),
@@ -115,10 +145,12 @@ fun ImportImagesDialog(
                 Text(
                     text = stringResource(R.string.image_import_instructions_secondary),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.DarkGray
+                    color = Color(0xFF616161)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(18.dp))
+                SectionLabel(stringResource(R.string.image_import_section_size))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 SizeSelectCard(
                     label = stringResource(R.string.original_image_size_label),
@@ -128,34 +160,39 @@ fun ImportImagesDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ImageSizeOption.presetsKb.forEach { kb ->
-                        val selected = selectedOption is ImageSizeOption.Preset &&
-                            selectedOption.kb == kb
-                        SizeSelectCard(
-                            label = stringResource(R.string.image_size_kb_value, kb),
-                            selected = selected,
-                            onClick = { onOptionSelected(ImageSizeOption.Preset(kb)) }
-                        )
+                ImageSizeOption.presetsKb.chunked(5).forEach { row ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        row.forEach { kb ->
+                            val selected = selectedOption is ImageSizeOption.Preset &&
+                                selectedOption.kb == kb
+                            SizeSelectCard(
+                                label = stringResource(R.string.image_size_kb_value, kb),
+                                selected = selected,
+                                onClick = { onOptionSelected(ImageSizeOption.Preset(kb)) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        repeat(5 - row.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
 
                 CustomSizeCard(
                     selectedOption = selectedOption,
                     onOptionSelected = onOptionSelected
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(18.dp))
+                SectionLabel(stringResource(R.string.image_import_section_page))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // Select Page (optional) — between size options and Import
                 val pageBtnLabel = if (selectedStartPageIndex != null) {
                     stringResource(R.string.import_page_selected, selectedStartPageIndex + 1)
                 } else {
@@ -169,7 +206,12 @@ fun ImportImagesDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = ShapeMd,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color.White,
+                        contentColor = AccentBlue
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, AccentBlue)
                 ) {
                     Text(
                         text = pageBtnLabel,
@@ -179,9 +221,10 @@ fun ImportImagesDialog(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(18.dp))
+                SectionLabel(stringResource(R.string.image_import_section_layout))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // Ratio buttons — UI + selection only (behavior later)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -218,35 +261,13 @@ fun ImportImagesDialog(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = stringResource(R.string.import_ratio_manual_hint),
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.DarkGray
+                    color = Color(0xFF757575)
                 )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = onImportClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AccentBlue,
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text(
-                        text = stringResource(R.string.import_images),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
@@ -265,6 +286,17 @@ fun ImportImagesDialog(
     }
 }
 
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = Color(0xFF9E9E9E)
+    )
+}
+
 @Composable
 private fun ImportStartPagePickerDialog(
     pageCount: Int,
@@ -280,7 +312,7 @@ private fun ImportStartPagePickerDialog(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(12.dp))
+                .background(Color.White, ShapeLg)
                 .padding(16.dp)
         ) {
             Text(
@@ -300,6 +332,7 @@ private fun ImportStartPagePickerDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clip(ShapeMd)
                             .clickable { onSelect(i) }
                             .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -321,7 +354,7 @@ private fun ImportStartPagePickerDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                OutlinedButton(onClick = onNext) {
+                OutlinedButton(onClick = onNext, shape = ShapeMd) {
                     Text(
                         text = stringResource(R.string.import_select_page_next),
                         color = AccentBlue
@@ -342,27 +375,28 @@ private fun SizeSelectCard(
 ) {
     val bg = when {
         selected -> SelectedBg
-        prominent -> Color(0xFFF5F5F5)
+        prominent -> PageBg
         else -> Color.White
     }
     val borderColor = if (selected) AccentBlue else CardBorder
     val borderWidth = if (selected) 2.dp else 1.dp
-
     Row(
         modifier = modifier
-            .background(bg, RoundedCornerShape(10.dp))
-            .border(borderWidth, borderColor, RoundedCornerShape(10.dp))
+            .heightIn(min = if (prominent) 48.dp else 42.dp)
+            .clip(ShapeMd)
+            .background(bg, ShapeMd)
+            .border(borderWidth, borderColor, ShapeMd)
             .clickable(onClick = onClick)
             .padding(
-                horizontal = if (prominent) 14.dp else 12.dp,
-                vertical = if (prominent) 12.dp else 10.dp
+                horizontal = if (prominent) 14.dp else 6.dp,
+                vertical = if (prominent) 12.dp else 8.dp
             ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
         if (selected) {
             Text(
-                text = "\u2713 ",
+                text = "\u2713  ",
                 color = AccentBlue,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold
@@ -372,8 +406,9 @@ private fun SizeSelectCard(
             text = label,
             color = if (selected) AccentBlue else Color.Black,
             style = if (prominent) MaterialTheme.typography.titleSmall
-            else MaterialTheme.typography.bodyMedium,
-            fontWeight = if (selected || prominent) FontWeight.SemiBold else FontWeight.Normal
+            else MaterialTheme.typography.labelMedium,
+            fontWeight = if (selected || prominent) FontWeight.SemiBold else FontWeight.Medium,
+            maxLines = 1
         )
     }
 }
@@ -387,22 +422,40 @@ private fun CustomSizeCard(
         mutableStateOf((selectedOption as? ImageSizeOption.Custom)?.kb?.toString() ?: "")
     }
     val selected = selectedOption is ImageSizeOption.Custom
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        SizeSelectCard(
-            label = stringResource(R.string.image_size_custom),
-            selected = selected,
-            onClick = {
+    val bg = if (selected) SelectedBg else Color.White
+    val borderColor = if (selected) AccentBlue else CardBorder
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(ShapeMd)
+            .background(bg, ShapeMd)
+            .border(if (selected) 2.dp else 1.dp, borderColor, ShapeMd)
+            .clickable {
                 val kb = text.toIntOrNull()
-                if (kb != null && kb > 0) {
-                    onOptionSelected(ImageSizeOption.Custom(kb))
-                } else {
-                    onOptionSelected(ImageSizeOption.Custom(text.toIntOrNull() ?: 100))
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-
+                onOptionSelected(ImageSizeOption.Custom(if (kb != null && kb > 0) kb else 100))
+            }
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (selected) {
+                Text(
+                    text = "\u2713  ",
+                    color = AccentBlue,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Text(
+                text = stringResource(R.string.image_size_custom),
+                color = if (selected) AccentBlue else Color.Black,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
         if (selected) {
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
@@ -415,17 +468,17 @@ private fun CustomSizeCard(
                         onOptionSelected(ImageSizeOption.Custom(kb))
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 singleLine = true,
                 label = { Text(stringResource(R.string.image_size_custom_dialog_hint)) },
                 textStyle = MaterialTheme.typography.bodyMedium,
-                shape = RoundedCornerShape(10.dp),
+                shape = ShapeMd,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = AccentBlue,
                     unfocusedBorderColor = CardBorder,
-                    focusedLabelColor = AccentBlue
+                    focusedLabelColor = AccentBlue,
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
                 )
             )
         }
@@ -442,16 +495,18 @@ private fun ImportRatioButton(
 ) {
     val bg = if (selected) SelectedBg else Color.White
     val borderColor = if (selected) AccentBlue else CardBorder
-    val borderWidth = if (selected) 2.dp else 1.dp
     OutlinedButton(
         onClick = onClick,
         modifier = modifier.height(48.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = ShapeMd,
+        contentPadding = PaddingValues(horizontal = 10.dp),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = bg,
             contentColor = if (selected) AccentBlue else Color.Black
         ),
-        border = androidx.compose.foundation.BorderStroke(borderWidth, borderColor)
+        border = androidx.compose.foundation.BorderStroke(
+            if (selected) 2.dp else 1.dp, borderColor
+        )
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -462,14 +517,14 @@ private fun ImportRatioButton(
                 text = label,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = AccentBlue,
+                color = if (selected) AccentBlue else Color.Black,
                 maxLines = 1
             )
             Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = icon,
                 style = MaterialTheme.typography.titleSmall,
-                color = if (selected) AccentBlue else Color.Black
+                color = if (selected) AccentBlue else Color(0xFF424242)
             )
         }
     }
