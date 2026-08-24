@@ -289,46 +289,6 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
     }
 
     Scaffold(
-        bottomBar = {
-            if (viewModel.dragModeActive) {
-                // Transparent surface — no white block over page preview
-                androidx.compose.material3.Surface(
-                    color = Color.Transparent,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.Transparent)
-                            .padding(bottom = 12.dp, top = 4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        DragBottomNudgeButton(label = "↑") {
-                            viewModel.nudgeDragImages(0f, -1f)
-                        }
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            DragBottomNudgeButton(label = "←") {
-                                viewModel.nudgeDragImages(-1f, 0f)
-                            }
-                            DragBottomNudgeButton(label = stringResource(R.string.image_drag_center)) {
-                                viewModel.centerDragImages()
-                            }
-                            DragBottomNudgeButton(label = "→") {
-                                viewModel.nudgeDragImages(1f, 0f)
-                            }
-                        }
-                        DragBottomNudgeButton(label = "↓") {
-                            viewModel.nudgeDragImages(0f, 1f)
-                        }
-                    }
-                }
-            }
-        },
         topBar = {
             TopAppBar(
                 title = {
@@ -1056,11 +1016,16 @@ Column(
                 }
             )
 
-            Column(
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(20.dp)
+                    .fillMaxWidth()
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(20.dp)
+                ) {
                 PdfPagesPreview(
                     images = viewModel.importedImages,
                     imagesPerRow = viewModel.imagesPerRow,
@@ -1284,6 +1249,40 @@ Column(
 
                     modifier = Modifier.fillMaxWidth()
                 )
+                }
+
+                // Float controls over preview — no white bar, pages stay visible/scrollable
+                if (viewModel.dragModeActive) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .background(Color.Transparent)
+                            .padding(bottom = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        DragBottomNudgeButton(label = "↑") {
+                            viewModel.nudgeDragImages(0f, -1f)
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            DragBottomNudgeButton(label = "←") {
+                                viewModel.nudgeDragImages(-1f, 0f)
+                            }
+                            DragBottomNudgeButton(label = stringResource(R.string.image_drag_center)) {
+                                viewModel.centerDragImages()
+                            }
+                            DragBottomNudgeButton(label = "→") {
+                                viewModel.nudgeDragImages(1f, 0f)
+                            }
+                        }
+                        DragBottomNudgeButton(label = "↓") {
+                            viewModel.nudgeDragImages(0f, 1f)
+                        }
+                    }
+                }
             }
         }
     }
