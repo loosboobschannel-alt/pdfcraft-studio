@@ -621,11 +621,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         return cx to cy
     }
 
-    fun dragGroupXPercent(): Int =
-        ((groupDragCenter().first).coerceIn(0f, 1f) * 100f).toInt().coerceIn(0, 100)
+    fun dragGroupXPercent(): Float =
+        ((groupDragCenter().first).coerceIn(0f, 1f) * 100f).coerceIn(0f, 100f)
 
-    fun dragGroupYPercent(): Int =
-        ((groupDragCenter().second).coerceIn(0f, 1f) * 100f).toInt().coerceIn(0, 100)
+    fun dragGroupYPercent(): Float =
+        ((groupDragCenter().second).coerceIn(0f, 1f) * 100f).coerceIn(0f, 100f)
 
     fun nudgeDragImages(dx: Float, dy: Float) {
         if (dragSelectedIds.isEmpty()) return
@@ -657,11 +657,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun setDragGroupPositionPercent(xPercent: Int?, yPercent: Int?) {
+    fun setDragGroupPositionPercent(xPercent: Float?, yPercent: Float?) {
         if (dragSelectedIds.isEmpty()) return
         val (cx, cy) = groupDragCenter()
-        val tx = if (xPercent != null) xPercent.coerceIn(0, 100) / 100f else cx
-        val ty = if (yPercent != null) yPercent.coerceIn(0, 100) / 100f else cy
+        val tx = if (xPercent != null) xPercent.coerceIn(0f, 100f) / 100f else cx
+        val ty = if (yPercent != null) yPercent.coerceIn(0f, 100f) / 100f else cy
         val dx = tx - cx
         val dy = ty - cy
         for (id in dragSelectedIds.toList()) {

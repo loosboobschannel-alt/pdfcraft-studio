@@ -904,7 +904,7 @@ Column(
                 isPageLandscape =
                     viewModel.isPageLandscape,
                 onPageOrientationChange =
-                    viewModel::updatePageOrientation,
+                    { viewModel.updatePageOrientation(it) },
                 pageMarginDp =
                     viewModel.pageMarginDp,
                 onPageMarginChange =
