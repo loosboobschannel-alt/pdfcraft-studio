@@ -1007,12 +1007,6 @@ private fun ImageDragPanel(
                 textStyle = MaterialTheme.typography.labelMedium,
                 suffix = { Text("%", style = MaterialTheme.typography.labelSmall) }
             )
-            Spacer(Modifier.weight(1f))
-            DragNudgeChip("↑") { onNudge(0f, -1f) }
-            DragNudgeChip("←") { onNudge(-1f, 0f) }
-            DragNudgeChip(stringResource(R.string.image_drag_center)) { onCenter() }
-            DragNudgeChip("→") { onNudge(1f, 0f) }
-            DragNudgeChip("↓") { onNudge(0f, 1f) }
         }
     }
 }

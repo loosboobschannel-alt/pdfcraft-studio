@@ -289,6 +289,39 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
     }
 
     Scaffold(
+        bottomBar = {
+            if (viewModel.dragModeActive) {
+                // Numbering-style cross layout; transparent so page stays visible
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.Transparent)
+                        .padding(bottom = 20.dp, top = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    DragBottomNudgeButton(label = "↑") {
+                        viewModel.nudgeDragImages(0f, -1f)
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        DragBottomNudgeButton(label = "←") {
+                            viewModel.nudgeDragImages(-1f, 0f)
+                        }
+                        DragBottomNudgeButton(label = stringResource(R.string.image_drag_center)) {
+                            viewModel.centerDragImages()
+                        }
+                        DragBottomNudgeButton(label = "→") {
+                            viewModel.nudgeDragImages(1f, 0f)
+                        }
+                    }
+                    DragBottomNudgeButton(label = "↓") {
+                        viewModel.nudgeDragImages(0f, 1f)
+                    }
+                }
+            }
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -501,16 +534,21 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                             fontWeight = FontWeight.Bold
                         )
                         TextButton(onClick = {
+                            // Toggle: all selected -> unselect all; otherwise select all
+                            val allSelected =
+                                pageCount > 0 &&
+                                dragPagesSelected.containsAll((0 until pageCount).toList())
                             dragPagesSelected =
-                                if (dragPagesSelected.size == pageCount) emptySet()
+                                if (allSelected) emptySet()
                                 else (0 until pageCount).toSet()
                         }) {
                             Text(stringResource(R.string.image_drag_select_all))
                         }
+                        // heightIn MUST come before verticalScroll or list won't scroll in AlertDialog
                         Column(
                             Modifier
-                                .verticalScroll(rememberScrollState())
                                 .heightIn(max = 320.dp)
+                                .verticalScroll(rememberScrollState())
                         ) {
                             for (i in 0 until pageCount) {
                                 val checked = i in dragPagesSelected
@@ -587,7 +625,12 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                             },
                             actions = {
                                 TextButton(onClick = {
-                                    dragImagePickSelected = pageImgs.map { it.id }.toSet()
+                                    val allIds = pageImgs.map { it.id }.toSet()
+                                    dragImagePickSelected =
+                                        if (allIds.isNotEmpty() && dragImagePickSelected.containsAll(allIds))
+                                            emptySet()
+                                        else
+                                            allIds
                                 }) {
                                     Text(stringResource(R.string.image_drag_select_all))
                                 }
@@ -630,11 +673,10 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                         Modifier
                                             .weight(1f)
                                             .aspectRatio(1f)
-                                            .clip(RoundedCornerShape(8.dp))
                                             .border(
                                                 width = if (selected) 3.dp else 1.dp,
                                                 color = if (selected) Color(0xFF1976D2) else Color.LightGray,
-                                                shape = RoundedCornerShape(8.dp)
+                                                shape = androidx.compose.ui.graphics.RectangleShape
                                             )
                                             .clickable {
                                                 dragImagePickSelected =
@@ -648,7 +690,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                                 bitmap = bmp.asImageBitmap(),
                                                 contentDescription = null,
                                                 modifier = Modifier.fillMaxSize(),
-                                                contentScale = ContentScale.Crop
+                                                contentScale = ContentScale.Fit
                                             )
                                         } else {
                                             Box(
@@ -1545,5 +1587,39 @@ private fun RotateImageDialog(
         dismissButton = {
             TextButton(onClick = onCancel) { Text(stringResource(R.string.rotate_cancel)) }
         }
+    )
+}
+
+@Composable
+private fun DragBottomNudgeButton(label: String, onTick: () -> Unit) {
+    var pressed by remember { mutableStateOf(false) }
+    LaunchedEffect(pressed) {
+        if (!pressed) return@LaunchedEffect
+        onTick()
+        while (pressed) {
+            kotlinx.coroutines.delay(55)
+            onTick()
+        }
+    }
+    Text(
+        text = label,
+        color = Color.Black,
+        style = MaterialTheme.typography.titleLarge,
+        modifier = Modifier
+            .padding(6.dp)
+            .background(Color.Transparent)
+            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        pressed = true
+                        try {
+                            tryAwaitRelease()
+                        } finally {
+                            pressed = false
+                        }
+                    }
+                )
+            }
     )
 }
