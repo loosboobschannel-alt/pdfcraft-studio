@@ -600,6 +600,17 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /** Images currently laid out on [pageIndex] (skips spacers). */
+
+    fun imagesPerPageCapacity(
+        pageAspect: Float = pageAspectRatio,
+        spacingDp: Int = imageSpacingDp,
+        cellAspect: Float = imageCellAspectRatio,
+    ): Int {
+        val aspect = pageAspect.coerceAtLeast(0.1f)
+        val rows = maxOf(1, (1f / (cellAspect.coerceAtLeast(0.05f) * aspect) * 0.85f).toInt())
+        return (imagesPerRow.coerceAtLeast(1) * rows).coerceAtLeast(1)
+    }
+
     fun imagesOnPage(pageIndex: Int): List<ImportedImage> {
         val per = imagesPerPageCapacity().coerceAtLeast(1)
         val start = pageIndex.coerceAtLeast(0) * per
@@ -630,14 +641,47 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun nudgeDragImages(dx: Float, dy: Float) {
         if (dragSelectedIds.isEmpty()) return
         val step = 0.0025f
-        val ids = dragSelectedIds.toList()
-        for (id in ids) {
+        for (id in dragSelectedIds.toList()) {
             val idx = importedImages.indexOfFirst { it.id == id }
             if (idx < 0) continue
             val img = importedImages[idx]
             val nx = (img.dragOffsetXFrac + dx * step).coerceIn(-0.92f, 0.92f)
             val ny = (img.dragOffsetYFrac + dy * step).coerceIn(-0.92f, 0.92f)
             importedImages[idx] = img.copy(dragOffsetXFrac = nx, dragOffsetYFrac = ny)
+        }
+    }
+
+    fun centerDragImages() {
+        if (dragSelectedIds.isEmpty()) return
+        val (cx, cy) = groupDragCenter()
+        val ddx = 0.5f - cx
+        val ddy = 0.5f - cy
+        for (id in dragSelectedIds.toList()) {
+            val idx = importedImages.indexOfFirst { it.id == id }
+            if (idx < 0) continue
+            val img = importedImages[idx]
+            importedImages[idx] = img.copy(
+                dragOffsetXFrac = (img.dragOffsetXFrac + ddx).coerceIn(-0.92f, 0.92f),
+                dragOffsetYFrac = (img.dragOffsetYFrac + ddy).coerceIn(-0.92f, 0.92f)
+            )
+        }
+    }
+
+    fun setDragGroupPositionPercent(xPercent: Float?, yPercent: Float?) {
+        if (dragSelectedIds.isEmpty()) return
+        val (cx, cy) = groupDragCenter()
+        val tx = if (xPercent != null) xPercent.coerceIn(0f, 100f) / 100f else cx
+        val ty = if (yPercent != null) yPercent.coerceIn(0f, 100f) / 100f else cy
+        val ddx = tx - cx
+        val ddy = ty - cy
+        for (id in dragSelectedIds.toList()) {
+            val idx = importedImages.indexOfFirst { it.id == id }
+            if (idx < 0) continue
+            val img = importedImages[idx]
+            importedImages[idx] = img.copy(
+                dragOffsetXFrac = (img.dragOffsetXFrac + ddx).coerceIn(-0.92f, 0.92f),
+                dragOffsetYFrac = (img.dragOffsetYFrac + ddy).coerceIn(-0.92f, 0.92f)
+            )
         }
     }
 
