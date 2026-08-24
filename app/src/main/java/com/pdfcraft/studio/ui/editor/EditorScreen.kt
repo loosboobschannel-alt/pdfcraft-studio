@@ -1592,7 +1592,18 @@ private fun RotateImageDialog(
 
 @Composable
 private fun DragBottomNudgeButton(label: String, onTick: () -> Unit) {
+    val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     var pressed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collect { interaction ->
+            when (interaction) {
+                is androidx.compose.foundation.interaction.PressInteraction.Press -> pressed = true
+                is androidx.compose.foundation.interaction.PressInteraction.Release -> pressed = false
+                is androidx.compose.foundation.interaction.PressInteraction.Cancel -> pressed = false
+            }
+        }
+    }
     LaunchedEffect(pressed) {
         if (!pressed) return@LaunchedEffect
         onTick()
@@ -1609,17 +1620,10 @@ private fun DragBottomNudgeButton(label: String, onTick: () -> Unit) {
             .padding(6.dp)
             .background(Color.Transparent)
             .padding(horizontal = 14.dp, vertical = 6.dp)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        pressed = true
-                        try {
-                            tryAwaitRelease()
-                        } finally {
-                            pressed = false
-                        }
-                    }
-                )
-            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = { /* press/hold handled via interactionSource */ }
+            )
     )
 }
