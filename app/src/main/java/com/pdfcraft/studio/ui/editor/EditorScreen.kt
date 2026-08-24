@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -52,6 +53,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -74,6 +77,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.focus.FocusRequester
@@ -218,6 +222,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
     var showDragPagePicker by remember { mutableStateOf(false) }
     var showDragImagePicker by remember { mutableStateOf(false) }
     var dragPageForPicker by remember { mutableStateOf(0) }
+    var dragPagesSelected by remember { mutableStateOf(setOf(0)) }
     var dragImagePickSelected by remember { mutableStateOf(setOf<String>()) }
     var importStartPageIndex by remember { mutableStateOf<Int?>(null) }
     var showTextColorPicker by remember { mutableStateOf(false) }
@@ -482,7 +487,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
         }
 
         
-        // ---- Drag Images: Step 1 page picker ----
+        // ---- Drag Images: Step 1 multi-page picker ----
         if (showDragPagePicker) {
             val pageCount = viewModel.documentPageCount().coerceAtLeast(1)
             androidx.compose.material3.AlertDialog(
@@ -494,19 +499,38 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                             stringResource(R.string.image_drag_select_page_instruction),
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Column(Modifier.verticalScroll(rememberScrollState()).heightIn(max = 280.dp)) {
+                        TextButton(onClick = {
+                            dragPagesSelected =
+                                if (dragPagesSelected.size == pageCount) emptySet()
+                                else (0 until pageCount).toSet()
+                        }) {
+                            Text(stringResource(R.string.image_drag_select_all))
+                        }
+                        Column(
+                            Modifier
+                                .verticalScroll(rememberScrollState())
+                                .heightIn(max = 320.dp)
+                        ) {
                             for (i in 0 until pageCount) {
+                                val checked = i in dragPagesSelected
                                 Row(
                                     Modifier
                                         .fillMaxWidth()
-                                        .clickable { dragPageForPicker = i }
-                                        .padding(vertical = 6.dp),
+                                        .clickable {
+                                            dragPagesSelected =
+                                                if (checked) dragPagesSelected - i
+                                                else dragPagesSelected + i
+                                        }
+                                        .padding(vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    RadioButton(
-                                        selected = dragPageForPicker == i,
-                                        onClick = { dragPageForPicker = i }
+                                    Checkbox(
+                                        checked = checked,
+                                        onCheckedChange = { on ->
+                                            dragPagesSelected =
+                                                if (on) dragPagesSelected + i
+                                                else dragPagesSelected - i
+                                        }
                                     )
                                     Text(stringResource(R.string.import_page_item, i + 1))
                                 }
@@ -516,10 +540,13 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                 },
                 confirmButton = {
                     TextButton(onClick = {
-                        viewModel.startDragImagesOnPage(dragPageForPicker)
-                        dragImagePickSelected = emptySet()
-                        showDragPagePicker = false
-                        showDragImagePicker = true
+                        if (dragPagesSelected.isNotEmpty()) {
+                            dragPageForPicker = dragPagesSelected.minOrNull() ?: 0
+                            viewModel.startDragImagesOnPage(dragPageForPicker)
+                            dragImagePickSelected = emptySet()
+                            showDragPagePicker = false
+                            showDragImagePicker = true
+                        }
                     }) { Text(stringResource(R.string.image_drag_next)) }
                 },
                 dismissButton = {
@@ -530,65 +557,134 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
             )
         }
 
-        // ---- Drag Images: Step 2 image picker ----
+        
+        // ---- Drag Images: Step 2 full-screen image grid ----
         if (showDragImagePicker) {
-            val pageImgs = viewModel.imagesOnPage(dragPageForPicker)
-            androidx.compose.material3.AlertDialog(
+            val pageImgs = viewModel.imagesOnPages(dragPagesSelected)
+            Dialog(
                 onDismissRequest = { showDragImagePicker = false },
-                title = { Text(stringResource(R.string.image_drag_tool)) },
-                text = {
-                    Column {
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = {
+                                Text(
+                                    stringResource(R.string.image_drag_tool),
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.Black
+                                )
+                            },
+                            navigationIcon = {
+                                Text(
+                                    text = "\u2715",
+                                    color = Color.Black,
+                                    modifier = Modifier
+                                        .padding(horizontal = 16.dp)
+                                        .clickable { showDragImagePicker = false }
+                                )
+                            },
+                            actions = {
+                                TextButton(onClick = {
+                                    dragImagePickSelected = pageImgs.map { it.id }.toSet()
+                                }) {
+                                    Text(stringResource(R.string.image_drag_select_all))
+                                }
+                                TextButton(onClick = {
+                                    if (dragImagePickSelected.isNotEmpty()) {
+                                        viewModel.setDragImageSelection(dragImagePickSelected)
+                                        viewModel.enterDragMoveMode()
+                                        showDragImagePicker = false
+                                    }
+                                }) {
+                                    Text(stringResource(R.string.image_drag_next))
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                        )
+                    },
+                    containerColor = Color.White
+                ) { pad ->
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .padding(pad)
+                            .padding(12.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
                         Text(
                             stringResource(R.string.image_drag_select_images_instruction),
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
                         )
-                        TextButton(onClick = {
-                            dragImagePickSelected = pageImgs.map { it.id }.toSet()
-                        }) { Text(stringResource(R.string.image_drag_select_all)) }
-                        Column(Modifier.verticalScroll(rememberScrollState()).heightIn(max = 280.dp)) {
-                            pageImgs.forEachIndexed { idx, img ->
-                                val checked = img.id in dragImagePickSelected
-                                Row(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            dragImagePickSelected =
-                                                if (checked) dragImagePickSelected - img.id
-                                                else dragImagePickSelected + img.id
+                        Spacer(Modifier.height(12.dp))
+                        pageImgs.chunked(4).forEach { row ->
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                row.forEach { img ->
+                                    val selected = img.id in dragImagePickSelected
+                                    Box(
+                                        Modifier
+                                            .weight(1f)
+                                            .aspectRatio(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .border(
+                                                width = if (selected) 3.dp else 1.dp,
+                                                color = if (selected) Color(0xFF1976D2) else Color.LightGray,
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .clickable {
+                                                dragImagePickSelected =
+                                                    if (selected) dragImagePickSelected - img.id
+                                                    else dragImagePickSelected + img.id
+                                            }
+                                    ) {
+                                        val bmp = img.bitmap
+                                        if (bmp != null && !bmp.isRecycled) {
+                                            Image(
+                                                bitmap = bmp.asImageBitmap(),
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Box(
+                                                Modifier.fillMaxSize().background(Color(0xFFE0E0E0)),
+                                                contentAlignment = Alignment.Center
+                                            ) { Text("…", color = Color.Gray) }
                                         }
-                                        .padding(vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Checkbox(
-                                        checked = checked,
-                                        onCheckedChange = { on ->
-                                            dragImagePickSelected =
-                                                if (on) dragImagePickSelected + img.id
-                                                else dragImagePickSelected - img.id
+                                        if (selected) {
+                                            Box(
+                                                Modifier
+                                                    .fillMaxSize()
+                                                    .background(Color(0xFF1976D2).copy(alpha = 0.28f))
+                                            )
+                                            Text(
+                                                text = "\u2713",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier
+                                                    .align(Alignment.TopEnd)
+                                                    .padding(4.dp)
+                                                    .background(Color(0xFF1976D2), CircleShape)
+                                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                                            )
                                         }
-                                    )
-                                    Text(stringResource(R.string.image_drag_image_item, idx + 1))
+                                    }
                                 }
+                                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
                             }
+                            Spacer(Modifier.height(8.dp))
                         }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        if (dragImagePickSelected.isNotEmpty()) {
-                            viewModel.setDragImageSelection(dragImagePickSelected)
-                            viewModel.enterDragMoveMode()
-                            showDragImagePicker = false
-                        }
-                    }) { Text(stringResource(R.string.image_drag_next)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDragImagePicker = false }) {
-                        Text(stringResource(R.string.cancel))
                     }
                 }
-            )
+            }
         }
+
+
+        
 
         if (showImportSettings) {
             ImportImagesDialog(

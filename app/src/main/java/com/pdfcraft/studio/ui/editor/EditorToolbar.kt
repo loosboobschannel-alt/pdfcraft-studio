@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -955,21 +956,32 @@ private fun ImageDragPanel(
 ) {
     var xText by remember(xPercent) { mutableStateOf(xPercent.toString()) }
     var yText by remember(yPercent) { mutableStateOf(yPercent.toString()) }
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        SliderToolHeader(title = stringResource(R.string.image_drag_tool), onDone = onDone)
-        Text(
-            text = stringResource(R.string.image_drag_position),
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = Color.Black
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.image_drag_tool),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onDone, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)) {
+                Text(stringResource(R.string.image_drag_done), style = MaterialTheme.typography.labelMedium)
+            }
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text("X:", color = Color.Black)
+            Text("X", style = MaterialTheme.typography.labelSmall, color = Color.Black)
             OutlinedTextField(
                 value = xText,
                 onValueChange = { input ->
@@ -977,11 +989,12 @@ private fun ImageDragPanel(
                     xText = f
                     f.toIntOrNull()?.let { if (it in 0..100) onXPercentChange(it) }
                 },
-                modifier = Modifier.width(72.dp),
+                modifier = Modifier.width(56.dp).height(48.dp),
                 singleLine = true,
-                suffix = { Text("%") }
+                textStyle = MaterialTheme.typography.labelMedium,
+                suffix = { Text("%", style = MaterialTheme.typography.labelSmall) }
             )
-            Text("Y:", color = Color.Black)
+            Text("Y", style = MaterialTheme.typography.labelSmall, color = Color.Black)
             OutlinedTextField(
                 value = yText,
                 onValueChange = { input ->
@@ -989,25 +1002,49 @@ private fun ImageDragPanel(
                     yText = f
                     f.toIntOrNull()?.let { if (it in 0..100) onYPercentChange(it) }
                 },
-                modifier = Modifier.width(72.dp),
+                modifier = Modifier.width(56.dp).height(48.dp),
                 singleLine = true,
-                suffix = { Text("%") }
+                textStyle = MaterialTheme.typography.labelMedium,
+                suffix = { Text("%", style = MaterialTheme.typography.labelSmall) }
             )
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            NumberingNudgeButton(label = "↑", onTick = { onNudge(0f, -1f) })
-            Row(horizontalArrangement = Arrangement.Center) {
-                NumberingNudgeButton(label = "←", onTick = { onNudge(-1f, 0f) })
-                NumberingNudgeButton(label = stringResource(R.string.image_drag_center), onTick = onCenter)
-                NumberingNudgeButton(label = "→", onTick = { onNudge(1f, 0f) })
-            }
-            NumberingNudgeButton(label = "↓", onTick = { onNudge(0f, 1f) })
+            Spacer(Modifier.weight(1f))
+            DragNudgeChip("↑") { onNudge(0f, -1f) }
+            DragNudgeChip("←") { onNudge(-1f, 0f) }
+            DragNudgeChip(stringResource(R.string.image_drag_center)) { onCenter() }
+            DragNudgeChip("→") { onNudge(1f, 0f) }
+            DragNudgeChip("↓") { onNudge(0f, 1f) }
         }
     }
+}
+
+@Composable
+private fun DragNudgeChip(label: String, onTick: () -> Unit) {
+    var pressed by remember { mutableStateOf(false) }
+    LaunchedEffect(pressed) {
+        if (!pressed) return@LaunchedEffect
+        onTick()
+        while (pressed) {
+            kotlinx.coroutines.delay(55)
+            onTick()
+        }
+    }
+    Text(
+        text = label,
+        color = Color.Black,
+        style = MaterialTheme.typography.labelLarge,
+        modifier = Modifier
+            .padding(2.dp)
+            .background(Color(0xFFF0F0F0L), RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        pressed = true
+                        try { tryAwaitRelease() } finally { pressed = false }
+                    }
+                )
+            }
+    )
 }
 
 @Composable

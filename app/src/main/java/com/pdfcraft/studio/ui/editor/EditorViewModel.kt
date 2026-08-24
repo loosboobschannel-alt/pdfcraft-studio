@@ -608,6 +608,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         return importedImages.subList(start, end).filter { !it.id.startsWith("spacer_") }
     }
 
+    fun imagesOnPages(pageIndices: Collection<Int>): List<ImportedImage> {
+        if (pageIndices.isEmpty()) return emptyList()
+        return pageIndices.sorted().flatMap { imagesOnPage(it) }.distinctBy { it.id }
+    }
+
     private fun groupDragCenter(): Pair<Float, Float> {
         val imgs = dragSelectedIds.mapNotNull { id -> importedImages.firstOrNull { it.id == id } }
         if (imgs.isEmpty()) return 0.5f to 0.5f
@@ -630,8 +635,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             val idx = importedImages.indexOfFirst { it.id == id }
             if (idx < 0) continue
             val img = importedImages[idx]
-            val nx = (img.dragOffsetXFrac + dx * step).coerceIn(-0.45f, 0.45f)
-            val ny = (img.dragOffsetYFrac + dy * step).coerceIn(-0.45f, 0.45f)
+            val nx = (img.dragOffsetXFrac + dx * step).coerceIn(-0.92f, 0.92f)
+            val ny = (img.dragOffsetYFrac + dy * step).coerceIn(-0.92f, 0.92f)
             importedImages[idx] = img.copy(dragOffsetXFrac = nx, dragOffsetYFrac = ny)
         }
     }
@@ -646,8 +651,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             if (idx < 0) continue
             val img = importedImages[idx]
             importedImages[idx] = img.copy(
-                dragOffsetXFrac = (img.dragOffsetXFrac + dx).coerceIn(-0.45f, 0.45f),
-                dragOffsetYFrac = (img.dragOffsetYFrac + dy).coerceIn(-0.45f, 0.45f)
+                dragOffsetXFrac = (img.dragOffsetXFrac + dx).coerceIn(-0.92f, 0.92f),
+                dragOffsetYFrac = (img.dragOffsetYFrac + dy).coerceIn(-0.92f, 0.92f)
             )
         }
     }
@@ -664,8 +669,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             if (idx < 0) continue
             val img = importedImages[idx]
             importedImages[idx] = img.copy(
-                dragOffsetXFrac = (img.dragOffsetXFrac + dx).coerceIn(-0.45f, 0.45f),
-                dragOffsetYFrac = (img.dragOffsetYFrac + dy).coerceIn(-0.45f, 0.45f)
+                dragOffsetXFrac = (img.dragOffsetXFrac + dx).coerceIn(-0.92f, 0.92f),
+                dragOffsetYFrac = (img.dragOffsetYFrac + dy).coerceIn(-0.92f, 0.92f)
             )
         }
     }
