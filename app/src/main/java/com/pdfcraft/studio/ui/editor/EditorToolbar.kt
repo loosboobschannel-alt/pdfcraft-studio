@@ -144,10 +144,10 @@ fun EditorToolbar(
     onNumberingFgChange: (Long) -> Unit = {},
     onNumberingDone: () -> Unit = {},
     dragModeActive: Boolean = false,
-    dragXPercent: Int = 50,
-    dragYPercent: Int = 50,
-    onDragXPercentChange: (Int) -> Unit = {},
-    onDragYPercentChange: (Int) -> Unit = {},
+    dragXPercent: Float = 50f,
+    dragYPercent: Float = 50f,
+    onDragXPercentChange: (Float) -> Unit = {},
+    onDragYPercentChange: (Float) -> Unit = {},
     onDragNudge: (Float, Float) -> Unit = { _, _ -> },
     onDragCenter: () -> Unit = {},
     onDragDone: () -> Unit = {},
@@ -946,16 +946,16 @@ private fun ImagesPerRowSlider(
 
 @Composable
 private fun ImageDragPanel(
-    xPercent: Int,
-    yPercent: Int,
-    onXPercentChange: (Int) -> Unit,
-    onYPercentChange: (Int) -> Unit,
+    xPercent: Float,
+    yPercent: Float,
+    onXPercentChange: (Float) -> Unit,
+    onYPercentChange: (Float) -> Unit,
     onNudge: (Float, Float) -> Unit,
     onCenter: () -> Unit,
     onDone: () -> Unit
 ) {
-    var xText by remember(xPercent) { mutableStateOf(xPercent.toString()) }
-    var yText by remember(yPercent) { mutableStateOf(yPercent.toString()) }
+    var xText by remember(xPercent) { mutableStateOf(String.format("%.2f", xPercent)) }
+    var yText by remember(yPercent) { mutableStateOf(String.format("%.2f", yPercent)) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -985,9 +985,13 @@ private fun ImageDragPanel(
             OutlinedTextField(
                 value = xText,
                 onValueChange = { input ->
-                    val f = input.filter { it.isDigit() }.take(3)
+                    val f = input.filter { c -> c.isDigit() || c == '.' }.let { s ->
+                        val parts = s.split('.')
+                        if (parts.size <= 1) s.take(3)
+                        else parts[0].take(3) + "." + parts.getOrElse(1) { "" }.take(2)
+                    }
                     xText = f
-                    f.toIntOrNull()?.let { if (it in 0..100) onXPercentChange(it) }
+                    f.toFloatOrNull()?.let { if (it in 0f..100f) onXPercentChange(it) }
                 },
                 modifier = Modifier.width(64.dp).height(48.dp),
                 singleLine = true,
@@ -999,9 +1003,13 @@ private fun ImageDragPanel(
             OutlinedTextField(
                 value = yText,
                 onValueChange = { input ->
-                    val f = input.filter { it.isDigit() }.take(3)
+                    val f = input.filter { c -> c.isDigit() || c == '.' }.let { s ->
+                        val parts = s.split('.')
+                        if (parts.size <= 1) s.take(3)
+                        else parts[0].take(3) + "." + parts.getOrElse(1) { "" }.take(2)
+                    }
                     yText = f
-                    f.toIntOrNull()?.let { if (it in 0..100) onYPercentChange(it) }
+                    f.toFloatOrNull()?.let { if (it in 0f..100f) onYPercentChange(it) }
                 },
                 modifier = Modifier.width(64.dp).height(48.dp),
                 singleLine = true,
