@@ -302,9 +302,6 @@ fun EditorToolbar(
                         onImageNumberingClick = {
                             onClearPageNumberingSelection()
                             showImageNumberingPicker = true
-                        },
-                        onDragImagesClick = {
-                            showDragPagePicker = true
                         }
                     )
                     TextToolsMenu(

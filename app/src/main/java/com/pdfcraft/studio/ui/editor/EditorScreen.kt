@@ -1,6 +1,9 @@
 package com.pdfcraft.studio.ui.editor
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 
 import androidx.compose.foundation.border
