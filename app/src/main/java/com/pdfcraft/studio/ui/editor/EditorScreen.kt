@@ -291,33 +291,40 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
     Scaffold(
         bottomBar = {
             if (viewModel.dragModeActive) {
-                // Numbering-style cross layout; transparent so page stays visible
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.Transparent)
-                        .padding(bottom = 20.dp, top = 4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                // Transparent surface — no white block over page preview
+                androidx.compose.material3.Surface(
+                    color = Color.Transparent,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    DragBottomNudgeButton(label = "↑") {
-                        viewModel.nudgeDragImages(0f, -1f)
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.Transparent)
+                            .padding(bottom = 12.dp, top = 4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        DragBottomNudgeButton(label = "←") {
-                            viewModel.nudgeDragImages(-1f, 0f)
+                        DragBottomNudgeButton(label = "↑") {
+                            viewModel.nudgeDragImages(0f, -1f)
                         }
-                        DragBottomNudgeButton(label = stringResource(R.string.image_drag_center)) {
-                            viewModel.centerDragImages()
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            DragBottomNudgeButton(label = "←") {
+                                viewModel.nudgeDragImages(-1f, 0f)
+                            }
+                            DragBottomNudgeButton(label = stringResource(R.string.image_drag_center)) {
+                                viewModel.centerDragImages()
+                            }
+                            DragBottomNudgeButton(label = "→") {
+                                viewModel.nudgeDragImages(1f, 0f)
+                            }
                         }
-                        DragBottomNudgeButton(label = "→") {
-                            viewModel.nudgeDragImages(1f, 0f)
+                        DragBottomNudgeButton(label = "↓") {
+                            viewModel.nudgeDragImages(0f, 1f)
                         }
-                    }
-                    DragBottomNudgeButton(label = "↓") {
-                        viewModel.nudgeDragImages(0f, 1f)
                     }
                 }
             }
@@ -1592,6 +1599,7 @@ private fun RotateImageDialog(
 
 @Composable
 private fun DragBottomNudgeButton(label: String, onTick: () -> Unit) {
+    // Same visual style as Image Numbering NumberingNudgeButton
     val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     var pressed by remember { mutableStateOf(false) }
 
@@ -1617,13 +1625,13 @@ private fun DragBottomNudgeButton(label: String, onTick: () -> Unit) {
         color = Color.Black,
         style = MaterialTheme.typography.titleLarge,
         modifier = Modifier
-            .padding(6.dp)
-            .background(Color.Transparent)
-            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .padding(8.dp)
+            .background(Color(0xFFF0F0F0L), RoundedCornerShape(8.dp))
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = { /* press/hold handled via interactionSource */ }
+                onClick = { }
             )
     )
 }

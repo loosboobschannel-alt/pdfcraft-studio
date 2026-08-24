@@ -989,11 +989,12 @@ private fun ImageDragPanel(
                     xText = f
                     f.toIntOrNull()?.let { if (it in 0..100) onXPercentChange(it) }
                 },
-                modifier = Modifier.width(56.dp).height(48.dp),
+                modifier = Modifier.width(64.dp).height(48.dp),
                 singleLine = true,
-                textStyle = MaterialTheme.typography.labelMedium,
-                suffix = { Text("%", style = MaterialTheme.typography.labelSmall) }
+                textStyle = MaterialTheme.typography.labelMedium
             )
+            Text("%", style = MaterialTheme.typography.labelMedium, color = Color.Black)
+            Spacer(modifier = Modifier.width(12.dp))
             Text("Y", style = MaterialTheme.typography.labelSmall, color = Color.Black)
             OutlinedTextField(
                 value = yText,
@@ -1002,11 +1003,11 @@ private fun ImageDragPanel(
                     yText = f
                     f.toIntOrNull()?.let { if (it in 0..100) onYPercentChange(it) }
                 },
-                modifier = Modifier.width(56.dp).height(48.dp),
+                modifier = Modifier.width(64.dp).height(48.dp),
                 singleLine = true,
-                textStyle = MaterialTheme.typography.labelMedium,
-                suffix = { Text("%", style = MaterialTheme.typography.labelSmall) }
+                textStyle = MaterialTheme.typography.labelMedium
             )
+            Text("%", style = MaterialTheme.typography.labelMedium, color = Color.Black)
         }
     }
 }
