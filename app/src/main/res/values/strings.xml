@@ -4,6 +4,7 @@
     <string name="create_pdf">Create PDF</string>
     <string name="editor_title">New Document</string>
     <string name="editor_empty_state">Add images or text to start building your PDF.</string>
+    <string name="editor_empty_state_hint">Use Image Tools or Text Tools to begin.</string>
     <string name="content_desc_app_icon">PDFCraft Studio icon</string>
     <string name="content_desc_back">Back to Home</string>
     <string name="import_images">1. Import Images</string>

@@ -292,7 +292,11 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
         topBar = {
             TopAppBar(
                 title = {
-                    Text(stringResource(R.string.editor_title))
+                    Text(
+                        stringResource(R.string.editor_title),
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Black
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
@@ -457,7 +461,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = Color.White
                 )
             )
         },

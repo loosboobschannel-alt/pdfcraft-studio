@@ -45,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -253,10 +254,11 @@ fun EditorToolbar(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Box(modifier = Modifier.weight(1f)) {
                     PageToolsMenu(
                         onAddNewPage = onAddNewPage,
                         onDuplicatePages = {
@@ -293,6 +295,8 @@ fun EditorToolbar(
                         pageNumberStyle = pageNumberStyle,
                         onPageNumberStyleChange = onPageNumberStyleChange
                     )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
                     ImageToolsMenu(
                         onImportImagesClick = onImportImagesClick,
                         onDragImagesClick = onDragImagesMenuClick,
@@ -318,10 +322,11 @@ fun EditorToolbar(
                         onDeleteTextClick = onDeleteTextClick,
                         hasSelectedText = hasSelectedText
                     )
+                    }
                 }
             }
         }
-        HorizontalDivider()
+        HorizontalDivider(color = Color(0xFFEEEEEE))
     }
 
     if (showPageSizePicker) {
@@ -532,6 +537,43 @@ private fun ToolChip(
 
 
 
+
+@Composable
+private fun CategoryMenuLabel(
+    text: String,
+    expanded: Boolean,
+    onClick: () -> Unit
+) {
+    val bg = if (expanded) Color(0xFFE3F2FD) else Color(0xFFF7F7F7)
+    val border = if (expanded) Color(0xFF1976D2) else Color(0xFFE0E0E0)
+    val fg = if (expanded) Color(0xFF1976D2) else Color.Black
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(bg, RoundedCornerShape(10.dp))
+            .border(1.dp, border, RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = text,
+            color = fg,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
+        )
+        Text(
+            text = " ▾",
+            color = fg,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
 @Composable
 private fun ToolMenuItem(
     label: String,
@@ -547,7 +589,7 @@ private fun ToolMenuItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     )
 
 }

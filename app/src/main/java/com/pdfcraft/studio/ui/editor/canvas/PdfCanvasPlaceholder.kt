@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -189,15 +190,27 @@ fun PdfPagesPreview(
                             Box(modifier = Modifier.fillMaxSize()) {
                                 // Soft hint only while page has no text yet
                                 if (textElements.none { it.pageIndex == 0 } && minPageCount <= 1) {
-                                    Text(
-                                        text = stringResource(R.string.editor_empty_state),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                                        textAlign = TextAlign.Center,
+                                    Column(
                                         modifier = Modifier
                                             .align(Alignment.Center)
-                                            .padding(horizontal = 24.dp)
-                                    )
+                                            .padding(horizontal = 24.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = stringResource(R.string.editor_empty_state),
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color.Black.copy(alpha = 0.55f),
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = stringResource(R.string.editor_empty_state_hint),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = Color.Black.copy(alpha = 0.38f),
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
                                 }
                                 PageTextOverlay(
                                     texts = textElements.filter { it.pageIndex == 0 },
@@ -1173,8 +1186,17 @@ private fun EmptyStatePage(
 
                 Text(
                     text = stringResource(R.string.editor_empty_state),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.Black.copy(alpha = 0.55f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 24.dp)
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.editor_empty_state_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Black.copy(alpha = 0.38f),
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(horizontal = 24.dp)
                 )
@@ -1197,6 +1219,7 @@ private fun PageCard(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(aspectRatio)
+            .shadow(6.dp, RoundedCornerShape(12.dp))
             .clip(RoundedCornerShape(12.dp))
             .background(Color(backgroundColor), RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center
