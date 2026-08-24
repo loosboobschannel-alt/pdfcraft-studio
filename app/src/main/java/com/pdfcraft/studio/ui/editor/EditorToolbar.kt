@@ -606,6 +606,11 @@ private fun ImageToolsMenu(
                 menuExpanded = false
                 onImageNumberingClick()
             }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(stringResource(R.string.image_drag_tool)) {
+                menuExpanded = false
+                onDragImagesClick()
+            }
         }
     }
 }

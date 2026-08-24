@@ -118,8 +118,15 @@ object PdfGenerator {
                 // Safety: never draw a row that would go past the page bottom
                 if (row >= rowsPerPage) return@forEachIndexed
 
-                val left = margin + col * (cellWidth + spacing)
-                val top = margin + row * (cellHeight + spacing)
+                val left0 = margin + col * (cellWidth + spacing)
+                val top0 = margin + row * (cellHeight + spacing)
+                // Drag Images offsets: fraction of full page size (keep on page)
+                val ox = img.dragOffsetXFrac * pageWidth
+                val oy = img.dragOffsetYFrac * thisPageHeight
+                var left = left0 + ox
+                var top = top0 + oy
+                left = left.coerceIn(0f, (pageWidth - cellWidth).coerceAtLeast(0f))
+                top = top.coerceIn(0f, (thisPageHeight - cellHeight).coerceAtLeast(0f))
                 val bmp = img.bitmap
                 if (bmp != null && !bmp.isRecycled) {
                     val drawn = drawBitmapFit(

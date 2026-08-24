@@ -691,8 +691,9 @@ private fun ImageCell(
             modifier = Modifier
                 .fillMaxSize()
             .offset(
-                x = (image.dragOffsetXFrac * 120f).dp,
-                y = (image.dragOffsetYFrac * 200f).dp
+                // Page-relative: \~full editor page width/height in dp (matches 360x\~640 logical page)
+                x = (image.dragOffsetXFrac * 360f).dp,
+                y = (image.dragOffsetYFrac * 640f).dp
             )
                 .clip(RoundedCornerShape(percent = cornerRadiusPercent))
                 
