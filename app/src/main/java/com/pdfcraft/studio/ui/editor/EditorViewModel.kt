@@ -261,6 +261,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var pageBackgroundBitmap: Bitmap? by mutableStateOf(null)
     val pageBackgroundBitmapOverrides = mutableStateMapOf<Int, Bitmap>()
 
+    enum class PageOrientation { PORTRAIT, LANDSCAPE, SQUARE }
+
     enum class PageNumberPosition { NONE, LEFT, CENTER, RIGHT }
     enum class PageNumberStyle { ARABIC, ROMAN_LOWER, ROMAN_UPPER, ALPHA_LOWER, ALPHA_UPPER }
 
