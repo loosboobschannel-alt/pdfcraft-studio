@@ -13,6 +13,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.asImageBitmap
 
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 import androidx.compose.foundation.layout.offset
 
@@ -155,13 +156,13 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
             text = {
                 androidx.compose.foundation.layout.Column {
                     androidx.compose.material3.Text(stringResource(R.string.image_link_instruction))
-                    androidx.compose.foundation.layout.Spacer(modifier = MModifier.height(8.dp))
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(8.dp))
                     androidx.compose.material3.OutlinedTextField(
                         value = linkUrlText,
                         onValueChange = { linkUrlText = it },
                         placeholder = { androidx.compose.material3.Text(stringResource(R.string.image_link_url_hint)) },
                         singleLine = true,
-                        modifier = MModifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
@@ -196,7 +197,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                         showImagePositionDialog = false
                         imagePositionTargetId = null
                     }) { androidx.compose.material3.Text(stringResource(R.string.image_position_move_title)) }
-                    androidx.compose.foundation.layout.Spacer(modifier = MModifier.height(12.dp))
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(12.dp))
                     androidx.compose.material3.Text(stringResource(R.string.image_position_swap_title))
                     androidx.compose.material3.Text(stringResource(R.string.image_position_swap_hint))
                     androidx.compose.material3.TextButton(onClick = {
@@ -362,7 +363,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                     onValueChange = { nameField = it },
                                     label = { Text(stringResource(R.string.export_pdf_name_hint)) },
                                     singleLine = true,
-                                    modifier = MModifier.focusRequester(nameFocusRequester)
+                                    modifier = Modifier.focusRequester(nameFocusRequester)
                                 )
                             },
                             confirmButton = {
@@ -417,7 +418,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                     Text(stringResource(R.string.export_pdf_success_message, savedFileName))
                                     val warning = linkWarning
                                     if (warning != null) {
-                                        Spacer(modifier = MModifier.height(8.dp))
+                                        Spacer(modifier = Modifier.height(8.dp))
                                         Text(
                                             text = "Link warning: $warning",
                                             color = MaterialTheme.colorScheme.error
@@ -478,8 +479,8 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                 confirmButton = {},
                 text = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(modifier = MModifier.size(20.dp))
-                        Spacer(modifier = MModifier.width(12.dp))
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(progressMessage)
                     }
                 }
@@ -617,10 +618,10 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
-                        Spacer(MModifier.height(12.dp))
+                        Spacer(Modifier.height(12.dp))
                         pageImgs.chunked(4).forEach { row ->
                             Row(
-                                MModifier.fillMaxWidth(),
+                                Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 row.forEach { img ->
@@ -646,12 +647,12 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                             Image(
                                                 bitmap = bmp.asImageBitmap(),
                                                 contentDescription = null,
-                                                modifier = MModifier.fillMaxSize(),
+                                                modifier = Modifier.fillMaxSize(),
                                                 contentScale = ContentScale.Crop
                                             )
                                         } else {
                                             Box(
-                                                MModifier.fillMaxSize().background(Color(0xFFE0E0E0)),
+                                                Modifier.fillMaxSize().background(Color(0xFFE0E0E0)),
                                                 contentAlignment = Alignment.Center
                                             ) { Text("…", color = Color.Gray) }
                                         }
@@ -674,9 +675,9 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                         }
                                     }
                                 }
-                                repeat(4 - row.size) { Spacer(MMModifier.weight(1f)) }
+                                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
                             }
-                            Spacer(MModifier.height(8.dp))
+                            Spacer(Modifier.height(8.dp))
                         }
                     }
                 }
@@ -1232,7 +1233,7 @@ Column(
 
                     customFonts = viewModel.availableFonts.filter { it.isCustom },
 
-                    modifier = MModifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -1372,7 +1373,7 @@ private fun CropImageScreen(
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        Column(modifier = MModifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1421,7 +1422,7 @@ private fun CropImageScreen(
                     Image(
                         bitmap = bitmap.asImageBitmap(),
                         contentDescription = null,
-                        modifier = MModifier.fillMaxSize(),
+                        modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.FillBounds
                     )
                     // Darken outside crop — simple border rectangle
@@ -1523,7 +1524,7 @@ private fun RotateImageDialog(
                         .height(200.dp),
                     contentScale = ContentScale.Fit
                 )
-                Spacer(modifier = MModifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 TextButton(onClick = { onDegreesChange((degrees + 90f) % 360f) }) {
                     Text(stringResource(R.string.rotate_right))
                 }
