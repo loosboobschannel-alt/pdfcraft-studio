@@ -1598,7 +1598,7 @@ private fun RotateImageDialog(
 
 @Composable
 private fun DragBottomNudgeButton(label: String, onTick: () -> Unit) {
-    // Same visual style as Image Numbering NumberingNudgeButton
+    // Same visual style as Image Numbering; entire background is the touch target
     val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     var pressed by remember { mutableStateOf(false) }
 
@@ -1619,18 +1619,23 @@ private fun DragBottomNudgeButton(label: String, onTick: () -> Unit) {
             onTick()
         }
     }
-    Text(
-        text = label,
-        color = Color.Black,
-        style = MaterialTheme.typography.titleLarge,
+    Box(
         modifier = Modifier
             .padding(8.dp)
+            .clip(RoundedCornerShape(8.dp))
             .background(Color(0xFFF0F0F0L), RoundedCornerShape(8.dp))
-            .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = { }
             )
-    )
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            color = Color.Black,
+            style = MaterialTheme.typography.titleLarge
+        )
+    }
 }
