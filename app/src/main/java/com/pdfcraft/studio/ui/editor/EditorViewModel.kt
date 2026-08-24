@@ -261,8 +261,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var pageBackgroundBitmap: Bitmap? by mutableStateOf(null)
     val pageBackgroundBitmapOverrides = mutableStateMapOf<Int, Bitmap>()
 
-    enum class PageOrientation { PORTRAIT, LANDSCAPE, SQUARE }
-
     enum class PageNumberPosition { NONE, LEFT, CENTER, RIGHT }
     enum class PageNumberStyle { ARABIC, ROMAN_LOWER, ROMAN_UPPER, ALPHA_LOWER, ALPHA_UPPER }
 
@@ -602,17 +600,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     /** Images currently laid out on [pageIndex] (skips spacers). */
-
-    fun imagesPerPageCapacity(
-        pageAspect: Float = pageAspectRatio,
-        spacingDp: Int = imageSpacingDp,
-        cellAspect: Float = imageCellAspectRatio,
-    ): Int {
-        val aspect = pageAspect.coerceAtLeast(0.1f)
-        val rows = maxOf(1, (1f / (cellAspect.coerceAtLeast(0.05f) * aspect) * 0.85f).toInt())
-        return (imagesPerRow.coerceAtLeast(1) * rows).coerceAtLeast(1)
-    }
-
     fun imagesOnPage(pageIndex: Int): List<ImportedImage> {
         val per = imagesPerPageCapacity().coerceAtLeast(1)
         val start = pageIndex.coerceAtLeast(0) * per
@@ -634,16 +621,17 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         return cx to cy
     }
 
-    fun dragGroupXPercent(): Float =
-        ((groupDragCenter().first).coerceIn(0f, 1f) * 100f).coerceIn(0f, 100f)
+    fun dragGroupXPercent(): Int =
+        ((groupDragCenter().first).coerceIn(0f, 1f) * 100f).toInt().coerceIn(0, 100)
 
-    fun dragGroupYPercent(): Float =
-        ((groupDragCenter().second).coerceIn(0f, 1f) * 100f).coerceIn(0f, 100f)
+    fun dragGroupYPercent(): Int =
+        ((groupDragCenter().second).coerceIn(0f, 1f) * 100f).toInt().coerceIn(0, 100)
 
     fun nudgeDragImages(dx: Float, dy: Float) {
         if (dragSelectedIds.isEmpty()) return
         val step = 0.0025f
-        for (id in dragSelectedIds.toList()) {
+        val ids = dragSelectedIds.toList()
+        for (id in ids) {
             val idx = importedImages.indexOfFirst { it.id == id }
             if (idx < 0) continue
             val img = importedImages[idx]
@@ -656,34 +644,1164 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun centerDragImages() {
         if (dragSelectedIds.isEmpty()) return
         val (cx, cy) = groupDragCenter()
-        val ddx = 0.5f - cx
-        val ddy = 0.5f - cy
+        val dx = 0.5f - cx
+        val dy = 0.5f - cy
         for (id in dragSelectedIds.toList()) {
             val idx = importedImages.indexOfFirst { it.id == id }
             if (idx < 0) continue
             val img = importedImages[idx]
             importedImages[idx] = img.copy(
-                dragOffsetXFrac = (img.dragOffsetXFrac + ddx).coerceIn(-0.92f, 0.92f),
-                dragOffsetYFrac = (img.dragOffsetYFrac + ddy).coerceIn(-0.92f, 0.92f)
+                dragOffsetXFrac = (img.dragOffsetXFrac + dx).coerceIn(-0.92f, 0.92f),
+                dragOffsetYFrac = (img.dragOffsetYFrac + dy).coerceIn(-0.92f, 0.92f)
             )
         }
     }
 
-    fun setDragGroupPositionPercent(xPercent: Float?, yPercent: Float?) {
+    fun setDragGroupPositionPercent(xPercent: Int?, yPercent: Int?) {
         if (dragSelectedIds.isEmpty()) return
         val (cx, cy) = groupDragCenter()
-        val tx = if (xPercent != null) xPercent.coerceIn(0f, 100f) / 100f else cx
-        val ty = if (yPercent != null) yPercent.coerceIn(0f, 100f) / 100f else cy
-        val ddx = tx - cx
-        val ddy = ty - cy
+        val tx = if (xPercent != null) xPercent.coerceIn(0, 100) / 100f else cx
+        val ty = if (yPercent != null) yPercent.coerceIn(0, 100) / 100f else cy
+        val dx = tx - cx
+        val dy = ty - cy
         for (id in dragSelectedIds.toList()) {
             val idx = importedImages.indexOfFirst { it.id == id }
             if (idx < 0) continue
             val img = importedImages[idx]
             importedImages[idx] = img.copy(
-                dragOffsetXFrac = (img.dragOffsetXFrac + ddx).coerceIn(-0.92f, 0.92f),
-                dragOffsetYFrac = (img.dragOffsetYFrac + ddy).coerceIn(-0.92f, 0.92f)
+                dragOffsetXFrac = (img.dragOffsetXFrac + dx).coerceIn(-0.92f, 0.92f),
+                dragOffsetYFrac = (img.dragOffsetYFrac + dy).coerceIn(-0.92f, 0.92f)
             )
         }
     }
 
+    fun updateImagesPerRow(count: Int) {
+        imagesPerRow = count.coerceIn(1, 20)
+    }
+
+    fun updateImageSpacing(dp: Int) {
+        imageSpacingDp = dp.coerceIn(0, 20)
+    }
+
+    fun updateImageCellAspectRatio(ratio: Float) {
+        imageCellAspectRatio = ratio.coerceIn(0.3f, 2.0f)
+    }
+
+    fun updateImageCornerRadiusPercent(percent: Int) {
+        imageCornerRadiusPercent = percent.coerceIn(0, 100)
+    }
+
+    fun importImages(uris: List<Uri>, replaceId: String? = null, startPageIndex: Int = 0) {
+        val targetBytes = selectedImageSizeOption.targetBytes
+        isImporting = true
+
+        val insertAt = if (replaceId != null) {
+            val idx = importedImages.indexOfFirst { it.id == replaceId }
+            if (idx >= 0) {
+                importedImages.removeAt(idx)
+                idx
+            } else importedImages.size
+        } else {
+            // Start at first slot of selected page (0-based page index).
+            // Page 1 -> 0, Page 2 -> perPage, Page 3 -> 2*perPage, ...
+            // If the list is shorter, pad with empty spacer slots so layout
+            // actually places new images on that page (not earlier pages).
+            val perPage = imagesPerPageCapacity().coerceAtLeast(1)
+            val pageIdx = startPageIndex.coerceAtLeast(0)
+            val targetSlot = pageIdx * perPage
+            minPageCount = maxOf(minPageCount, pageIdx + 1)
+            while (importedImages.size < targetSlot) {
+                val spacerId = "spacer_" + System.nanoTime() + "_" + importedImages.size
+                importedImages.add(
+                    ImportedImage(id = spacerId, imageUri = null, bitmap = null)
+                )
+            }
+            targetSlot
+        }
+        pendingReplaceImageId = null
+
+        val imageIds = uris.mapIndexed { index, uri ->
+            val imageId = "" + uri + "_" + System.currentTimeMillis() + "_" + index
+            importedImages.add(insertAt + index, ImportedImage(id = imageId, imageUri = uri))
+            imageId
+        }
+
+        viewModelScope.launch {
+            uris.forEachIndexed { index, uri ->
+                val imageId = imageIds[index]
+                val decoded = imageHandler.decode(uri)
+                val imageIndex = importedImages.indexOfFirst { it.id == imageId }
+
+                if (decoded != null && imageIndex >= 0) {
+                    if (targetBytes == null) {
+                        importedImages[imageIndex] = importedImages[imageIndex].copy(bitmap = decoded)
+                    } else {
+                        val result = withContext(Dispatchers.Default) {
+                            imageCompressor.compressToTarget(decoded, targetBytes)
+                        }
+                        importedImages[imageIndex] = importedImages[imageIndex].copy(
+                            bitmap = result.bitmap,
+                            approxSizeBytes = result.approxSizeBytes
+                        )
+                    }
+                }
+            }
+            isImporting = false
+        }
+    }
+
+    fun openImageMenu(id: String) {
+        // Ignore empty spacer slots (used only to offset import start page)
+        if (id.startsWith("spacer_")) return
+        if (imagePositionMode != 0 && imagePositionSourceId != null) {
+            val src = imagePositionSourceId!!
+            if (id != src) {
+                when (imagePositionMode) {
+                    1 -> moveSingleImageTo(src, id)
+                    2 -> swapImages(src, id)
+                }
+            }
+            imagePositionMode = 0
+            imagePositionSourceId = null
+            singleMenuImageId = null
+            return
+        }
+        // Multi-select via long-press removed
+        selectionMode = false
+        selectedImageIds.clear()
+        multipleActionsVisible = false
+        singleMenuImageId = if (singleMenuImageId == id) null else id
+    }
+
+    fun dismissImageMenu() {
+        singleMenuImageId = null
+    }
+
+    fun longPressImage(id: String) {
+        // Long-press multi-select removed — intentionally no-op
+    }
+
+    private fun toggleSelection(id: String) {
+        if (selectedImageIds.contains(id)) {
+            selectedImageIds.remove(id)
+        } else {
+            selectedImageIds.add(id)
+        }
+    }
+
+    
+    fun replaceImageBitmap(id: String, newBitmap: android.graphics.Bitmap, sizeBytes: Int? = null) {
+        val idx = importedImages.indexOfFirst { it.id == id }
+        if (idx < 0) return
+        val old = importedImages[idx]
+        val bytes = sizeBytes ?: run {
+            try {
+                val stream = java.io.ByteArrayOutputStream()
+                newBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, stream)
+                stream.size()
+            } catch (_: Exception) {
+                if (!newBitmap.isRecycled) newBitmap.byteCount else old.approxSizeBytes
+            }
+        }
+        importedImages[idx] = old.copy(
+            bitmap = newBitmap,
+            approxSizeBytes = bytes,
+            imageUri = null
+        )
+    }
+
+    fun rotateImageBitmap(id: String, degrees: Float): Boolean {
+        val img = getImage(id) ?: return false
+        val src = img.bitmap ?: return false
+        if (src.isRecycled) return false
+        if (degrees % 360f == 0f) return true
+        val matrix = android.graphics.Matrix().apply { postRotate(degrees) }
+        val rotated = android.graphics.Bitmap.createBitmap(
+            src, 0, 0, src.width, src.height, matrix, true
+        )
+        replaceImageBitmap(id, rotated)
+        return true
+    }
+
+    fun cropImageBitmap(
+        id: String,
+        leftFrac: Float,
+        topFrac: Float,
+        rightFrac: Float,
+        bottomFrac: Float
+    ): Boolean {
+        val img = getImage(id) ?: return false
+        val src = img.bitmap ?: return false
+        if (src.isRecycled) return false
+        val l = (leftFrac.coerceIn(0f, 1f) * src.width).toInt().coerceIn(0, src.width - 1)
+        val t = (topFrac.coerceIn(0f, 1f) * src.height).toInt().coerceIn(0, src.height - 1)
+        val r = (rightFrac.coerceIn(0f, 1f) * src.width).toInt().coerceIn(l + 1, src.width)
+        val b = (bottomFrac.coerceIn(0f, 1f) * src.height).toInt().coerceIn(t + 1, src.height)
+        val w = r - l
+        val h = b - t
+        if (w < 2 || h < 2) return false
+        val cropped = android.graphics.Bitmap.createBitmap(src, l, t, w, h)
+        replaceImageBitmap(id, cropped)
+        return true
+    }
+
+    
+    fun setImageLinkUrl(id: String, url: String?) {
+        val idx = importedImages.indexOfFirst { it.id == id }
+        if (idx < 0) return
+        val cleaned = url?.trim()?.takeIf { it.isNotEmpty() }
+        val normalized = cleaned?.let {
+            if (it.startsWith("http://", true) || it.startsWith("https://", true)) it
+            else "https://$it"
+        }
+        val old = importedImages[idx]
+        importedImages[idx] = old.copy(linkUrl = normalized)
+        singleMenuImageId = null
+    }
+
+    
+    val pageNumberingSelection = mutableStateListOf<Int>()
+    var numberingEditMode: Boolean by mutableStateOf(false)
+    var numberingAlpha: Float by mutableStateOf(0.9f)
+    var numberingSizeFrac: Float by mutableStateOf(0.18f)
+    var numberingXFrac: Float by mutableStateOf(0.5f)
+    var numberingYFrac: Float by mutableStateOf(0.5f)
+    var numberingBgArgb: Long by mutableStateOf(0xE6000000L)
+    var numberingFgArgb: Long by mutableStateOf(0xFFFFFFFFL)
+    var numberingWeight: Float by mutableStateOf(0.85f)
+    /** true = style screen (colors + thickness) before position edit */
+    var numberingStyleScreen: Boolean by mutableStateOf(false)
+
+    fun clearPageNumberingSelection() { pageNumberingSelection.clear() }
+
+    fun togglePageNumberingSelection(pageIndex: Int) {
+        if (pageNumberingSelection.contains(pageIndex)) pageNumberingSelection.remove(pageIndex)
+        else pageNumberingSelection.add(pageIndex)
+    }
+
+    fun toggleSelectAllPagesForNumbering(pageCount: Int) {
+        val count = pageCount.coerceAtLeast(1)
+        val all = pageNumberingSelection.size >= count && (0 until count).all { it in pageNumberingSelection }
+        pageNumberingSelection.clear()
+        if (!all) pageNumberingSelection.addAll(0 until count)
+    }
+
+    fun startNumberingEdit(imagesPerPage: Int) {
+        val selected = pageNumberingSelection.filter { it >= 0 }.toSortedSet()
+        if (selected.isEmpty()) return
+        var n = 1
+        val total = documentPageCount()
+        for (p in selected) {
+            if (p !in 0 until total) continue
+            for (i in imageRangeForPage(p, total)) {
+                val img = importedImages[i]
+                importedImages[i] = img.copy(
+                    numberLabel = n++,
+                    numberXFrac = numberingXFrac,
+                    numberYFrac = numberingYFrac,
+                    numberSizeFrac = numberingSizeFrac,
+                    numberAlpha = numberingAlpha,
+                    numberBgArgb = numberingBgArgb,
+                    numberFgArgb = numberingFgArgb,
+                    numberWeight = numberingWeight
+                )
+            }
+        }
+        numberingEditMode = true
+    }
+
+    fun updateNumberingLiveStyle() {
+        for (i in importedImages.indices) {
+            val img = importedImages[i]
+            if (img.numberLabel != null) {
+                importedImages[i] = img.copy(
+                    numberXFrac = numberingXFrac,
+                    numberYFrac = numberingYFrac,
+                    numberSizeFrac = numberingSizeFrac,
+                    numberAlpha = numberingAlpha,
+                    numberBgArgb = numberingBgArgb,
+                    numberFgArgb = numberingFgArgb,
+                    numberWeight = numberingWeight
+                )
+            }
+        }
+    }
+
+    fun nudgeNumbering(dx: Float, dy: Float) {
+        // Allow full 0..1; each image clamps using its own width/height + icon size at draw/export time.
+        val step = 0.02f
+        numberingXFrac = (numberingXFrac + dx * step).coerceIn(0f, 1f)
+        numberingYFrac = (numberingYFrac + dy * step).coerceIn(0f, 1f)
+        updateNumberingLiveStyle()
+    }
+
+    fun centerNumbering() {
+        numberingXFrac = 0.5f
+        numberingYFrac = 0.5f
+        updateNumberingLiveStyle()
+    }
+
+    
+    fun openNumberingStyleScreen() {
+        if (pageNumberingSelection.isEmpty()) return
+        numberingStyleScreen = true
+    }
+
+    fun confirmNumberingStyleAndEdit(imagesPerPage: Int) {
+        numberingStyleScreen = false
+        startNumberingEdit(imagesPerPage)
+    }
+
+    fun cancelNumberingStyleScreen() {
+        numberingStyleScreen = false
+    }
+
+    fun finishNumberingEdit() {
+        updateNumberingLiveStyle()
+        numberingEditMode = false
+        numberingStyleScreen = false
+        pageNumberingSelection.clear()
+    }
+
+    fun getImage(id: String): ImportedImage? =
+        importedImages.firstOrNull { it.id == id }
+
+    fun enterSingleReorder(id: String) {
+        singleMenuImageId = null
+        selectedImageIds.clear()
+        selectedImageIds.add(id)
+        reorderMode = true
+    }
+
+    fun cutSingle(id: String) {
+        val image = importedImages.firstOrNull { it.id == id }
+        if (image != null) {
+            clipboardImages = listOf(image)
+            importedImages.remove(image)
+        }
+        singleMenuImageId = null
+    }
+
+    fun copySingle(id: String) {
+        val image = importedImages.firstOrNull { it.id == id }
+        if (image != null) {
+            clipboardImages = listOf(image)
+        }
+        singleMenuImageId = null
+    }
+
+    fun pasteImages() {
+        if (clipboardImages.isNotEmpty()) {
+            importedImages.addAll(clipboardImages)
+        }
+        singleMenuImageId = null
+    }
+
+    fun deleteSingle(id: String) {
+        importedImages.removeAll { it.id == id }
+        singleMenuImageId = null
+    }
+
+    fun finishMultipleSelection() {
+        multipleActionsVisible = true
+    }
+
+    fun closeMultipleActions() {
+        multipleActionsVisible = false
+    }
+
+    fun getSelectedImages(): List<ImportedImage> =
+        importedImages.filter { it.id in selectedImageIds }
+
+    fun cancelSelection() {
+        selectionMode = false
+        selectedImageIds.clear()
+        multipleActionsVisible = false
+    }
+
+    fun cutSelected() {
+        clipboardImages = getSelectedImages()
+        importedImages.removeAll { it.id in selectedImageIds }
+        multipleActionsVisible = false
+        cancelSelection()
+    }
+
+    fun copySelected() {
+        clipboardImages = getSelectedImages()
+        multipleActionsVisible = false
+        cancelSelection()
+    }
+
+    fun deleteSelected() {
+        importedImages.removeAll { it.id in selectedImageIds }
+        multipleActionsVisible = false
+        cancelSelection()
+    }
+
+    
+    fun startReplaceImage(id: String) {
+        pendingReplaceImageId = id
+        singleMenuImageId = null
+    }
+
+    fun startImageMove(id: String) {
+        imagePositionSourceId = id
+        imagePositionMode = 1
+        singleMenuImageId = null
+    }
+
+    fun startImageSwap(id: String) {
+        imagePositionSourceId = id
+        imagePositionMode = 2
+        singleMenuImageId = null
+    }
+
+    fun cancelImagePositionMode() {
+        imagePositionMode = 0
+        imagePositionSourceId = null
+    }
+
+    fun swapImages(idA: String, idB: String) {
+        if (idA == idB) return
+        val i = importedImages.indexOfFirst { it.id == idA }
+        val j = importedImages.indexOfFirst { it.id == idB }
+        if (i < 0 || j < 0) return
+        val tmp = importedImages[i]
+        importedImages[i] = importedImages[j]
+        importedImages[j] = tmp
+    }
+
+    /**
+     * Move [sourceId] to [targetId]'s original list position (insertion,
+     * not replacement). The destination image is kept — it (and every
+     * image between source and destination) shifts over by one slot.
+     * Source is not duplicated. Works across pages (flat image list order).
+     */
+    fun moveSingleImageTo(sourceId: String, targetId: String) {
+        if (sourceId == targetId) return
+
+        val sourceIndex = importedImages.indexOfFirst { it.id == sourceId }
+        if (sourceIndex < 0) return
+
+        // Capture the destination's index BEFORE removing the source —
+        // it must not be recalculated after removal.
+        val targetIndex = importedImages.indexOfFirst { it.id == targetId }
+        if (targetIndex < 0) return
+
+        // Remove ONLY the source. The destination is never touched/removed.
+        val sourceItem = importedImages.removeAt(sourceIndex)
+
+        // Insert the source at the destination's original index. This
+        // correctly places it in that exact slot and shifts everything
+        // between source and destination by one, in either direction.
+        val insertAt = targetIndex.coerceIn(0, importedImages.size)
+        importedImages.add(insertAt, sourceItem)
+    }
+
+    fun moveSelectedImagesTo(targetId: String) {
+        val idsToMove = selectedImageIds.toList()
+        if (idsToMove.isEmpty() || targetId in idsToMove) return
+
+        val itemsToMove = importedImages.filter { it.id in idsToMove }
+        importedImages.removeAll { it.id in idsToMove }
+
+        val targetIndex = importedImages.indexOfFirst { it.id == targetId }
+        val insertAt = if (targetIndex < 0) importedImages.size else targetIndex
+        importedImages.addAll(insertAt, itemsToMove)
+    }
+
+    fun finishReorder() {
+        reorderMode = false
+        cancelSelection()
+    }
+
+    // ---- Page Tools actions ----
+
+    fun addNewPage() {
+        minPageCount = minPageCount + 1
+    }
+
+    fun deleteLastPage() {
+        if (minPageCount <= 1) return
+        minPageCount = minPageCount - 1
+    }
+
+    fun clearPageDeleteSelection() {
+        pageDeleteSelection.clear()
+    }
+
+    fun togglePageDeleteSelection(pageIndex: Int) {
+        if (pageDeleteSelection.contains(pageIndex)) {
+            pageDeleteSelection.remove(pageIndex)
+        } else {
+            pageDeleteSelection.add(pageIndex)
+        }
+    }
+
+    fun toggleSelectAllPagesForDelete(pageCount: Int) {
+        val count = pageCount.coerceAtLeast(1)
+        val allSelected = pageDeleteSelection.size >= count &&
+            (0 until count).all { it in pageDeleteSelection }
+        if (allSelected) {
+            pageDeleteSelection.clear()
+        } else {
+            pageDeleteSelection.clear()
+            pageDeleteSelection.addAll(0 until count)
+        }
+    }
+
+    
+    fun clearPageDuplicateSelection() {
+        pageDuplicateSelection.clear()
+    }
+
+    fun togglePageDuplicateSelection(pageIndex: Int) {
+        if (pageDuplicateSelection.contains(pageIndex)) {
+            pageDuplicateSelection.remove(pageIndex)
+        } else {
+            pageDuplicateSelection.add(pageIndex)
+        }
+    }
+
+    fun toggleSelectAllPagesForDuplicate(pageCount: Int) {
+        val count = pageCount.coerceAtLeast(1)
+        val allSelected = pageDuplicateSelection.size >= count &&
+            (0 until count).all { it in pageDuplicateSelection }
+        if (allSelected) {
+            pageDuplicateSelection.clear()
+        } else {
+            pageDuplicateSelection.clear()
+            pageDuplicateSelection.addAll(0 until count)
+        }
+    }
+
+    fun duplicateSelectedPages(imagesPerPage: Int) {
+        val total = documentPageCount()
+        val selected = pageDuplicateSelection.filter { it in 0 until total }.sortedDescending()
+        if (selected.isEmpty()) return
+
+        for (pageIdx in selected) {
+            val range = imageRangeForPage(pageIdx, total)
+            val slice = if (!range.isEmpty()) {
+                importedImages.subList(range.first, range.last + 1).toList()
+            } else {
+                emptyList()
+            }
+            val start = if (!range.isEmpty()) range.first else 0
+            val end = if (!range.isEmpty()) range.last + 1 else 0
+            val copies = slice.map { img ->
+                img.copy(id = java.util.UUID.randomUUID().toString())
+            }
+            importedImages.addAll(end, copies)
+
+            // Shift text on pages after this page, then copy texts on this page
+            val textsOnPage = textElements.filter { it.pageIndex == pageIdx }
+            for (i in textElements.indices.reversed()) {
+                val te = textElements[i]
+                if (te.pageIndex > pageIdx) {
+                    textElements[i] = te.copy(pageIndex = te.pageIndex + 1)
+                }
+            }
+            textsOnPage.forEach { te ->
+                textElements.add(
+                    te.copy(
+                        id = java.util.UUID.randomUUID().toString(),
+                        pageIndex = pageIdx + 1
+                    )
+                )
+            }
+
+            // Shift overrides for indices > pageIdx, then copy override at pageIdx to pageIdx+1
+            fun shiftFloat(map: MutableMap<Int, Float>) {
+                val entries = map.toList().sortedByDescending { it.first }
+                map.clear()
+                entries.forEach { (k, v) ->
+                    when {
+                        k > pageIdx -> map[k + 1] = v
+                        k == pageIdx -> {
+                            map[k] = v
+                            map[k + 1] = v
+                        }
+                        else -> map[k] = v
+                    }
+                }
+            }
+            fun shiftLong(map: MutableMap<Int, Long>) {
+                val entries = map.toList().sortedByDescending { it.first }
+                map.clear()
+                entries.forEach { (k, v) ->
+                    when {
+                        k > pageIdx -> map[k + 1] = v
+                        k == pageIdx -> {
+                            map[k] = v
+                            map[k + 1] = v
+                        }
+                        else -> map[k] = v
+                    }
+                }
+            }
+            fun shiftBmp(map: MutableMap<Int, android.graphics.Bitmap>) {
+                val entries = map.toList().sortedByDescending { it.first }
+                map.clear()
+                entries.forEach { (k, v) ->
+                    when {
+                        k > pageIdx -> map[k + 1] = v
+                        k == pageIdx -> {
+                            map[k] = v
+                            map[k + 1] = v
+                        }
+                        else -> map[k] = v
+                    }
+                }
+            }
+            shiftFloat(pageAspectOverrides)
+            shiftLong(pageBackgroundColorOverrides)
+            shiftBmp(pageBackgroundBitmapOverrides)
+
+            minPageCount = minPageCount + 1
+        }
+        pageDuplicateSelection.clear()
+    }
+
+    
+    /**
+     * Move page [fromIndex] so it occupies the current position of [toIndex].
+     * Example: from=4 (Page 5), to=8 (Page 9) → order becomes 1,2,3,4,6,7,8,5,9,...
+     */
+    fun movePageTo(fromIndex: Int, toIndex: Int, imagesPerPage: Int) {
+        val total = documentPageCount()
+        if (fromIndex == toIndex) return
+        if (fromIndex !in 0 until total || toIndex !in 0 until total) return
+
+        val order = (0 until total).toMutableList()
+        val item = order.removeAt(fromIndex)
+        var insertAt = toIndex
+        if (fromIndex < toIndex) {
+            insertAt = toIndex - 1
+        }
+        order.add(insertAt, item)
+        reorderPages(order, imagesPerPage)
+    }
+
+    fun reorderPages(newOrder: List<Int>, imagesPerPage: Int) {
+        val total = documentPageCount()
+        if (newOrder.size != total || newOrder.toSet() != (0 until total).toSet()) return
+
+        val pageImages = (0 until total).map { p ->
+            val range = imageRangeForPage(p, total)
+            if (range.isEmpty()) emptyList()
+            else importedImages.subList(range.first, range.last + 1).toList()
+        }
+        val rebuilt = newOrder.flatMap { pageImages[it] }
+        importedImages.clear()
+        importedImages.addAll(rebuilt)
+
+        // newOrder[newPos] = oldPos  =>  oldPos maps to newPos
+        val oldToNew = newOrder.mapIndexed { newPos, oldPos -> oldPos to newPos }.toMap()
+        val newTexts = textElements.map { te ->
+            te.copy(pageIndex = oldToNew[te.pageIndex] ?: te.pageIndex)
+        }
+        textElements.clear()
+        textElements.addAll(newTexts)
+
+        fun remapFloat(map: MutableMap<Int, Float>) {
+            val old = map.toMap()
+            map.clear()
+            old.forEach { (k, v) ->
+                val nk = oldToNew[k]
+                if (nk != null) map[nk] = v
+            }
+        }
+        fun remapLong(map: MutableMap<Int, Long>) {
+            val old = map.toMap()
+            map.clear()
+            old.forEach { (k, v) ->
+                val nk = oldToNew[k]
+                if (nk != null) map[nk] = v
+            }
+        }
+        fun remapBmp(map: MutableMap<Int, android.graphics.Bitmap>) {
+            val old = map.toMap()
+            map.clear()
+            old.forEach { (k, v) ->
+                val nk = oldToNew[k]
+                if (nk != null) map[nk] = v
+            }
+        }
+        remapFloat(pageAspectOverrides)
+        remapLong(pageBackgroundColorOverrides)
+        remapBmp(pageBackgroundBitmapOverrides)
+    }
+
+    fun deleteSelectedPages(imagesPerPage: Int) {
+        val total = documentPageCount()
+        val toDelete = pageDeleteSelection.filter { it in 0 until total }.toSortedSet()
+        if (toDelete.isEmpty()) return
+
+        if (toDelete.size >= total) {
+            importedImages.clear()
+            textElements.clear()
+            minPageCount = 1
+            pageAspectOverrides.clear()
+            pageBackgroundColorOverrides.clear()
+            pageBackgroundBitmapOverrides.clear()
+            pageDeleteSelection.clear()
+            return
+        }
+
+        // Remove images that sit on deleted document pages
+        val keptImages = (0 until total)
+            .filter { it !in toDelete }
+            .flatMap { p ->
+                val range = imageRangeForPage(p, total)
+                if (range.isEmpty()) emptyList()
+                else importedImages.subList(range.first, range.last + 1).toList()
+            }
+        importedImages.clear()
+        importedImages.addAll(keptImages)
+
+        // Text: drop deleted pages, shift later indices down
+        val keptText = textElements
+            .filter { it.pageIndex !in toDelete }
+            .map { te ->
+                val shift = toDelete.count { it < te.pageIndex }
+                if (shift > 0) te.copy(pageIndex = te.pageIndex - shift) else te
+            }
+        textElements.clear()
+        textElements.addAll(keptText)
+
+        // Reindex float overrides
+        run {
+            val old = pageAspectOverrides.toMap()
+            pageAspectOverrides.clear()
+            old.forEach { (k, v) ->
+                if (k in toDelete) return@forEach
+                pageAspectOverrides[k - toDelete.count { it < k }] = v
+            }
+        }
+        run {
+            val old = pageBackgroundColorOverrides.toMap()
+            pageBackgroundColorOverrides.clear()
+            old.forEach { (k, v) ->
+                if (k in toDelete) return@forEach
+                pageBackgroundColorOverrides[k - toDelete.count { it < k }] = v
+            }
+        }
+        run {
+            val old = pageBackgroundBitmapOverrides.toMap()
+            pageBackgroundBitmapOverrides.clear()
+            old.forEach { (k, v) ->
+                if (k !in toDelete) {
+                    pageBackgroundBitmapOverrides[k - toDelete.count { it < k }] = v
+                }
+            }
+        }
+
+        minPageCount = maxOf(1, minPageCount - toDelete.size)
+        pageDeleteSelection.clear()
+    }
+
+
+    fun aspectRatioForPage(pageIndex: Int): Float {
+        return pageAspectOverrides[pageIndex] ?: pageAspectRatio
+    }
+
+    /**
+     * How many images fit on one page — SAME math as PdfPagesPreview / PdfGenerator.
+     * Uses page aspect, margin, spacing, cell aspect, imagesPerRow.
+     */
+    fun imagesPerPageCapacity(
+        imagesPerRowOverride: Int = imagesPerRow,
+        pageAspect: Float = pageAspectRatio,
+        spacingDp: Int = imageSpacingDp,
+        cellAspect: Float = imageCellAspectRatio,
+        marginDp: Int = pageMarginDp
+    ): Int {
+        val pageWidthDp = 360f
+        val aspect = pageAspect.coerceAtLeast(0.1f)
+        val pageHeightDp = pageWidthDp / aspect
+        val pad = marginDp.toFloat().coerceAtLeast(0f)
+        val gridW = (pageWidthDp - pad * 2f).coerceAtLeast(1f)
+        val gridH = (pageHeightDp - pad * 2f).coerceAtLeast(1f)
+        val spacing = spacingDp.toFloat().coerceAtLeast(0f)
+        val perRow = imagesPerRowOverride.coerceAtLeast(1)
+        val cellW = (gridW - spacing * (perRow - 1)) / perRow
+        val cellH = cellW / cellAspect.coerceAtLeast(0.1f)
+        val rows = if (cellH > 0f) {
+            (((gridH + spacing) / (cellH + spacing)).toInt()).coerceAtLeast(1)
+        } else {
+            1
+        }
+        return (perRow * rows).coerceAtLeast(1)
+    }
+
+    /**
+     * Visible page count for pickers + tools:
+     * max( pages needed for images at real capacity, text pages, minPageCount ).
+     * Does NOT use the old wrong imagesPerRow*2 shortcut.
+     */
+    fun currentPageCountEstimate(imagesPerPage: Int = imagesPerPageCapacity()): Int {
+        val perPage = imagesPerPage.coerceAtLeast(1)
+        val imagePages = if (importedImages.isEmpty()) 0
+            else (importedImages.size + perPage - 1) / perPage
+        val textPages = (textElements.maxOfOrNull { it.pageIndex } ?: -1) + 1
+        return maxOf(imagePages, textPages, minPageCount, 1)
+    }
+
+    fun documentPageCount(): Int = currentPageCountEstimate(imagesPerPageCapacity())
+
+    /** Image indices on a layout page (fixed capacity slices, not even-split). */
+    fun imageRangeForPage(
+        pageIndex: Int,
+        pageCount: Int = documentPageCount(),
+        perPage: Int = imagesPerPageCapacity()
+    ): IntRange {
+        val n = importedImages.size
+        val capacity = perPage.coerceAtLeast(1)
+        if (n == 0 || pageIndex < 0 || pageIndex >= pageCount.coerceAtLeast(1)) {
+            return IntRange.EMPTY
+        }
+        val start = pageIndex * capacity
+        if (start >= n) return IntRange.EMPTY
+        val end = minOf(start + capacity, n)
+        return start until end
+    }
+
+    fun selectAllPagesForSize(pageCount: Int) {
+        pageSizeSelection.clear()
+        pageSizeSelection.addAll(0 until pageCount.coerceAtLeast(1))
+    }
+
+    /** First click selects all; second click clears all. */
+    fun toggleSelectAllPagesForSize(pageCount: Int) {
+        val count = pageCount.coerceAtLeast(1)
+        val allSelected = pageSizeSelection.size >= count &&
+            (0 until count).all { it in pageSizeSelection }
+        if (allSelected) {
+            pageSizeSelection.clear()
+        } else {
+            pageSizeSelection.clear()
+            pageSizeSelection.addAll(0 until count)
+        }
+    }
+
+    fun clearPageSizeSelection() {
+        pageSizeSelection.clear()
+    }
+
+    fun togglePageSizeSelection(pageIndex: Int) {
+        if (pageSizeSelection.contains(pageIndex)) {
+            pageSizeSelection.remove(pageIndex)
+        } else {
+            pageSizeSelection.add(pageIndex)
+        }
+    }
+
+    fun isPageSizeSelected(pageIndex: Int): Boolean =
+        pageSizeSelection.contains(pageIndex)
+
+    fun applyPageSizeToSelection(ratio: Float) {
+        val r = ratio.coerceIn(0.4f, 2.5f)
+        if (pageSizeSelection.isEmpty()) {
+            // No selection → treat as global default for all pages
+            pageAspectRatio = r
+            pageAspectOverrides.clear()
+        } else {
+            pageSizeSelection.forEach { idx ->
+                pageAspectOverrides[idx] = r
+            }
+        }
+    }
+
+    fun updatePageAspectRatio(ratio: Float) {
+        val r = ratio.coerceIn(0.4f, 2.5f)
+        pageAspectRatio = r
+        isPageLandscape = r > 1f
+    }
+
+    enum class PageOrientation { PORTRAIT, LANDSCAPE, SQUARE }
+
+    fun updatePageOrientation(orientation: PageOrientation) {
+        val ratio = when (orientation) {
+            PageOrientation.PORTRAIT -> 9f / 16f
+            PageOrientation.LANDSCAPE -> 16f / 9f
+            PageOrientation.SQUARE -> 1f
+        }
+        pageAspectRatio = ratio
+        isPageLandscape = ratio > 1f
+        // Set Page Size overrides must not block orientation
+        pageAspectOverrides.clear()
+        pageSizeSelection.clear()
+    }
+
+    /** Keep old Boolean API working if anything still calls it. */
+    fun updatePageOrientation(landscape: Boolean) {
+        updatePageOrientation(
+            if (landscape) PageOrientation.LANDSCAPE else PageOrientation.PORTRAIT
+        )
+    }
+
+    fun updatePageMarginDp(dp: Int) {
+        pageMarginDp = dp.coerceIn(0, 48)
+    }
+
+    fun backgroundColorForPage(pageIndex: Int): Long {
+        return pageBackgroundColorOverrides[pageIndex] ?: pageBackgroundColor
+    }
+
+    fun selectAllPagesForBgColor(pageCount: Int) {
+        pageBgColorSelection.clear()
+        pageBgColorSelection.addAll(0 until pageCount.coerceAtLeast(1))
+    }
+
+    fun togglePageBgColorSelection(pageIndex: Int) {
+        if (pageBgColorSelection.contains(pageIndex)) {
+            pageBgColorSelection.remove(pageIndex)
+        } else {
+            pageBgColorSelection.add(pageIndex)
+        }
+    }
+
+
+    fun clearPageBgColorSelection() {
+        pageBgColorSelection.clear()
+    }
+
+    fun toggleSelectAllPagesForBgColor(pageCount: Int) {
+        val count = pageCount.coerceAtLeast(1)
+        val allSelected = pageBgColorSelection.size >= count &&
+            (0 until count).all { it in pageBgColorSelection }
+        if (allSelected) {
+            pageBgColorSelection.clear()
+        } else {
+            pageBgColorSelection.clear()
+            pageBgColorSelection.addAll(0 until count)
+        }
+    }
+
+    fun applyBackgroundColorToSelection(colorArgb: Long) {
+        if (pageBgColorSelection.isEmpty()) {
+            pageBackgroundColor = colorArgb
+            pageBackgroundColorOverrides.clear()
+            imageSizePreferences.savePageBackgroundColor(colorArgb)
+            // solid color replaces image on global path
+            pageBackgroundImageUri = null
+            pageBackgroundBitmap = null
+            pageBackgroundBitmapOverrides.clear()
+        } else {
+            pageBgColorSelection.forEach { idx ->
+                pageBackgroundColorOverrides[idx] = colorArgb
+                pageBackgroundBitmapOverrides.remove(idx)
+            }
+        }
+    }
+
+    fun updatePageBackgroundColor(colorArgb: Long) {
+        pageBackgroundColor = colorArgb
+        imageSizePreferences.savePageBackgroundColor(colorArgb)
+    }
+
+    fun setPageBackgroundFromUri(uri: Uri?) {
+        if (uri == null) {
+            clearPageBackgroundImage()
+            return
+        }
+        viewModelScope.launch {
+            val bmp = withContext(Dispatchers.IO) {
+                imageHandler.decode(uri, maxDimensionPx = 1600)
+            } ?: return@launch
+            if (pageBgColorSelection.isEmpty()) {
+                pageBackgroundImageUri = uri
+                pageBackgroundBitmap = bmp
+                pageBackgroundBitmapOverrides.clear()
+            } else {
+                pageBgColorSelection.forEach { idx ->
+                    pageBackgroundBitmapOverrides[idx] = bmp
+                    pageBackgroundColorOverrides.remove(idx)
+                }
+            }
+        }
+    }
+
+    fun clearPageBackgroundImage() {
+        if (pageBgColorSelection.isEmpty()) {
+            pageBackgroundImageUri = null
+            pageBackgroundBitmap = null
+            pageBackgroundBitmapOverrides.clear()
+        } else {
+            pageBgColorSelection.forEach { idx ->
+                pageBackgroundBitmapOverrides.remove(idx)
+            }
+        }
+    }
+
+    fun backgroundBitmapForPage(pageIndex: Int): Bitmap? {
+        return pageBackgroundBitmapOverrides[pageIndex] ?: pageBackgroundBitmap
+    }
+
+
+
+    fun updatePageNumberPosition(pos: PageNumberPosition) {
+        pageNumberPosition = pos
+    }
+
+    fun updatePageNumberStyle(style: PageNumberStyle) {
+        pageNumberStyle = style
+    }
+
+    fun formatPageNumber(pageIndexZeroBased: Int): String {
+        val n = pageIndexZeroBased + 1
+        return when (pageNumberStyle) {
+            PageNumberStyle.ARABIC -> n.toString()
+            PageNumberStyle.ROMAN_LOWER -> toRoman(n).lowercase()
+            PageNumberStyle.ROMAN_UPPER -> toRoman(n)
+            PageNumberStyle.ALPHA_LOWER -> toAlpha(n).lowercase()
+            PageNumberStyle.ALPHA_UPPER -> toAlpha(n)
+        }
+    }
+
+    private fun toRoman(num: Int): String {
+        if (num <= 0) return ""
+        val values = listOf(1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1)
+        val symbols = listOf("M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I")
+        var n = num
+        val sb = StringBuilder()
+        for (i in values.indices) {
+            while (n >= values[i]) {
+                sb.append(symbols[i])
+                n -= values[i]
+            }
+        }
+        return sb.toString()
+    }
+
+    private fun toAlpha(num: Int): String {
+        var n = num
+        val sb = StringBuilder()
+        while (n > 0) {
+            n--
+            sb.insert(0, ('A' + (n % 26)).toChar())
+            n /= 26
+        }
+        return sb.toString()
+    }
+
+    fun updateSelectedTextSize(sizeSp: Float) {
+        val id = focusedTextId ?: selectedTextId ?: return
+        val index = textElements.indexOfFirst { it.id == id }
+        if (index < 0) return
+        val clamped = sizeSp.coerceIn(8f, 72f)
+        textElements[index] = textElements[index].copy(fontSizeSp = clamped)
+    }
+
+    fun selectedTextSizeSp(): Float {
+        val id = focusedTextId ?: selectedTextId ?: return 16f
+        return textElements.firstOrNull { it.id == id }?.fontSizeSp ?: 16f
+    }
+
+    fun updateSelectedTextColor(colorArgb: Long) {
+        val index = activeTextIndex()
+        if (index < 0) return
+        val element = textElements[index]
+        val selection = currentSelection
+        val start = selection.min.coerceIn(0, element.text.length)
+        val end = selection.max.coerceIn(0, element.text.length)
+
+        if (!selection.collapsed && start < end) {
+            // Apply color only to the selected range (same behavior as Bold)
+            val newRanges = applyColorRange(
+                element.colorRanges,
+                start,
+                end,
+                colorArgb,
+                element.text.length
+            )
+            textElements[index] = element.copy(colorRanges = newRanges)
+        } else {
+            // No selection → apply to entire text element
+            textElements[index] = element.copy(
+                textColorArgb = colorArgb,
+                colorRanges = emptyList()
+            )
+        }
+    }
+
+    fun updateSelectedTextBgColor(colorArgb: Long?) {
+        val index = activeTextIndex()
+        if (index < 0) return
+        val element = textElements[index]
+        if (colorArgb == null) {
+            textElements[index] = element.copy(bgColorArgb = null, bgColorRanges = emptyList())
+            return
+        }
+        val selection = currentSelection
+        val start = selection.min.coerceIn(0, element.text.length)
+        val end = selection.max.coerceIn(0, element.text.length)
+
+        if (!selection.collapsed && start < end) {
+            val newRanges = applyColorRange(
+                element.bgColorRanges,
+                start,
+                end,
+                colorArgb,
+                element.text.length
+            )
+            textElements[index] = element.copy(bgColorRanges = newRanges)
+        } else {
+            textElements[index] = element.copy(
+                bgColorArgb = colorArgb,
+                bgColorRanges = emptyList()
+            )
+        }
+    }
+
+    fun updateSelectedTextShadow(colorArgb: Long? = null, offsetPx: Float? = null, blurPx: Float? = null) {
+        val id = focusedTextId ?: selectedTextId ?: return
+        val index = textElements.indexOfFirst { it.id == id }
+        if (index < 0) return
+        val cur = textElements[index]
+        textElements[index] = cur.copy(
+            shadowColorArgb = colorArgb ?: cur.shadowColorArgb,
+            shadowOffsetPx = offsetPx ?: cur.shadowOffsetPx,
+            shadowBlurPx = blurPx ?: cur.shadowBlurPx
+        )
+    }
+
+    fun selectedTextColorArgb(): Long {
+        val index = activeTextIndex()
+        if (index < 0) return 0xFF000000L
+        val element = textElements[index]
+        val selection = currentSelection
+        if (!selection.collapsed) {
+            val start = selection.min.coerceIn(0, element.text.length)
+            val end = selection.max.coerceIn(0, element.text.length)
+            if (start < end) {
+                val colorsInSel = element.colorRanges
+                    .filter { it.range.first < end && it.range.last + 1 > start }
+                    .map { it.colorArgb }
+                    .distinct()
+                if (colorsInSel.size == 1) return colorsInSel[0]
+            }
+        }
+        return element.textColorArgb
+    }
+
+    fun selectedTextBgColorArgb(): Long? {
+        val index = activeTextIndex()
+        if (index < 0) return null
+        val element = textElements[index]
+        val selection = currentSelection
+        if (!selection.collapsed) {
+            val start = selection.min.coerceIn(0, element.text.length)
+            val end = selection.max.coerceIn(0, element.text.length)
+            if (start < end) {
+                val colorsInSel = element.bgColorRanges
+                    .filter { it.range.first < end && it.range.last + 1 > start }
+                    .map { it.colorArgb }
+                    .distinct()
+                if (colorsInSel.size == 1) return colorsInSel[0]
+            }
+        }
+        return element.bgColorArgb
+    }
+}
