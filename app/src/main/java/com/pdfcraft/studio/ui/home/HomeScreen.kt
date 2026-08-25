@@ -19,24 +19,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pdfcraft.studio.R
 import com.pdfcraft.studio.ui.components.AppLogo
 import com.pdfcraft.studio.ui.components.PrimaryActionButton
 import com.pdfcraft.studio.ui.theme.PDFCraftStudioTheme
 
-/**
- * Home / landing screen. Pure presentation — all it needs from the caller is
- * a callback for the primary action, which keeps this composable easy to
- * preview and reuse.
- */
 @Composable
 fun HomeScreen(onCreatePdfClick: () -> Unit) {
-    Scaffold { innerPadding ->
+    Scaffold(
+        containerColor = Color.White
+    ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -46,38 +45,43 @@ fun HomeScreen(onCreatePdfClick: () -> Unit) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp),
+                    .padding(horizontal = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                AppLogo(size = 112.dp)
+                AppLogo(size = 108.dp)
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(28.dp))
 
                 Text(
                     text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    color = Color.Black,
+                    textAlign = TextAlign.Center,
+                    letterSpacing = (-0.3).sp
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
                     text = stringResource(R.string.home_tagline),
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    color = Color(0xFF8A8A8A),
                     textAlign = TextAlign.Center,
+                    lineHeight = 24.sp,
                     modifier = Modifier.widthIn(max = 280.dp)
                 )
 
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(40.dp))
 
                 PrimaryActionButton(
                     text = stringResource(R.string.create_pdf),
                     icon = Icons.Filled.Add,
                     onClick = onCreatePdfClick,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 420.dp)
                 )
             }
         }

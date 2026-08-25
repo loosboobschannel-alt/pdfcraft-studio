@@ -5,21 +5,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.Button
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pdfcraft.studio.ui.theme.BrandRed
+import com.pdfcraft.studio.ui.theme.BrandOnRed
 
-/**
- * Large, thumb-friendly primary CTA used across the app (Create PDF today;
- * future primary actions like "Export" can reuse this same component for a
- * consistent tap target and visual language).
- */
 @Composable
 fun PrimaryActionButton(
     text: String,
@@ -29,23 +28,30 @@ fun PrimaryActionButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(64.dp),
-        shape = RoundedCornerShape(20.dp),
+        modifier = modifier
+            .height(56.dp)
+            .shadow(12.dp, RoundedCornerShape(28.dp)),
+        shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary
+            containerColor = BrandRed,
+            contentColor = BrandOnRed
+        ),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 2.dp
         ),
         contentPadding = PaddingValues(horizontal = 28.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(26.dp)
+            modifier = Modifier.size(22.dp)
         )
-        androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(12.dp))
+        androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
