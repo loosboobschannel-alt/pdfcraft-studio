@@ -309,6 +309,8 @@ fun EditorToolbar(
                             showImageNumberingPicker = true
                         }
                     )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
                     TextToolsMenu(
                         onEnterTextClick = onAddTextClick,
                         onFontClick = onFontClick,
