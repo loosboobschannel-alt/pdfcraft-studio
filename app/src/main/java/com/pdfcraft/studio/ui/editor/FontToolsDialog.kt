@@ -59,7 +59,7 @@ fun FontToolsDialog(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(stringResource(R.string.text_tool_font)) },
+                    title = { Text(stringResource(R.string.text_tool_font_title)) },
                     navigationIcon = {
                         Text(
                             text = "\u2715",

@@ -65,7 +65,8 @@
     <string name="text_tools_menu_entry">Text Tools</string>
     <string name="text_tool_enter_text">1. Enter Text</string>
     <string name="edit_text_dialog_title">Edit Text</string>
-    <string name="text_tool_font">2. Font</string>
+    <string name="text_tool_font">2. Text Fonts</string>
+    <string name="text_tool_font_title">Text Fonts</string>
     <string name="text_tool_font_size">Font Size</string>
     <string name="text_tool_color">3. Text Color</string>
     <string name="text_tool_bold">Bold</string>

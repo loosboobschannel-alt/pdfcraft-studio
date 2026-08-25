@@ -355,6 +355,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun deselectText() {
         selectedTextId = null
+        focusedTextId = null
     }
 
     fun consumePendingFocus() {
