@@ -497,7 +497,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
             val pageCount = viewModel.documentPageCount().coerceAtLeast(1)
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { showDragPagePicker = false },
-                title = { Text(stringResource(R.string.image_drag_tool)) },
+                title = { Text(stringResource(R.string.image_drag_title)) },
                 text = {
                     Column {
                         Text(
@@ -580,7 +580,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                         TopAppBar(
                             title = {
                                 Text(
-                                    stringResource(R.string.image_drag_tool),
+                                    stringResource(R.string.image_drag_title),
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color.Black
                                 )

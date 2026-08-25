@@ -975,7 +975,7 @@ private fun ImagesPerRowSlider(
     onDone: () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        SliderToolHeader(title = stringResource(R.string.resize_images_tool), onDone = onDone)
+        SliderToolHeader(title = stringResource(R.string.resize_images_title), onDone = onDone)
         SliderWithValueLabel(
             value = imagesPerRow.toFloat(),
             onValueChange = { onImagesPerRowChange(it.roundToInt().coerceIn(1, 20)) },
@@ -1293,7 +1293,7 @@ private fun ImageSpacingSlider(
     onDone: () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        SliderToolHeader(title = stringResource(R.string.image_spacing_tool), onDone = onDone)
+        SliderToolHeader(title = stringResource(R.string.image_spacing_dialog_title), onDone = onDone)
         SliderWithValueLabel(
             value = spacingDp.toFloat(),
             onValueChange = { onSpacingChange(it.roundToInt().coerceIn(0, 20)) },
@@ -1330,7 +1330,7 @@ private fun ImageShapeSlider(
     }
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        SliderToolHeader(title = stringResource(R.string.image_shape_tool), onDone = onDone)
+        SliderToolHeader(title = stringResource(R.string.image_shape_title), onDone = onDone)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1374,7 +1374,7 @@ private fun RoundCornersSlider(
     var percentText by remember(percent) { mutableStateOf(percent.toString()) }
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        SliderToolHeader(title = stringResource(R.string.round_corners_tool), onDone = onDone)
+        SliderToolHeader(title = stringResource(R.string.round_corners_title), onDone = onDone)
 
         Row(
             modifier = Modifier.fillMaxWidth(),

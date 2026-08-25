@@ -81,7 +81,7 @@ fun ImportImagesDialog(
                 TopAppBar(
                     title = {
                         Text(
-                            text = stringResource(R.string.import_images),
+                            text = stringResource(R.string.import_images_action),
                             fontWeight = FontWeight.SemiBold,
                             color = Color.Black,
                             style = MaterialTheme.typography.titleLarge
