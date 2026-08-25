@@ -39,7 +39,7 @@ class ImageSizePreferences(context: Context) {
         prefs.edit().putLong(KEY_PAGE_BG_COLOR, colorArgb).apply()
     }
 
-    fun getNumberingBg(): Long = prefs.getLong(KEY_NUM_BG, 0xE6000000L)
+    fun getNumberingBg(): Long = prefs.getLong(KEY_NUM_BG, 0xFF1976D2L)
     fun getNumberingFg(): Long = prefs.getLong(KEY_NUM_FG, 0xFFFFFFFFL)
     fun getNumberingWeight(): Float = prefs.getFloat(KEY_NUM_WEIGHT, 0.67f)
     fun getNumberingAlpha(): Float = prefs.getFloat(KEY_NUM_ALPHA, 0.9f)

@@ -866,7 +866,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var numberingSizeFrac: Float by mutableStateOf(0.18f)
     var numberingXFrac: Float by mutableStateOf(0.5f)
     var numberingYFrac: Float by mutableStateOf(0.5f)
-    var numberingBgArgb: Long by mutableStateOf(0xE6000000L)
+    var numberingBgArgb: Long by mutableStateOf(0xFF1976D2L)
     var numberingFgArgb: Long by mutableStateOf(0xFFFFFFFFL)
     var numberingWeight: Float by mutableStateOf(0.67f)
     /** true = style screen (colors + thickness) before position edit */

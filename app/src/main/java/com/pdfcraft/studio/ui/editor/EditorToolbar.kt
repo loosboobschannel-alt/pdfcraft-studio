@@ -1124,33 +1124,65 @@ private fun ImageNumberingPanel(
 ) {
     Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
         if (step <= 0) {
-            Text(
-                text = stringResource(R.string.image_numbering_transparency),
-                color = Color.Black,
-                fontWeight = FontWeight.SemiBold,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(bottom = 0.dp)
-            )
-            SliderWithValueLabel(
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.image_numbering_transparency),
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = "${(alpha * 100f).toInt()}%",
+                    color = Color.Black,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+            Slider(
                 value = alpha,
                 onValueChange = onAlphaChange,
                 valueRange = 0.2f..1f,
-                steps = 0,
-                labelFormatter = { "${(it * 100f).toInt()}%" }
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 0.dp, bottom = 4.dp),
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary
+                )
             )
-            Text(
-                text = stringResource(R.string.image_numbering_size),
-                color = Color.Black,
-                fontWeight = FontWeight.SemiBold,
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(top = 2.dp, bottom = 0.dp)
-            )
-            SliderWithValueLabel(
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.image_numbering_size),
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = "${(sizeFrac * 100f).toInt()}%",
+                    color = Color.Black,
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+            Slider(
                 value = sizeFrac,
                 onValueChange = onSizeChange,
                 valueRange = 0.08f..0.35f,
-                steps = 0,
-                labelFormatter = { "${(it * 100f).toInt()}%" }
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 0.dp),
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.primary,
+                    activeTrackColor = MaterialTheme.colorScheme.primary
+                )
             )
             Row(
                 modifier = Modifier
