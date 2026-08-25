@@ -330,7 +330,9 @@ fun EditorToolbar(
                             else onTextSizeClick()
                         },
                         onDeleteTextClick = onDeleteTextClick,
-                        hasSelectedText = hasSelectedText
+                        hasSelectedText = hasSelectedText,
+                        hasTextRangeSelection = hasTextRangeSelection,
+                        onInsertLinkClick = onInsertLinkClick
                     )
                     }
                 }
@@ -829,7 +831,9 @@ private fun TextToolsMenu(
     onTextBgColorClick: () -> Unit,
     onTextShadowClick: () -> Unit,
     onDeleteTextClick: () -> Unit,
-    hasSelectedText: Boolean
+    onInsertLinkClick: () -> Unit = {},
+    hasSelectedText: Boolean,
+    hasTextRangeSelection: Boolean = false
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -885,6 +889,14 @@ ToolMenuItem(
             ) {
                 menuExpanded = false
                 onTextSizeClick()
+            }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(
+                label = stringResource(R.string.text_tool_insert_link),
+                enabled = hasTextRangeSelection
+            ) {
+                menuExpanded = false
+                onInsertLinkClick()
             }
             HorizontalDivider(color = Color.LightGray)
             Text(

@@ -95,6 +95,7 @@ import com.pdfcraft.studio.core.text.FontCatalog
 import com.pdfcraft.studio.ui.editor.ImportedImage
 import com.pdfcraft.studio.ui.editor.ColorRange
 import com.pdfcraft.studio.ui.editor.TextElement
+import com.pdfcraft.studio.ui.editor.LinkRange
 
 private const val PAGE_ASPECT_RATIO = 9f / 16f
 private const val PAGE_INNER_PADDING_DP = 10f
@@ -361,7 +362,8 @@ private class TextStyleRangesVisualTransformation(
     private val italicRanges: List<IntRange>,
     private val colorRanges: List<ColorRange> = emptyList(),
     private val bgColorRanges: List<ColorRange> = emptyList(),
-    private val wholeBgColorArgb: Long? = null
+    private val wholeBgColorArgb: Long? = null,
+    private val linkRanges: List<LinkRange> = emptyList()
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val builder = AnnotatedString.Builder(text.text)
@@ -398,6 +400,20 @@ private class TextStyleRangesVisualTransformation(
             val end = (cr.range.last + 1).coerceIn(0, text.text.length)
             if (start < end) {
                 builder.addStyle(SpanStyle(background = Color(cr.colorArgb)), start, end)
+            }
+        }
+        linkRanges.forEach { lr ->
+            val start = lr.range.first.coerceIn(0, text.text.length)
+            val end = (lr.range.last + 1).coerceIn(0, text.text.length)
+            if (start < end) {
+                builder.addStyle(
+                    SpanStyle(
+                        color = Color(0xFF1976D2),
+                        textDecoration = TextDecoration.Underline
+                    ),
+                    start,
+                    end
+                )
             }
         }
         return TransformedText(builder.toAnnotatedString(), OffsetMapping.Identity)
@@ -515,7 +531,8 @@ private fun PageTextOverlay(
                         italicRanges = textElement.italicRanges,
                         colorRanges = textElement.colorRanges,
                         bgColorRanges = textElement.bgColorRanges,
-                        wholeBgColorArgb = textElement.bgColorArgb
+                        wholeBgColorArgb = textElement.bgColorArgb,
+                        linkRanges = textElement.linkRanges
                     ),
                     textStyle = TextStyle(
                         color = Color(textElement.textColorArgb),

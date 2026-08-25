@@ -75,6 +75,13 @@
     <string name="text_tool_align_center">Center Alignment</string>
     <string name="text_tool_align_right">Right Alignment</string>
     <string name="text_tool_delete">7. Delete</string>
+    <string name="text_tool_insert_link">8. Insert Link</string>
+    <string name="text_link_title">Insert Link</string>
+    <string name="text_link_instruction">Paste or type the URL for the selected text.</string>
+    <string name="text_link_url_hint">https://example.com</string>
+    <string name="text_link_ok">OK</string>
+    <string name="text_link_cancel">Cancel</string>
+    <string name="text_link_select_first">Select text first to insert a link.</string>
     <string name="text_tool_rename">Rename</string>
     <string name="text_tool_copy">Copy</string>
     <string name="text_tool_cut">Cut</string>

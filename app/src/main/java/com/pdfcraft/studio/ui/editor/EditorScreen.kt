@@ -230,6 +230,9 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
     var showTextBgColorPicker by remember { mutableStateOf(false) }
     var showTextShadowPanel by remember { mutableStateOf(false) }
     var showFontTools by remember { mutableStateOf(false) }
+    var showTextLinkDialog by remember { mutableStateOf(false) }
+    var textLinkUrl by remember { mutableStateOf("") }
+    var textLinkHint by remember { mutableStateOf(false) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -722,7 +725,50 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
             )
         }
 
-        if (showFontTools) {
+            if (textLinkHint) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { textLinkHint = false },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { textLinkHint = false }) {
+                    androidx.compose.material3.Text("OK")
+                }
+            },
+            text = { androidx.compose.material3.Text(stringResource(R.string.text_link_select_first)) }
+        )
+    }
+    if (showTextLinkDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showTextLinkDialog = false },
+            title = { androidx.compose.material3.Text(stringResource(R.string.text_link_title)) },
+            text = {
+                androidx.compose.foundation.layout.Column {
+                    androidx.compose.material3.Text(stringResource(R.string.text_link_instruction))
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(8.dp))
+                    androidx.compose.material3.OutlinedTextField(
+                        value = textLinkUrl,
+                        onValueChange = { textLinkUrl = it },
+                        placeholder = { androidx.compose.material3.Text(stringResource(R.string.text_link_url_hint)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    if (viewModel.applyLinkToSelection(textLinkUrl)) {
+                        showTextLinkDialog = false
+                    }
+                }) { androidx.compose.material3.Text(stringResource(R.string.text_link_ok)) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showTextLinkDialog = false }) {
+                    androidx.compose.material3.Text(stringResource(R.string.text_link_cancel))
+                }
+            }
+        )
+    }
+
+if (showFontTools) {
             val hasSelection =
                 viewModel.focusedTextId != null && !viewModel.currentSelection.collapsed
             FontToolsDialog(
@@ -872,6 +918,17 @@ Column(
                 onFontClick = {
                     showFontTools = true
                 },
+                onInsertLinkClick = {
+                    val sel = viewModel.currentSelection
+                    if (sel.collapsed || (viewModel.selectedTextId == null && viewModel.focusedTextId == null)) {
+                        textLinkHint = true
+                    } else {
+                        textLinkUrl = "https://"
+                        showTextLinkDialog = true
+                    }
+                },
+                hasTextRangeSelection = !viewModel.currentSelection.collapsed &&
+                    (viewModel.selectedTextId != null || viewModel.focusedTextId != null),
                 onDeleteTextClick =
                     viewModel::deleteSelectedText,
                 hasSelectedText =

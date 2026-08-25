@@ -53,6 +53,11 @@ data class ColorRange(
     val colorArgb: Long
 )
 
+data class LinkRange(
+    val range: IntRange,
+    val url: String
+)
+
 data class TextElement(
     val id: String,
     val pageIndex: Int,
@@ -63,6 +68,7 @@ data class TextElement(
     val italicRanges: List<IntRange> = emptyList(),
     val colorRanges: List<ColorRange> = emptyList(),
     val bgColorRanges: List<ColorRange> = emptyList(),
+    val linkRanges: List<LinkRange> = emptyList(),
     val fontId: String = FontCatalog.ID_DEFAULT,
     val fontSizeSp: Float = 16f,
     val textColorArgb: Long = 0xFF000000L,
@@ -211,6 +217,71 @@ private fun adjustColorRangesForEdit(
             else -> null
         }
     }
+}
+
+
+private fun applyLinkRange(
+    existing: List<LinkRange>,
+    start: Int,
+    end: Int,
+    url: String,
+    textLength: Int
+): List<LinkRange> {
+    if (start >= end || url.isBlank()) return existing
+    val s = start.coerceIn(0, textLength)
+    val e = end.coerceIn(0, textLength)
+    if (s >= e) return existing
+    val result = mutableListOf<LinkRange>()
+    for (lr in existing) {
+        val a = lr.range.first
+        val b = lr.range.last
+        if (b < s || a >= e) {
+            result.add(lr)
+        } else {
+            if (a < s) result.add(LinkRange(a until s, lr.url))
+            if (b >= e) result.add(LinkRange(e..b, lr.url))
+        }
+    }
+    result.add(LinkRange(s until e, url.trim()))
+    return result.filter { it.range.first <= it.range.last }
+}
+
+private fun adjustLinkRangesForEdit(
+    oldText: String,
+    newText: String,
+    ranges: List<LinkRange>
+): List<LinkRange> {
+    if (ranges.isEmpty()) return ranges
+    var prefix = 0
+    val minLen = minOf(oldText.length, newText.length)
+    while (prefix < minLen && oldText[prefix] == newText[prefix]) prefix++
+    var suffix = 0
+    while (
+        suffix < (minLen - prefix) &&
+        oldText[oldText.length - 1 - suffix] == newText[newText.length - 1 - suffix]
+    ) suffix++
+    val oldEditEnd = oldText.length - suffix
+    val newEditEnd = newText.length - suffix
+    val delta = newEditEnd - oldEditEnd
+    val out = mutableListOf<LinkRange>()
+    for (lr in ranges) {
+        var a = lr.range.first
+        var b = lr.range.last
+        if (b < prefix) {
+            out.add(lr)
+        } else if (a >= oldEditEnd) {
+            out.add(LinkRange((a + delta)..(b + delta), lr.url))
+        } else if (a >= prefix && b < oldEditEnd) {
+            // range fully inside edit — drop
+        } else {
+            if (a < prefix) a = a
+            else a = newEditEnd
+            if (b >= oldEditEnd) b = b + delta
+            else b = newEditEnd - 1
+            if (a <= b) out.add(LinkRange(a..b, lr.url))
+        }
+    }
+    return out
 }
 
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
@@ -402,6 +473,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 boldRanges = adjustedBold,
                 italicRanges = adjustedItalic,
                 colorRanges = adjustedColors,
+                linkRanges = adjustedLinks,
                 bgColorRanges = adjustedBgColors
             )
         }
@@ -1729,6 +1801,24 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun selectedTextSizeSp(): Float {
         val id = focusedTextId ?: selectedTextId ?: return 16f
         return textElements.firstOrNull { it.id == id }?.fontSizeSp ?: 16f
+    }
+
+    fun applyLinkToSelection(url: String): Boolean {
+        val clean = url.trim()
+        if (clean.isEmpty()) return false
+        val index = activeTextIndex()
+        if (index < 0) return false
+        val element = textElements[index]
+        val selection = currentSelection
+        if (selection.collapsed) return false
+        val start = selection.min.coerceIn(0, element.text.length)
+        val end = selection.max.coerceIn(0, element.text.length)
+        if (start >= end) return false
+        val linkBlue = 0xFF1976D2L
+        val newLinks = applyLinkRange(element.linkRanges, start, end, clean, element.text.length)
+        val newColors = applyColorRange(element.colorRanges, start, end, linkBlue, element.text.length)
+        textElements[index] = element.copy(linkRanges = newLinks, colorRanges = newColors)
+        return true
     }
 
     fun updateSelectedTextColor(colorArgb: Long) {

@@ -214,6 +214,31 @@ object PdfGenerator {
                     x += w
                     i = j
                 }
+
+                // Clickable text links (same annotation pipeline as image links)
+                te.linkRanges.forEach { lr ->
+                    val url = lr.url.trim().takeIf { it.isNotEmpty() } ?: return@forEach
+                    val s = lr.range.first.coerceIn(0, fullText.length)
+                    val e = (lr.range.last + 1).coerceIn(0, fullText.length)
+                    if (s >= e) return@forEach
+                    val before = fullText.substring(0, s)
+                    val linked = fullText.substring(s, e)
+                    val left = baseX + textPaint.measureText(before)
+                    val width = textPaint.measureText(linked)
+                    val top = y - textPaint.textSize * 0.85f
+                    val bottom = y + textPaint.textSize * 0.25f
+                    linkRects.add(
+                        LinkRect(
+                            pageIndex = pageIndex,
+                            left = left,
+                            top = top,
+                            right = left + width,
+                            bottom = bottom,
+                            pageHeight = thisPageHeight.toFloat(),
+                            url = url
+                        )
+                    )
+                }
             }
 
             pdf.finishPage(page)
