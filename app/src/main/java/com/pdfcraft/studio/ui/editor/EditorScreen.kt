@@ -1261,36 +1261,7 @@ Column(
 
                 // Float controls over preview — no white bar, pages stay visible/scrollable
                 if (viewModel.dragModeActive) {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .background(Color.Transparent)
-                            .padding(bottom = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        DragBottomNudgeButton(label = "↑") {
-                            viewModel.nudgeDragImages(0f, -1f)
-                        }
-                        Row(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            DragBottomNudgeButton(label = "←") {
-                                viewModel.nudgeDragImages(-1f, 0f)
-                            }
-                            DragBottomNudgeButton(label = stringResource(R.string.image_drag_center)) {
-                                viewModel.centerDragImages()
-                            }
-                            DragBottomNudgeButton(label = "→") {
-                                viewModel.nudgeDragImages(1f, 0f)
-                            }
-                        }
-                        DragBottomNudgeButton(label = "↓") {
-                            viewModel.nudgeDragImages(0f, 1f)
-                        }
-                    }
-                }
+                    
             }
         }
     }
@@ -1604,46 +1575,3 @@ private fun RotateImageDialog(
     )
 }
 
-@Composable
-private fun DragBottomNudgeButton(label: String, onTick: () -> Unit) {
-    // Same visual style as Image Numbering; entire background is the touch target
-    val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
-    var pressed by remember { mutableStateOf(false) }
-
-    LaunchedEffect(interactionSource) {
-        interactionSource.interactions.collect { interaction ->
-            when (interaction) {
-                is androidx.compose.foundation.interaction.PressInteraction.Press -> pressed = true
-                is androidx.compose.foundation.interaction.PressInteraction.Release -> pressed = false
-                is androidx.compose.foundation.interaction.PressInteraction.Cancel -> pressed = false
-            }
-        }
-    }
-    LaunchedEffect(pressed) {
-        if (!pressed) return@LaunchedEffect
-        onTick()
-        while (pressed) {
-            kotlinx.coroutines.delay(55)
-            onTick()
-        }
-    }
-    Box(
-        modifier = Modifier
-            .padding(8.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFFF0F0F0L), RoundedCornerShape(8.dp))
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = { }
-            )
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = label,
-            color = Color.Black,
-            style = MaterialTheme.typography.titleLarge
-        )
-    }
-}

@@ -1007,25 +1007,25 @@ private fun ImageDragPanel(
             .fillMaxWidth()
             .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = stringResource(R.string.image_drag_tool),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.Black,
-                modifier = Modifier.weight(1f)
-            )
-            TextButton(onClick = onDone, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)) {
-                Text(stringResource(R.string.image_drag_done), style = MaterialTheme.typography.labelMedium)
+            NumberingNudgeButton(label = "\u2191", onTick = { onNudge(0f, -1f) })
+            Row(horizontalArrangement = Arrangement.Center) {
+                NumberingNudgeButton(label = "\u2190", onTick = { onNudge(-1f, 0f) })
+                NumberingNudgeButton(label = "\u25CF", onTick = onCenter)
+                NumberingNudgeButton(label = "\u2192", onTick = { onNudge(1f, 0f) })
             }
+            NumberingNudgeButton(label = "\u2193", onTick = { onNudge(0f, 1f) })
         }
+
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text("X", style = MaterialTheme.typography.labelSmall, color = Color.Black)
             OutlinedTextField(
@@ -1039,12 +1039,11 @@ private fun ImageDragPanel(
                     xText = f
                     f.toFloatOrNull()?.let { if (it in 0f..100f) onXPercentChange(it) }
                 },
-                modifier = Modifier.width(64.dp).height(48.dp),
+                modifier = Modifier.weight(1f).height(48.dp),
                 singleLine = true,
                 textStyle = MaterialTheme.typography.labelMedium
             )
             Text("%", style = MaterialTheme.typography.labelMedium, color = Color.Black)
-            Spacer(modifier = Modifier.width(12.dp))
             Text("Y", style = MaterialTheme.typography.labelSmall, color = Color.Black)
             OutlinedTextField(
                 value = yText,
@@ -1057,14 +1056,26 @@ private fun ImageDragPanel(
                     yText = f
                     f.toFloatOrNull()?.let { if (it in 0f..100f) onYPercentChange(it) }
                 },
-                modifier = Modifier.width(64.dp).height(48.dp),
+                modifier = Modifier.weight(1f).height(48.dp),
                 singleLine = true,
                 textStyle = MaterialTheme.typography.labelMedium
             )
             Text("%", style = MaterialTheme.typography.labelMedium, color = Color.Black)
+            TextButton(
+                onClick = onDone,
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    stringResource(R.string.image_drag_done),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }
+
 
 @Composable
 private fun DragNudgeChip(label: String, onTick: () -> Unit) {
