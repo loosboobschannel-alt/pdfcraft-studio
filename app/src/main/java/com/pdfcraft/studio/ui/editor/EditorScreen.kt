@@ -1258,10 +1258,6 @@ Column(
                     modifier = Modifier.fillMaxWidth()
                 )
                 }
-
-                // Float controls over preview — no white bar, pages stay visible/scrollable
-                if (viewModel.dragModeActive) {
-                    
             }
         }
     }
