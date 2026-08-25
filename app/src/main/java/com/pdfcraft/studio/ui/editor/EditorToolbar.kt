@@ -544,8 +544,7 @@ private fun ToolChip(
 private fun CategoryMenuLabel(
     text: String,
     expanded: Boolean,
-    onClick: () -> Unit,
-    glyph: String? = null
+    onClick: () -> Unit
 ) {
     val bg = if (expanded) Color(0xFFE3F2FD) else Color(0xFFF7F7F7)
     val border = if (expanded) Color(0xFF1976D2) else Color(0xFFE0E0E0)
@@ -561,16 +560,6 @@ private fun CategoryMenuLabel(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
-        if (glyph != null) {
-            Text(
-                text = glyph,
-                color = fg,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-        }
         Text(
             text = text,
             color = fg,
@@ -623,8 +612,7 @@ private fun ImageToolsMenu(
         CategoryMenuLabel(
             text = stringResource(R.string.image_tools_menu_entry),
             expanded = menuExpanded,
-            onClick = { menuExpanded = true },
-            glyph = "▣"
+            onClick = { menuExpanded = true }
         )
 
         DropdownMenu(
@@ -724,8 +712,7 @@ private fun PageToolsMenu(
         CategoryMenuLabel(
             text = stringResource(R.string.page_tools_menu_entry),
             expanded = menuExpanded,
-            onClick = { menuExpanded = true },
-            glyph = "□"
+            onClick = { menuExpanded = true }
         )
 
         DropdownMenu(
@@ -839,8 +826,7 @@ private fun TextToolsMenu(
         CategoryMenuLabel(
             text = stringResource(R.string.text_tools_menu_entry),
             expanded = menuExpanded,
-            onClick = { menuExpanded = true },
-            glyph = "T"
+            onClick = { menuExpanded = true }
         )
 
         DropdownMenu(
