@@ -806,6 +806,10 @@ Column(
                     viewModel.openNumberingStyleScreen()
                 },
                 numberingEditMode = viewModel.numberingEditMode,
+                numberingEditStep = viewModel.numberingEditStep,
+                onNumberingNextStep = viewModel::advanceNumberingEditStep,
+                onNumberingBackStep = viewModel::backNumberingEditStep,
+                onNumberingBackToStyle = viewModel::backNumberingEditToStyle,
                 numberingStyleScreen = viewModel.numberingStyleScreen,
                 numberingWeight = viewModel.numberingWeight,
                 onNumberingWeightChange = { w ->

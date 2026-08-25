@@ -39,11 +39,32 @@ class ImageSizePreferences(context: Context) {
         prefs.edit().putLong(KEY_PAGE_BG_COLOR, colorArgb).apply()
     }
 
+    fun getNumberingBg(): Long = prefs.getLong(KEY_NUM_BG, 0xE6000000L)
+    fun getNumberingFg(): Long = prefs.getLong(KEY_NUM_FG, 0xFFFFFFFFL)
+    fun getNumberingWeight(): Float = prefs.getFloat(KEY_NUM_WEIGHT, 0.85f)
+    fun getNumberingAlpha(): Float = prefs.getFloat(KEY_NUM_ALPHA, 0.9f)
+    fun getNumberingSize(): Float = prefs.getFloat(KEY_NUM_SIZE, 0.18f)
+
+    fun saveNumberingStyle(bg: Long, fg: Long, weight: Float, alpha: Float, size: Float) {
+        prefs.edit()
+            .putLong(KEY_NUM_BG, bg)
+            .putLong(KEY_NUM_FG, fg)
+            .putFloat(KEY_NUM_WEIGHT, weight)
+            .putFloat(KEY_NUM_ALPHA, alpha)
+            .putFloat(KEY_NUM_SIZE, size)
+            .apply()
+    }
+
     private companion object {
         const val PREFS_NAME = "pdfcraft_settings"
         const val KEY_KB = "selected_image_size_kb"
         const val KEY_IS_CUSTOM = "selected_image_size_is_custom"
         const val KEY_PAGE_BG_COLOR = "page_background_color"
+        const val KEY_NUM_BG = "numbering_bg"
+        const val KEY_NUM_FG = "numbering_fg"
+        const val KEY_NUM_WEIGHT = "numbering_weight"
+        const val KEY_NUM_ALPHA = "numbering_alpha"
+        const val KEY_NUM_SIZE = "numbering_size"
         // 3rd swatch default (medium light gray)
         const val DEFAULT_PAGE_BG_COLOR = 0xFFE0E0E0
     }

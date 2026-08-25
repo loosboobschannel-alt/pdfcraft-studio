@@ -871,6 +871,17 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var numberingWeight: Float by mutableStateOf(0.85f)
     /** true = style screen (colors + thickness) before position edit */
     var numberingStyleScreen: Boolean by mutableStateOf(false)
+    /** 0 = transparency/size panel, 1 = move panel */
+    var numberingEditStep: Int by mutableStateOf(0)
+
+    init {
+        // restore last applied numbering style as defaults
+        numberingBgArgb = imageSizePreferences.getNumberingBg()
+        numberingFgArgb = imageSizePreferences.getNumberingFg()
+        numberingWeight = imageSizePreferences.getNumberingWeight()
+        numberingAlpha = imageSizePreferences.getNumberingAlpha()
+        numberingSizeFrac = imageSizePreferences.getNumberingSize()
+    }
 
     fun clearPageNumberingSelection() { pageNumberingSelection.clear() }
 
@@ -908,6 +919,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
         numberingEditMode = true
+        numberingEditStep = 0
     }
 
     fun updateNumberingLiveStyle() {
@@ -958,9 +970,28 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun finishNumberingEdit() {
         updateNumberingLiveStyle()
+        imageSizePreferences.saveNumberingStyle(
+            numberingBgArgb, numberingFgArgb, numberingWeight, numberingAlpha, numberingSizeFrac
+        )
         numberingEditMode = false
         numberingStyleScreen = false
+        numberingEditStep = 0
         pageNumberingSelection.clear()
+    }
+
+    fun backNumberingEditToStyle() {
+        updateNumberingLiveStyle()
+        numberingEditMode = false
+        numberingEditStep = 0
+        numberingStyleScreen = true
+    }
+
+    fun advanceNumberingEditStep() {
+        numberingEditStep = 1
+    }
+
+    fun backNumberingEditStep() {
+        numberingEditStep = 0
     }
 
     fun getImage(id: String): ImportedImage? =

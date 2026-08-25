@@ -128,6 +128,10 @@ fun EditorToolbar(
     onClearPageNumberingSelection: () -> Unit = {},
     onStartImageNumbering: () -> Unit = {},
     numberingEditMode: Boolean = false,
+    numberingEditStep: Int = 0,
+    onNumberingNextStep: () -> Unit = {},
+    onNumberingBackStep: () -> Unit = {},
+    onNumberingBackToStyle: () -> Unit = {},
     numberingStyleScreen: Boolean = false,
     numberingWeight: Float = 0.85f,
     onNumberingWeightChange: (Float) -> Unit = {},
@@ -197,16 +201,20 @@ fun EditorToolbar(
                 onDone = onDragDone
             )
             numberingEditMode -> ImageNumberingPanel(
+                step = numberingEditStep,
                 alpha = numberingAlpha,
                 onAlphaChange = onNumberingAlphaChange,
                 sizeFrac = numberingSizeFrac,
                 onSizeChange = onNumberingSizeChange,
                 bgArgb = numberingBgArgb,
-                onBgChange = onNumberingBgChange,
                 fgArgb = numberingFgArgb,
-                onFgChange = onNumberingFgChange,
                 onNudge = onNumberingNudge,
                 onCenter = onNumberingCenter,
+                onNext = onNumberingNextStep,
+                onBack = {
+                    if (numberingEditStep <= 0) onNumberingBackToStyle()
+                    else onNumberingBackStep()
+                },
                 onDone = onNumberingDone
             )
             spacingModeActive -> ImageSpacingSlider(
@@ -425,7 +433,10 @@ fun EditorToolbar(
             weight = numberingWeight,
             onWeightChange = onNumberingWeightChange,
             onNext = onConfirmNumberingStyle,
-            onDismiss = onCancelNumberingStyle
+            onDismiss = {
+                onCancelNumberingStyle()
+                showImageNumberingPicker = true
+            }
         )
     }
 
@@ -1087,65 +1098,113 @@ private fun DragNudgeChip(label: String, onTick: () -> Unit) {
 
 @Composable
 private fun ImageNumberingPanel(
+    step: Int,
     alpha: Float,
     onAlphaChange: (Float) -> Unit,
     sizeFrac: Float,
     onSizeChange: (Float) -> Unit,
     bgArgb: Long,
-    onBgChange: (Long) -> Unit,
     fgArgb: Long,
-    onFgChange: (Long) -> Unit,
     onNudge: (Float, Float) -> Unit,
     onCenter: () -> Unit,
+    onNext: () -> Unit,
+    onBack: () -> Unit,
     onDone: () -> Unit
 ) {
-    // Position / size / transparency mode (colors already chosen on style screen)
     Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-        SliderToolHeader(
-            title = stringResource(R.string.image_numbering_title),
-            onDone = onDone
-        )
-        // Live mini preview
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextButton(onClick = onBack, contentPadding = PaddingValues(horizontal = 4.dp)) {
+                Text("Back", color = Color.Black)
+            }
+            Text(
+                text = stringResource(R.string.image_numbering_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black,
+                modifier = Modifier.weight(1f)
+            )
+            if (step >= 1) {
+                TextButton(onClick = onDone, contentPadding = PaddingValues(horizontal = 4.dp)) {
+                    Text(stringResource(R.string.image_numbering_done), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                }
+            } else {
+                TextButton(onClick = onNext, contentPadding = PaddingValues(horizontal = 4.dp)) {
+                    Text(stringResource(R.string.image_numbering_next), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                }
+            }
+        }
+
+        // Live preview
         Box(
             modifier = Modifier
-                .padding(bottom = 8.dp)
-                .size(56.dp)
+                .padding(vertical = 6.dp)
+                .size(52.dp)
                 .align(Alignment.CenterHorizontally)
-                .background(Color(bgArgb.toInt()), CircleShape),
+                .background(Color(bgArgb.toInt()).copy(alpha = alpha), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = "1",
                 color = Color(fgArgb.toInt()),
                 fontWeight = FontWeight.Bold,
-                fontSize = 22.sp,
+                fontSize = 20.sp,
                 textAlign = TextAlign.Center
             )
         }
-        Text(text = stringResource(R.string.image_numbering_transparency), color = Color.Black)
-        Slider(value = alpha, onValueChange = onAlphaChange, valueRange = 0.2f..1f)
-        Text(text = stringResource(R.string.image_numbering_size), color = Color.Black)
-        Slider(value = sizeFrac, onValueChange = onSizeChange, valueRange = 0.08f..0.35f)
 
-        Text(
-            text = stringResource(R.string.image_numbering_change_position),
-            color = Color.Black,
-            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-        )
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            NumberingNudgeButton(label = "↑", onTick = { onNudge(0f, -1f) })
-            Row(horizontalArrangement = Arrangement.Center) {
-                NumberingNudgeButton(label = "←", onTick = { onNudge(-1f, 0f) })
-                NumberingNudgeButton(label = stringResource(R.string.image_numbering_center), onTick = onCenter)
-                NumberingNudgeButton(label = "→", onTick = { onNudge(1f, 0f) })
+        if (step <= 0) {
+            Text(
+                text = stringResource(R.string.image_numbering_transparency),
+                color = Color.Black,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(bottom = 2.dp)
+            )
+            SliderWithValueLabel(
+                value = alpha,
+                onValueChange = onAlphaChange,
+                valueRange = 0.2f..1f,
+                steps = 0,
+                labelFormatter = { "${(it * 100f).toInt()}%" }
+            )
+            Text(
+                text = stringResource(R.string.image_numbering_size),
+                color = Color.Black,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(top = 6.dp, bottom = 2.dp)
+            )
+            SliderWithValueLabel(
+                value = sizeFrac,
+                onValueChange = onSizeChange,
+                valueRange = 0.08f..0.35f,
+                steps = 0,
+                labelFormatter = { "${(it * 100f).toInt()}%" }
+            )
+        } else {
+            Text(
+                text = stringResource(R.string.image_numbering_change_position),
+                color = Color.Black,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
+            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                NumberingNudgeButton(label = "↑", onTick = { onNudge(0f, -1f) })
+                Row(horizontalArrangement = Arrangement.Center) {
+                    NumberingNudgeButton(label = "←", onTick = { onNudge(-1f, 0f) })
+                    NumberingNudgeButton(label = "●", onTick = onCenter)
+                    NumberingNudgeButton(label = "→", onTick = { onNudge(1f, 0f) })
+                }
+                NumberingNudgeButton(label = "↓", onTick = { onNudge(0f, 1f) })
             }
-            NumberingNudgeButton(label = "↓", onTick = { onNudge(0f, 1f) })
         }
     }
 }
+
 
 @Composable
 private fun NumberingColorRow(
@@ -1898,24 +1957,34 @@ private fun ImageNumberingStyleScreen(
                 Text(
                     text = stringResource(R.string.image_numbering_thickness),
                     color = Color.Black,
-                    modifier = Modifier.padding(top = 8.dp)
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)
                 )
-                Slider(
+                SliderWithValueLabel(
                     value = weight,
                     onValueChange = onWeightChange,
-                    valueRange = 0f..1f
+                    valueRange = 0f..1f,
+                    steps = 0,
+                    labelFormatter = { v ->
+                        val pct = (v * 100f).toInt().coerceIn(0, 100)
+                        "$pct%"
+                    }
                 )
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.End
+                        .padding(top = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Back", color = Color.Black)
+                    }
                     TextButton(onClick = onNext) {
                         Text(
                             text = stringResource(R.string.image_numbering_style_next),
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
