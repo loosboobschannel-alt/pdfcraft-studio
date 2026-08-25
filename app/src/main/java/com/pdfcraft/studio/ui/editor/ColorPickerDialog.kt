@@ -166,7 +166,7 @@ private val COLOR_CATEGORIES = listOf(
     )
 )
 
-/** Full-page color selection window — replaces old HSV Hue/Saturation/Brightness picker. */
+/** One-page color window — every category/color kept, compact so it does not scroll. */
 @Composable
 fun ColorPickerDialog(
     initialColor: Long,
@@ -188,52 +188,61 @@ fun ColorPickerDialog(
             modifier = Modifier.fillMaxSize(),
             color = Color.White
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Fixed live preview — does NOT scroll
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFF5F5F5))
-                        .padding(vertical = 28.dp, horizontal = 16.dp),
-                    contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Elon Musk",
-                        color = if (previewAsBackground) Color.Black else Color(selectedColor),
-                        fontSize = 36.sp,
+                        text = "X",
+                        color = Color.Black,
                         fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = if (previewAsBackground) {
-                            Modifier
-                                .background(Color(selectedColor), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        } else {
-                            Modifier
-                        }
+                        fontSize = 16.sp,
+                        modifier = Modifier
+                            .clickable(onClick = onDismiss)
+                            .padding(6.dp)
                     )
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Aa Sample",
+                            color = if (previewAsBackground) Color.Black else Color(selectedColor),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            modifier = if (previewAsBackground) {
+                                Modifier
+                                    .background(Color(selectedColor), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            } else Modifier
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(28.dp))
                 }
 
-                // Scrollable color categories
-                LazyColumn(
+                Column(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    items(COLOR_CATEGORIES) { category ->
-                        Column {
+                    COLOR_CATEGORIES.forEach { category ->
+                        Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 text = category.title,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
+                                fontSize = 11.sp,
                                 color = Color.Black,
-                                modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+                                modifier = Modifier.padding(start = 2.dp, bottom = 1.dp)
                             )
-                            // 5 colors per row
-                            category.colors.chunked(5).forEach { rowColors ->
+                            category.colors.chunked(7).forEach { rowColors ->
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -245,42 +254,31 @@ fun ColorPickerDialog(
                                             onClick = { selectedColor = named.hex }
                                         )
                                     }
-                                    // Fill empty slots so alignment stays consistent
-                                    repeat(5 - rowColors.size) {
-                                        Spacer(modifier = Modifier.width(64.dp))
+                                    repeat(7 - rowColors.size) {
+                                        Spacer(modifier = Modifier.width(44.dp))
                                     }
                                 }
-                                Spacer(modifier = Modifier.height(10.dp))
                             }
                         }
                     }
                 }
 
-                // Fixed OK button at bottom
-                Box(
+                Button(
+                    onClick = { onConfirm(selectedColor) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.White)
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
+                        .height(42.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
                 ) {
-                    Button(
-                        onClick = { onConfirm(selectedColor) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Text(
-                            text = "OK",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White
-                        )
-                    }
+                    Text(
+                        text = "OK",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
                 }
             }
         }
@@ -296,35 +294,34 @@ private fun ColorItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(64.dp)
+            .width(44.dp)
             .clickable(onClick = onClick)
-            .padding(vertical = 4.dp)
+            .padding(vertical = 1.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(20.dp)
                 .background(Color(named.hex), CircleShape)
                 .then(
-                    if (isSelected) {
-                        Modifier.border(3.dp, Color(0xFF1976D2), CircleShape)
-                    } else {
-                        Modifier.border(1.dp, Color.LightGray, CircleShape)
-                    }
+                    if (isSelected) Modifier.border(2.dp, Color(0xFF1976D2), CircleShape)
+                    else Modifier.border(1.dp, Color.LightGray, CircleShape)
                 ),
             contentAlignment = Alignment.Center
         ) {
             if (isSelected) {
                 Box(
                     modifier = Modifier
-                        .size(10.dp)
-                        .background(Color.White, CircleShape)
+                        .size(6.dp)
+                        .background(
+                            if ((named.hex and 0xFFFFFF) > 0xAAAAAA) Color.Black else Color.White,
+                            CircleShape
+                        )
                 )
             }
         }
-        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = named.name,
-            fontSize = 9.sp,
+            fontSize = 7.sp,
             color = Color.Black,
             textAlign = TextAlign.Center,
             maxLines = 1,
@@ -333,7 +330,7 @@ private fun ColorItem(
         )
         Text(
             text = "#%06X".format(named.hex and 0xFFFFFF),
-            fontSize = 8.sp,
+            fontSize = 6.sp,
             color = Color.Gray,
             textAlign = TextAlign.Center,
             maxLines = 1,
