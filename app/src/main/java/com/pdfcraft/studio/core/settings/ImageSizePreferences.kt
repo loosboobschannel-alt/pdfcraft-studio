@@ -41,7 +41,7 @@ class ImageSizePreferences(context: Context) {
 
     fun getNumberingBg(): Long = prefs.getLong(KEY_NUM_BG, 0xE6000000L)
     fun getNumberingFg(): Long = prefs.getLong(KEY_NUM_FG, 0xFFFFFFFFL)
-    fun getNumberingWeight(): Float = prefs.getFloat(KEY_NUM_WEIGHT, 0.85f)
+    fun getNumberingWeight(): Float = prefs.getFloat(KEY_NUM_WEIGHT, 0.67f)
     fun getNumberingAlpha(): Float = prefs.getFloat(KEY_NUM_ALPHA, 0.9f)
     fun getNumberingSize(): Float = prefs.getFloat(KEY_NUM_SIZE, 0.18f)
 

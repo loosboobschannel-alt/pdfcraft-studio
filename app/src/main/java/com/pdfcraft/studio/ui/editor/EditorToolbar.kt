@@ -1111,56 +1111,14 @@ private fun ImageNumberingPanel(
     onBack: () -> Unit,
     onDone: () -> Unit
 ) {
-    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            TextButton(onClick = onBack, contentPadding = PaddingValues(horizontal = 4.dp)) {
-                Text("Back", color = Color.Black)
-            }
-            Text(
-                text = stringResource(R.string.image_numbering_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.Black,
-                modifier = Modifier.weight(1f)
-            )
-            if (step >= 1) {
-                TextButton(onClick = onDone, contentPadding = PaddingValues(horizontal = 4.dp)) {
-                    Text(stringResource(R.string.image_numbering_done), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-                }
-            } else {
-                TextButton(onClick = onNext, contentPadding = PaddingValues(horizontal = 4.dp)) {
-                    Text(stringResource(R.string.image_numbering_next), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-                }
-            }
-        }
-
-        // Live preview
-        Box(
-            modifier = Modifier
-                .padding(vertical = 6.dp)
-                .size(52.dp)
-                .align(Alignment.CenterHorizontally)
-                .background(Color(bgArgb.toInt()).copy(alpha = alpha), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "1",
-                color = Color(fgArgb.toInt()),
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                textAlign = TextAlign.Center
-            )
-        }
-
+    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)) {
         if (step <= 0) {
             Text(
                 text = stringResource(R.string.image_numbering_transparency),
                 color = Color.Black,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(bottom = 2.dp)
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(bottom = 0.dp)
             )
             SliderWithValueLabel(
                 value = alpha,
@@ -1173,7 +1131,8 @@ private fun ImageNumberingPanel(
                 text = stringResource(R.string.image_numbering_size),
                 color = Color.Black,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(top = 6.dp, bottom = 2.dp)
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(top = 2.dp, bottom = 0.dp)
             )
             SliderWithValueLabel(
                 value = sizeFrac,
@@ -1182,13 +1141,24 @@ private fun ImageNumberingPanel(
                 steps = 0,
                 labelFormatter = { "${(it * 100f).toInt()}%" }
             )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                TextButton(onClick = onBack, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
+                    Text("Back", color = Color.Black)
+                }
+                TextButton(onClick = onNext, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
+                    Text(
+                        stringResource(R.string.image_numbering_next),
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
         } else {
-            Text(
-                text = stringResource(R.string.image_numbering_change_position),
-                color = Color.Black,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
-            )
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -1200,6 +1170,23 @@ private fun ImageNumberingPanel(
                     NumberingNudgeButton(label = "→", onTick = { onNudge(1f, 0f) })
                 }
                 NumberingNudgeButton(label = "↓", onTick = { onNudge(0f, 1f) })
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                TextButton(onClick = onBack, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
+                    Text("Back", color = Color.Black)
+                }
+                TextButton(onClick = onDone, contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
+                    Text(
+                        stringResource(R.string.image_numbering_done),
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }
