@@ -1,48 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Foreground: white document page, red "P" mark, small red "+" creation badge -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Document page -->
+    <!-- Soft shadow under page -->
     <path
-        android:fillColor="#F5F5F7"
-        android:pathData="M34,20 
-                           L64,20 
-                           L80,36 
-                           L80,86 
-                           C80,88.2 78.2,90 76,90 
-                           L34,90 
-                           C31.8,90 30,88.2 30,86 
-                           L30,24 
-                           C30,21.8 31.8,20 34,20 Z" />
+        android:fillColor="#33000000"
+        android:pathData="M40,30
+            L62,30
+            C63.1,30 64,30.9 64,32
+            L64,36
+            C64,37.1 64.9,38 66,38
+            L74,38
+            C75.1,38 76,38.9 76,40
+            L76,78
+            C76,80.2 74.2,82 72,82
+            L40,82
+            C37.8,82 36,80.2 36,78
+            L36,34
+            C36,31.8 37.8,30 40,30 Z" />
 
-    <!-- Folded page corner -->
-    <path
-        android:fillColor="#D8D8DC"
-        android:pathData="M64,20 L64,32 C64,34.2 65.8,36 68,36 L80,36 Z" />
-
-    <!-- Stylized "P" mark for PDF, in brand red -->
-    <path
-        android:fillColor="#E4293B"
-        android:pathData="M42,46 L42,76 L49,76 L49,65 L57,65
-                           C64.2,65 69,60.4 69,54 
-                           C69,47.6 64.2,43 57,43 L45,43 
-                           C43.3,43 42,44.6 42,46 Z
-                           M49,50 L57,50 
-                           C60.3,50 62,51.6 62,54 
-                           C62,56.4 60.3,58 57,58 L49,58 Z" />
-
-    <!-- Small "+" creation badge, bottom-right -->
-    <path
-        android:fillColor="#E4293B"
-        android:pathData="M78,68 C86.8,68 94,75.2 94,84 
-                           C94,92.8 86.8,100 78,100 
-                           C69.2,100 62,92.8 62,84 
-                           C62,75.2 69.2,68 78,68 Z" />
+    <!-- White document page (folded corner) -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M75.2,76 L80.8,76 L80.8,81.2 L86,81.2 L86,86.8 L80.8,86.8 L80.8,92 L75.2,92 L75.2,86.8 L70,86.8 L70,81.2 L75.2,81.2 Z" />
+        android:pathData="M38,28
+            L60,28
+            C61.1,28 62,28.9 62,30
+            L62,34
+            C62,35.1 62.9,36 64,36
+            L72,36
+            C73.1,36 74,36.9 74,38
+            L74,76
+            C74,78.2 72.2,80 70,80
+            L38,80
+            C35.8,80 34,78.2 34,76
+            L34,32
+            C34,29.8 35.8,28 38,28 Z" />
+
+    <!-- Fold triangle -->
+    <path
+        android:fillColor="#F0F0F0"
+        android:pathData="M62,28 L62,34 C62,35.1 62.9,36 64,36 L72,36 Z" />
+    <path
+        android:fillColor="#E0E0E0"
+        android:pathData="M62,28 L72,36 L64,36 C62.9,36 62,35.1 62,34 Z" />
+
+    <!-- Red accent bar (top line on page) -->
+    <path
+        android:fillColor="#E4293B"
+        android:pathData="M42,42 L58,42 C58.8,42 59.5,42.7 59.5,43.5
+            L59.5,45.5 C59.5,46.3 58.8,47 58,47 L42,47
+            C41.2,47 40.5,46.3 40.5,45.5 L40.5,43.5
+            C40.5,42.7 41.2,42 42,42 Z" />
+
+    <!-- Gray text lines -->
+    <path
+        android:fillColor="#D0D0D0"
+        android:pathData="M42,54 L64,54 C64.8,54 65.5,54.7 65.5,55.5
+            L65.5,56.5 C65.5,57.3 64.8,58 64,58 L42,58
+            C41.2,58 40.5,57.3 40.5,56.5 L40.5,55.5
+            C40.5,54.7 41.2,54 42,54 Z" />
+    <path
+        android:fillColor="#D0D0D0"
+        android:pathData="M42,62 L60,62 C60.8,62 61.5,62.7 61.5,63.5
+            L61.5,64.5 C61.5,65.3 60.8,66 60,66 L42,66
+            C41.2,66 40.5,65.3 40.5,64.5 L40.5,63.5
+            C40.5,62.7 41.2,62 42,62 Z" />
+    <path
+        android:fillColor="#D0D0D0"
+        android:pathData="M42,70 L62,70 C62.8,70 63.5,70.7 63.5,71.5
+            L63.5,72.5 C63.5,73.3 62.8,74 62,74 L42,74
+            C41.2,74 40.5,73.3 40.5,72.5 L40.5,71.5
+            C40.5,70.7 41.2,70 42,70 Z" />
+
+    <!-- Yellow badge circle -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M72,72
+            m-11,0
+            a11,11 0,1 1,22 0
+            a11,11 0,1 1,-22 0" />
+
+    <!-- Badge digit "1" -->
+    <path
+        android:fillColor="#5D4037"
+        android:pathData="M70.2,66.5 L73.8,66.5 L73.8,77.5 L70.2,77.5 Z
+            M68.5,68.2 L71.2,66.5 L73.8,66.5 L71.5,68.8 L68.5,68.8 Z" />
 </vector>
