@@ -127,6 +127,7 @@
     <string name="page_deleted_message">Page deleted</string>
     <string name="page_cannot_delete_last">Cannot delete the last remaining page</string>
     <string name="text_tool_text_size">6. Text Size</string>
+    <string name="text_tool_text_size_title">Text Size</string>
 
     <string name="text_tool_text_color">3. Text Color</string>
     <string name="text_tool_bg_color">4. Background Color</string>

@@ -143,7 +143,7 @@ fun EditorToolbar(
     onNumberingSizeChange: (Float) -> Unit = {},
     onNumberingNudge: (Float, Float) -> Unit = { _, _ -> },
     onNumberingCenter: () -> Unit = {},
-    numberingBgArgb: Long = 0xE6000000L,
+    numberingBgArgb: Long = 0xFF7C4DFFL,
     onNumberingBgChange: (Long) -> Unit = {},
     numberingFgArgb: Long = 0xFFFFFFFFL,
     onNumberingFgChange: (Long) -> Unit = {},
@@ -1841,7 +1841,7 @@ private fun TextSizeSlider(
     var sizeText by remember(sizeSp) { mutableStateOf(sizeSp.roundToInt().toString()) }
 
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-        SliderToolHeader(title = stringResource(R.string.text_tool_text_size), onDone = onDone)
+        SliderToolHeader(title = stringResource(R.string.text_tool_text_size_title), onDone = onDone)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
