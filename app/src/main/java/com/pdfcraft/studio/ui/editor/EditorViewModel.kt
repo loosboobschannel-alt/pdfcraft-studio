@@ -468,6 +468,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             } else {
                 current.bgColorRanges
             }
+            val adjustedLinks = if (newText != current.text) {
+                adjustLinkRangesForEdit(current.text, newText, current.linkRanges)
+            } else {
+                current.linkRanges
+            }
             textElements[index] = current.copy(
                 text = newText,
                 boldRanges = adjustedBold,
