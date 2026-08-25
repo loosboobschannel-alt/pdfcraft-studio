@@ -940,8 +940,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun nudgeNumbering(dx: Float, dy: Float) {
-        // Allow full 0..1; each image clamps using its own width/height + icon size at draw/export time.
-        val step = 0.02f
+        // Small fractional step so hold-to-repeat feels smooth (same idea as Drag Images).
+        val step = 0.0025f
         numberingXFrac = (numberingXFrac + dx * step).coerceIn(0f, 1f)
         numberingYFrac = (numberingYFrac + dy * step).coerceIn(0f, 1f)
         updateNumberingLiveStyle()
