@@ -28,7 +28,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Title
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -544,7 +549,8 @@ private fun ToolChip(
 private fun CategoryMenuLabel(
     text: String,
     expanded: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null
 ) {
     val bg = if (expanded) Color(0xFFE3F2FD) else Color(0xFFF7F7F7)
     val border = if (expanded) Color(0xFF1976D2) else Color(0xFFE0E0E0)
@@ -556,21 +562,30 @@ private fun CategoryMenuLabel(
             .background(bg, RoundedCornerShape(10.dp))
             .border(1.dp, border, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 10.dp),
+            .padding(horizontal = 6.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = fg,
+                modifier = Modifier.size(15.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+        }
         Text(
             text = text,
             color = fg,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1
         )
         Text(
             text = " ▾",
             color = fg,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -609,13 +624,11 @@ private fun ImageToolsMenu(
     var menuExpanded by remember { mutableStateOf(false) }
 
     Box {
-        Text(
-            text = stringResource(R.string.image_tools_menu_entry) + " \u25BE",
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.Black,
-            modifier = Modifier
-                .clickable { menuExpanded = true }
-                .padding(vertical = 4.dp)
+        CategoryMenuLabel(
+            text = stringResource(R.string.image_tools_menu_entry),
+            expanded = menuExpanded,
+            onClick = { menuExpanded = true },
+            icon = Icons.Filled.Image
         )
 
         DropdownMenu(
@@ -712,13 +725,11 @@ private fun PageToolsMenu(
     )
 
     Box {
-        Text(
-            text = stringResource(R.string.page_tools_menu_entry) + " \u25BE",
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.Black,
-            modifier = Modifier
-                .clickable { menuExpanded = true }
-                .padding(vertical = 4.dp)
+        CategoryMenuLabel(
+            text = stringResource(R.string.page_tools_menu_entry),
+            expanded = menuExpanded,
+            onClick = { menuExpanded = true },
+            icon = Icons.Filled.Description
         )
 
         DropdownMenu(
@@ -829,13 +840,11 @@ private fun TextToolsMenu(
     var menuExpanded by remember { mutableStateOf(false) }
 
     Box {
-        Text(
-            text = stringResource(R.string.text_tools_menu_entry) + " \u25BE",
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.Black,
-            modifier = Modifier
-                .clickable { menuExpanded = true }
-                .padding(vertical = 4.dp)
+        CategoryMenuLabel(
+            text = stringResource(R.string.text_tools_menu_entry),
+            expanded = menuExpanded,
+            onClick = { menuExpanded = true },
+            icon = Icons.Filled.Title
         )
 
         DropdownMenu(
