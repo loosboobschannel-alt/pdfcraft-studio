@@ -175,6 +175,8 @@ fun EditorToolbar(
     var dragPickerSelected by remember { mutableStateOf(setOf<String>()) }
     var showPageBgColorPicker by remember { mutableStateOf(false) }
     var showPageDeletePicker by remember { mutableStateOf(false) }
+    // Only one of Page / Image / Text menus open at a time
+    var openToolMenu by remember { mutableStateOf<String?>(null) }
     var showPageDuplicatePicker by remember { mutableStateOf(false) }
     var showArrangePagesDialog by remember { mutableStateOf(false) }
     var pageBgColorModeActive by remember { mutableStateOf(false) }
@@ -271,6 +273,9 @@ fun EditorToolbar(
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
                     PageToolsMenu(
+                        menuExpanded = openToolMenu == "page",
+                        onMenuExpand = { openToolMenu = "page" },
+                        onMenuDismiss = { if (openToolMenu == "page") openToolMenu = null },
                         onAddNewPage = onAddNewPage,
                         currentPageCount = pageCountForDelete.coerceAtLeast(1),
                         onDuplicatePages = {
@@ -312,6 +317,9 @@ fun EditorToolbar(
                     }
                     Box(modifier = Modifier.weight(1f)) {
                     ImageToolsMenu(
+                        menuExpanded = openToolMenu == "image",
+                        onMenuExpand = { openToolMenu = "image" },
+                        onMenuDismiss = { if (openToolMenu == "image") openToolMenu = null },
                         onImportImagesClick = onImportImagesClick,
                         onDragImagesClick = onDragImagesMenuClick,
                         onDeleteImagesClick = onDeleteImagesMenuClick,
@@ -327,6 +335,9 @@ fun EditorToolbar(
                     }
                     Box(modifier = Modifier.weight(1f)) {
                     TextToolsMenu(
+                        menuExpanded = openToolMenu == "text",
+                        onMenuExpand = { openToolMenu = "text" },
+                        onMenuDismiss = { if (openToolMenu == "text") openToolMenu = null },
                         onEnterTextClick = onAddTextClick,
                         onFontClick = onFontClick,
                         onTextColorClick = onTextColorClick,
@@ -625,58 +636,59 @@ private fun ImageToolsMenu(
     onAdjustSpacingClick: () -> Unit,
     onAdjustImageShapeClick: () -> Unit,
     onAdjustCornersClick: () -> Unit,
-    onImageNumberingClick: () -> Unit = {}
+    onImageNumberingClick: () -> Unit = {},
+    menuExpanded: Boolean = false,
+    onMenuExpand: () -> Unit = {},
+    onMenuDismiss: () -> Unit = {}
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
-
     Box {
         CategoryMenuLabel(
             text = stringResource(R.string.image_tools_menu_entry),
             expanded = menuExpanded,
-            onClick = { menuExpanded = true }
+            onClick = onMenuExpand
         )
 
         DropdownMenu(
             expanded = menuExpanded,
-            onDismissRequest = { menuExpanded = false }
+            onDismissRequest = onMenuDismiss
         ) {
             ToolMenuItem(stringResource(R.string.import_images)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onImportImagesClick()
             }
             HorizontalDivider(color = Color.LightGray)
             ToolMenuItem(stringResource(R.string.resize_images_tool)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onResizeImagesClick()
             }
             HorizontalDivider(color = Color.LightGray)
             ToolMenuItem(stringResource(R.string.image_spacing_tool)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onAdjustSpacingClick()
             }
             HorizontalDivider(color = Color.LightGray)
             ToolMenuItem(stringResource(R.string.image_shape_tool)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onAdjustImageShapeClick()
             }
             HorizontalDivider(color = Color.LightGray)
             ToolMenuItem(stringResource(R.string.round_corners_tool)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onAdjustCornersClick()
             }
             HorizontalDivider(color = Color.LightGray)
             ToolMenuItem(stringResource(R.string.image_numbering_tool)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onImageNumberingClick()
             }
             HorizontalDivider(color = Color.LightGray)
             ToolMenuItem(stringResource(R.string.image_drag_tool)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onDragImagesClick()
             }
             HorizontalDivider(color = Color.LightGray)
             ToolMenuItem(stringResource(R.string.image_delete_tool)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onDeleteImagesClick()
             }
         }
@@ -710,9 +722,11 @@ private fun PageToolsMenu(
     pageNumberPosition: EditorViewModel.PageNumberPosition,
     onPageNumberPositionChange: (EditorViewModel.PageNumberPosition) -> Unit,
     pageNumberStyle: EditorViewModel.PageNumberStyle,
-    onPageNumberStyleChange: (EditorViewModel.PageNumberStyle) -> Unit
+    onPageNumberStyleChange: (EditorViewModel.PageNumberStyle) -> Unit,
+    menuExpanded: Boolean = false,
+    onMenuExpand: () -> Unit = {},
+    onMenuDismiss: () -> Unit = {}
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
     var orientationSub by remember { mutableStateOf(false) }
     var backgroundSub by remember { mutableStateOf(false) }
 
@@ -739,13 +753,13 @@ private fun PageToolsMenu(
         CategoryMenuLabel(
             text = stringResource(R.string.page_tools_menu_entry),
             expanded = menuExpanded,
-            onClick = { menuExpanded = true }
+            onClick = onMenuExpand
         )
 
         DropdownMenu(
             expanded = menuExpanded,
             onDismissRequest = {
-                menuExpanded = false
+                onMenuDismiss()
                 orientationSub = false
                 backgroundSub = false
             }
@@ -779,21 +793,21 @@ private fun PageToolsMenu(
 
             // 2. Duplicate Pages
             ToolMenuItem(stringResource(R.string.page_tool_duplicate_pages)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onDuplicatePages()
             }
             HorizontalDivider(color = Color.LightGray)
 
             // 3. Arrange Pages
             ToolMenuItem(stringResource(R.string.page_tool_arrange_pages)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onArrangePages()
             }
             HorizontalDivider(color = Color.LightGray)
 
             // 4. Page Size
             ToolMenuItem(stringResource(R.string.page_tool_set_page_size)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onSetPageSize()
             }
             HorizontalDivider(color = Color.LightGray)
@@ -840,7 +854,7 @@ private fun PageToolsMenu(
 
             // 7. Background
             ToolMenuItem(stringResource(R.string.page_tool_background_color)) {
-                menuExpanded = false
+                onMenuDismiss()
                 backgroundSub = false
                 orientationSub = false
                 onSetBackgroundColor()
@@ -849,7 +863,7 @@ private fun PageToolsMenu(
 
             // 8. Delete Page
             ToolMenuItem(stringResource(R.string.page_tool_delete_page)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onSetDeletePage()
             }
 
@@ -868,28 +882,30 @@ private fun TextToolsMenu(
     onDeleteTextClick: () -> Unit,
     onInsertLinkClick: () -> Unit = {},
     hasSelectedText: Boolean,
-    hasTextRangeSelection: Boolean = false
+    hasTextRangeSelection: Boolean = false,
+    menuExpanded: Boolean = false,
+    onMenuExpand: () -> Unit = {},
+    onMenuDismiss: () -> Unit = {}
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
 
     Box {
         CategoryMenuLabel(
             text = stringResource(R.string.text_tools_menu_entry),
             expanded = menuExpanded,
-            onClick = { menuExpanded = true }
+            onClick = onMenuExpand
         )
 
         DropdownMenu(
             expanded = menuExpanded,
-            onDismissRequest = { menuExpanded = false }
+            onDismissRequest = onMenuDismiss
         ) {
             ToolMenuItem(stringResource(R.string.text_tool_enter_text)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onEnterTextClick()
             }
             HorizontalDivider(color = Color.LightGray)
             ToolMenuItem(stringResource(R.string.text_tool_font)) {
-                menuExpanded = false
+                onMenuDismiss()
                 onFontClick()
             }
             HorizontalDivider(color = Color.LightGray)
@@ -898,7 +914,7 @@ private fun TextToolsMenu(
                 label = stringResource(R.string.text_tool_text_color),
                 enabled = hasSelectedText
             ) {
-                menuExpanded = false
+                onMenuDismiss()
                 onTextColorClick()
             }
             HorizontalDivider(color = Color.LightGray)
@@ -906,7 +922,7 @@ private fun TextToolsMenu(
                 label = stringResource(R.string.text_tool_bg_color),
                 enabled = hasSelectedText
             ) {
-                menuExpanded = false
+                onMenuDismiss()
                 onTextBgColorClick()
             }
             HorizontalDivider(color = Color.LightGray)
@@ -914,7 +930,7 @@ private fun TextToolsMenu(
                 label = stringResource(R.string.text_tool_shadow),
                 enabled = hasSelectedText
             ) {
-                menuExpanded = false
+                onMenuDismiss()
                 onTextShadowClick()
             }
             HorizontalDivider(color = Color.LightGray)
@@ -922,7 +938,7 @@ ToolMenuItem(
                 label = stringResource(R.string.text_tool_text_size),
                 enabled = hasSelectedText
             ) {
-                menuExpanded = false
+                onMenuDismiss()
                 onTextSizeClick()
             }
             HorizontalDivider(color = Color.LightGray)
@@ -930,7 +946,7 @@ ToolMenuItem(
                 label = stringResource(R.string.text_tool_insert_link),
                 enabled = hasTextRangeSelection
             ) {
-                menuExpanded = false
+                onMenuDismiss()
                 onInsertLinkClick()
             }
             HorizontalDivider(color = Color.LightGray)
@@ -943,7 +959,7 @@ ToolMenuItem(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(enabled = hasSelectedText) {
-                        menuExpanded = false
+                        onMenuDismiss()
                         onDeleteTextClick()
                     }
                     .padding(horizontal = 16.dp, vertical = 10.dp)
