@@ -286,7 +286,7 @@ fun EditorToolbar(
                         onMenuExpand = {
                             openToolMenu = if (openToolMenu == "page") null else "page"
                         },
-                        onMenuDismiss = { },
+                        onMenuDismiss = { openToolMenu = null },
                         onAddNewPage = onAddNewPage,
                         currentPageCount = pageCountForDelete.coerceAtLeast(1),
                         onDuplicatePages = {
@@ -332,7 +332,7 @@ fun EditorToolbar(
                         onMenuExpand = {
                             openToolMenu = if (openToolMenu == "image") null else "image"
                         },
-                        onMenuDismiss = { },
+                        onMenuDismiss = { openToolMenu = null },
                         onImportImagesClick = onImportImagesClick,
                         onDragImagesClick = onDragImagesMenuClick,
                         onDeleteImagesClick = onDeleteImagesMenuClick,
@@ -352,7 +352,7 @@ fun EditorToolbar(
                         onMenuExpand = {
                             openToolMenu = if (openToolMenu == "text") null else "text"
                         },
-                        onMenuDismiss = { },
+                        onMenuDismiss = { openToolMenu = null },
                         onEnterTextClick = onAddTextClick,
                         onFontClick = onFontClick,
                         onTextColorClick = onTextColorClick,
