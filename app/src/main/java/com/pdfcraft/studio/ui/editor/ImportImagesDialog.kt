@@ -234,8 +234,12 @@ fun ImportImagesDialog(
                         icon = "▯",
                         selected = selectedImportRatio == "portrait",
                         onClick = {
-                            selectedImportRatio = "portrait"
-                            onRatioSelected("portrait")
+                            if (selectedImportRatio == "portrait") {
+                                selectedImportRatio = null
+                            } else {
+                                selectedImportRatio = "portrait"
+                                onRatioSelected("portrait")
+                            }
                         },
                         modifier = Modifier.weight(1f)
                     )
@@ -244,8 +248,12 @@ fun ImportImagesDialog(
                         icon = "▭",
                         selected = selectedImportRatio == "landscape",
                         onClick = {
-                            selectedImportRatio = "landscape"
-                            onRatioSelected("landscape")
+                            if (selectedImportRatio == "landscape") {
+                                selectedImportRatio = null
+                            } else {
+                                selectedImportRatio = "landscape"
+                                onRatioSelected("landscape")
+                            }
                         },
                         modifier = Modifier.weight(1f)
                     )
@@ -254,8 +262,12 @@ fun ImportImagesDialog(
                         icon = "□",
                         selected = selectedImportRatio == "square",
                         onClick = {
-                            selectedImportRatio = "square"
-                            onRatioSelected("square")
+                            if (selectedImportRatio == "square") {
+                                selectedImportRatio = null
+                            } else {
+                                selectedImportRatio = "square"
+                                onRatioSelected("square")
+                            }
                         },
                         modifier = Modifier.weight(1f)
                     )

@@ -9,7 +9,8 @@ class ImageSizePreferences(context: Context) {
 
     fun getSavedOption(): ImageSizeOption {
         val kb = prefs.getInt(KEY_KB, -1)
-        if (kb <= 0) return ImageSizeOption.Default
+        // First install / never saved → default 10 KB preset
+        if (kb <= 0) return ImageSizeOption.Preset(10)
 
         val isCustom = prefs.getBoolean(KEY_IS_CUSTOM, false)
         return if (isCustom) ImageSizeOption.Custom(kb) else ImageSizeOption.Preset(kb)
