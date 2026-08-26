@@ -46,12 +46,20 @@
     <string name="paste_image">Paste</string>
     <string name="save_in_gallery">Save in Gallery</string>
     <string name="share_image">Share</string>
-    <string name="view_image_information">View Information</string>
-    <string name="image_info_title">Image Information</string>
+    <string name="view_image_information">Image Details</string>
+    <string name="image_info_title">Image Details</string>
     <string name="image_info_size">Size: %1$s</string>
     <string name="image_info_dimensions">Dimensions: %1$d × %2$d</string>
     <string name="image_info_unknown">Unknown</string>
     <string name="image_info_ok">OK</string>
+
+    <string name="image_info_label_name">File Name</string>
+    <string name="image_info_label_size">File Size</string>
+    <string name="image_info_label_dimensions">Dimensions</string>
+    <string name="image_info_label_format">Format</string>
+    <string name="image_info_label_aspect">Aspect Ratio</string>
+    <string name="image_info_px">%1$d × %2$d px</string>
+
     <string name="delete_image">Delete</string>
     <string name="delete_all_images">Delete All</string>
     <string name="selection_done">Done</string>

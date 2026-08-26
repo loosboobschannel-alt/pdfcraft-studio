@@ -938,8 +938,8 @@ private fun ImageCell(
                         )
                     },
                     onClick = {
-                        onClick()
                         showInfoDialog = true
+                        onClick()
                     }
                 )
                 DropdownMenuItem(
@@ -1027,47 +1027,47 @@ private fun ImageCell(
                 )
             }
 
-            if (showInfoDialog) {
-                val sizeLabel = formatImageSizeLabel(image)
-                val bmp = image.bitmap
-                AlertDialog(
-                    onDismissRequest = { showInfoDialog = false },
-                    title = {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(stringResource(R.string.image_info_title))
-                            IconButton(onClick = { showInfoDialog = false }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Close,
-                                    contentDescription = stringResource(R.string.image_info_ok)
-                                )
-                            }
-                        }
-                    },
-                    text = {
-                        Column {
-                            Text(stringResource(R.string.image_info_file_size, sizeLabel))
-                            if (bmp != null && !bmp.isRecycled) {
-                                Text(
-                                    stringResource(
-                                        R.string.image_info_dimensions,
-                                        bmp.width,
-                                        bmp.height
-                                    )
-                                )
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = { showInfoDialog = false }) {
-                            Text(stringResource(R.string.image_info_ok))
-                        }
-                    }
-                )
+        }
+
+        if (showInfoDialog) {
+            val details = remember(image.id, image.approxSizeBytes, image.imageUri, image.bitmap) {
+                imageDetailsSnapshot(image)
             }
+            AlertDialog(
+                onDismissRequest = { showInfoDialog = false },
+                shape = RoundedCornerShape(16.dp),
+                containerColor = Color.White,
+                title = {
+                    Text(
+                        text = stringResource(R.string.image_info_title),
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        ImageDetailRow("\uD83D\uDCC4", stringResource(R.string.image_info_label_name), details.fileName)
+                        ImageDetailRow("\uD83D\uDCBE", stringResource(R.string.image_info_label_size), details.fileSize)
+                        ImageDetailRow("\uD83D\uDCD0", stringResource(R.string.image_info_label_dimensions), details.dimensions)
+                        ImageDetailRow("\u25A3", stringResource(R.string.image_info_label_format), details.format)
+                        ImageDetailRow("\u25AD", stringResource(R.string.image_info_label_aspect), details.aspectRatio)
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showInfoDialog = false }) {
+                        Text(
+                            text = stringResource(R.string.image_info_ok),
+                            color = Color(0xFF1976D2),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                },
+                dismissButton = {}
+            )
         }
 
         if (showDeleteModeDialog) {
@@ -1145,28 +1145,94 @@ private fun ImageCell(
     }
 }
 
-/** Human-readable size for the image info dialog. */
-private fun formatImageSizeLabel(image: ImportedImage): String {
-    val bytes: Int? = image.approxSizeBytes?.takeIf { it > 0 }
-        ?: image.bitmap?.let { bmp ->
-            if (bmp.isRecycled) return@let null
-            try {
-                val stream = java.io.ByteArrayOutputStream()
-                bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, stream)
-                stream.size()
-            } catch (_: Exception) {
-                bmp.byteCount
-            }
+/** Cached metadata only — never decode/compress on the UI thread. */
+private data class ImageDetailsSnapshot(
+    val fileName: String,
+    val fileSize: String,
+    val dimensions: String,
+    val format: String,
+    val aspectRatio: String
+)
+
+private fun imageDetailsSnapshot(image: ImportedImage): ImageDetailsSnapshot {
+    val uriName = image.imageUri?.lastPathSegment
+        ?.substringAfterLast('/')
+        ?.substringBefore('?')
+        ?.takeIf { it.isNotBlank() && it != "0" && '.' in it }
+    val bmp = image.bitmap?.takeIf { !it.isRecycled }
+    val extFromUri = uriName?.substringAfterLast('.', "")?.lowercase()?.takeIf { it.length in 2..5 }
+    val format = when (extFromUri) {
+        "jpg", "jpeg" -> "JPEG"
+        "png" -> "PNG"
+        "webp" -> "WEBP"
+        "gif" -> "GIF"
+        "bmp" -> "BMP"
+        "heic", "heif" -> "HEIC"
+        else -> if (image.approxSizeBytes != null) "JPEG" else (extFromUri?.uppercase() ?: "JPEG")
+    }
+    val fileName = uriName
+        ?: ("image_" + image.id.takeLast(6).replace(Regex("[^A-Za-z0-9]"), "") + "." + format.lowercase().let {
+            if (it == "jpeg") "jpg" else it
+        })
+    val bytes = image.approxSizeBytes?.takeIf { it > 0 }
+        ?: bmp?.byteCount?.takeIf { it > 0 }
+    val fileSize = when {
+        bytes == null -> "—"
+        bytes < 1024 -> "$bytes B"
+        bytes < 1024 * 1024 -> String.format("%.1f KB", bytes / 1024.0)
+        else -> String.format("%.2f MB", bytes / (1024.0 * 1024.0))
+    }
+    val dimensions = if (bmp != null) "${bmp.width} × ${bmp.height} px" else "—"
+    val aspect = if (bmp != null && bmp.width > 0 && bmp.height > 0) {
+        simplifiedRatio(bmp.width, bmp.height)
+    } else "—"
+    return ImageDetailsSnapshot(fileName, fileSize, dimensions, format, aspect)
+}
+
+private fun simplifiedRatio(w: Int, h: Int): String {
+    fun gcd(a: Int, b: Int): Int {
+        var x = kotlin.math.abs(a)
+        var y = kotlin.math.abs(b)
+        while (y != 0) {
+            val t = x % y
+            x = y
+            y = t
         }
-    if (bytes == null || bytes <= 0) return "—"
-    return if (bytes < 1024) {
-        "$bytes B"
-    } else if (bytes < 1024 * 1024) {
-        String.format("%.1f KB", bytes / 1024.0)
-    } else {
-        String.format("%.2f MB", bytes / (1024.0 * 1024.0))
+        return x.coerceAtLeast(1)
+    }
+    val g = gcd(w, h)
+    return "\( {w / g}: \){h / g}"
+}
+
+@Composable
+private fun ImageDetailRow(icon: String, label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = icon,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(end = 10.dp, top = 1.dp)
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                color = Color(0xFF757575),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
+                color = Color.Black,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
+
 
 @Composable
 private fun SingleImageActionsMenu(
