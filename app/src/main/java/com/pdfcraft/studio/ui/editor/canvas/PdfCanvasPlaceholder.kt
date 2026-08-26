@@ -1201,7 +1201,7 @@ private fun simplifiedRatio(w: Int, h: Int): String {
         return x.coerceAtLeast(1)
     }
     val g = gcd(w, h)
-    return "\( {w / g}: \){h / g}"
+    return (w / g).toString() + ":" + (h / g).toString()
 }
 
 @Composable
