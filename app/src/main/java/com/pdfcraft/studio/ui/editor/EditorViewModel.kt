@@ -772,40 +772,54 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun importImages(uris: List<Uri>, replaceId: String? = null, startPageIndex: Int = 0) {
         val targetBytes = selectedImageSizeOption.targetBytes
         isImporting = true
+        pendingReplaceImageId = null
 
-        val insertAt = if (replaceId != null) {
+        val imageIds = mutableListOf<String>()
+
+        if (replaceId != null) {
+            // Replace one existing image in-place (no reflow).
             val idx = importedImages.indexOfFirst { it.id == replaceId }
-            if (idx >= 0) {
+            val placeAt = if (idx >= 0) {
                 importedImages.removeAt(idx)
                 idx
-            } else importedImages.size
+            } else {
+                importedImages.size
+            }
+            uris.forEachIndexed { index, uri ->
+                val imageId = "" + uri + "_" + System.currentTimeMillis() + "_" + index
+                if (index == 0) {
+                    importedImages.add(placeAt, ImportedImage(id = imageId, imageUri = uri))
+                } else {
+                    // Extra uris after a replace: fill first available slots after this one
+                    placeNewImageAtFirstEmpty(imageId, uri, placeAt + index)
+                }
+                imageIds.add(imageId)
+            }
         } else {
-            // Start at first slot of selected page (0-based page index).
-            // Page 1 -> 0, Page 2 -> perPage, Page 3 -> 2*perPage, ...
-            // If the list is shorter, pad with empty spacer slots so layout
-            // actually places new images on that page (not earlier pages).
+            // Fill first available empty slots starting from selected page.
+            // Empty = spacer_ slot, or append past current list (next free cell / page).
+            // Never insert at the front in a way that shifts existing real images.
             val perPage = imagesPerPageCapacity().coerceAtLeast(1)
             val pageIdx = startPageIndex.coerceAtLeast(0)
-            val targetSlot = pageIdx * perPage
+            val startSlot = pageIdx * perPage
             minPageCount = maxOf(minPageCount, pageIdx + 1)
-            while (importedImages.size < targetSlot) {
+            while (importedImages.size < startSlot) {
                 val spacerId = "spacer_" + System.nanoTime() + "_" + importedImages.size
                 importedImages.add(
                     ImportedImage(id = spacerId, imageUri = null, bitmap = null)
                 )
             }
-            targetSlot
-        }
-        pendingReplaceImageId = null
-
-        val imageIds = uris.mapIndexed { index, uri ->
-            val imageId = "" + uri + "_" + System.currentTimeMillis() + "_" + index
-            importedImages.add(insertAt + index, ImportedImage(id = imageId, imageUri = uri))
-            imageId
+            var cursor = startSlot
+            uris.forEachIndexed { index, uri ->
+                val imageId = "" + uri + "_" + System.currentTimeMillis() + "_" + index
+                cursor = placeNewImageAtFirstEmpty(imageId, uri, cursor)
+                imageIds.add(imageId)
+            }
         }
 
         viewModelScope.launch {
             uris.forEachIndexed { index, uri ->
+                if (index >= imageIds.size) return@forEachIndexed
                 val imageId = imageIds[index]
                 val decoded = imageHandler.decode(uri)
                 val imageIndex = importedImages.indexOfFirst { it.id == imageId }
@@ -826,6 +840,23 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             }
             isImporting = false
         }
+    }
+
+    /**
+     * Place a new image at the first empty slot at or after [fromIndex].
+     * Empty = spacer_ entry (replace in place) or end of list (append).
+     * Returns the next index to continue searching from.
+     */
+    private fun placeNewImageAtFirstEmpty(imageId: String, uri: Uri, fromIndex: Int): Int {
+        val start = fromIndex.coerceAtLeast(0)
+        for (i in start until importedImages.size) {
+            if (importedImages[i].id.startsWith("spacer_")) {
+                importedImages[i] = ImportedImage(id = imageId, imageUri = uri)
+                return i + 1
+            }
+        }
+        importedImages.add(ImportedImage(id = imageId, imageUri = uri))
+        return importedImages.size
     }
 
     fun openImageMenu(id: String) {
