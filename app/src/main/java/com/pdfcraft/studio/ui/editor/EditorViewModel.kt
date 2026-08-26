@@ -1437,39 +1437,61 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     
     /**
-     * Move page [fromIndex] so it occupies the current position of [toIndex].
-     * Example: from=4 (Page 5), to=8 (Page 9) → order becomes 1,2,3,4,6,7,8,5,9,...
+     * Move page [fromIndex] so it lands at [toIndex].
+     * All page content (images, text, links, backgrounds) moves with the page.
      */
     fun movePageTo(fromIndex: Int, toIndex: Int, imagesPerPage: Int) {
         val total = documentPageCount()
         if (fromIndex == toIndex) return
         if (fromIndex !in 0 until total || toIndex !in 0 until total) return
 
-        val order = (0 until total).toMutableList()
-        val item = order.removeAt(fromIndex)
-        var insertAt = toIndex
-        if (fromIndex < toIndex) {
-            insertAt = toIndex - 1
+        val rest = (0 until total).filter { it != fromIndex }.toMutableList()
+        // After removing source, destination index shifts if source was before dest
+        val insertAt = if (fromIndex < toIndex) {
+            (toIndex - 1).coerceIn(0, rest.size)
+        } else {
+            toIndex.coerceIn(0, rest.size)
         }
-        order.add(insertAt, item)
-        reorderPages(order, imagesPerPage)
+        rest.add(insertAt, fromIndex)
+        reorderPages(rest, imagesPerPage)
     }
 
+    /**
+     * Reorder pages by [newOrder] where newOrder[newPos] = oldPos.
+     * Each page is treated as a fixed-capacity slot block so empty pages stay empty
+     * and images/text/links/backgrounds move with their page.
+     */
     fun reorderPages(newOrder: List<Int>, imagesPerPage: Int) {
         val total = documentPageCount()
         if (newOrder.size != total || newOrder.toSet() != (0 until total).toSet()) return
+        val perPage = imagesPerPage.coerceAtLeast(1)
 
-        val pageImages = (0 until total).map { p ->
-            val range = imageRangeForPage(p, total)
-            if (range.isEmpty()) emptyList()
-            else importedImages.subList(range.first, range.last + 1).toList()
+        // Snapshot every page as exactly [perPage] slots (pad with spacers).
+        // This keeps empty pages and mid-page gaps (Keep Space) intact across moves.
+        val pageSlots: List<List<ImportedImage>> = (0 until total).map { p ->
+            val start = p * perPage
+            List(perPage) { slot ->
+                val idx = start + slot
+                if (idx < importedImages.size) {
+                    importedImages[idx]
+                } else {
+                    ImportedImage(
+                        id = "spacer_" + System.nanoTime() + "_" + p + "_" + slot,
+                        imageUri = null,
+                        bitmap = null
+                    )
+                }
+            }
         }
-        val rebuilt = newOrder.flatMap { pageImages[it] }
+
+        val rebuilt = newOrder.flatMap { oldPos -> pageSlots[oldPos] }
         importedImages.clear()
         importedImages.addAll(rebuilt)
 
-        // newOrder[newPos] = oldPos  =>  oldPos maps to newPos
+        // newOrder[newPos] = oldPos  =>  old page index maps to new page index
         val oldToNew = newOrder.mapIndexed { newPos, oldPos -> oldPos to newPos }.toMap()
+
+        // Text elements (and their links/styles) follow their page
         val newTexts = textElements.map { te ->
             te.copy(pageIndex = oldToNew[te.pageIndex] ?: te.pageIndex)
         }
@@ -1503,6 +1525,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         remapFloat(pageAspectOverrides)
         remapLong(pageBackgroundColorOverrides)
         remapBmp(pageBackgroundBitmapOverrides)
+
+        // Keep document page count stable
+        minPageCount = maxOf(minPageCount, total)
     }
 
     fun deleteSelectedPages(imagesPerPage: Int) {
