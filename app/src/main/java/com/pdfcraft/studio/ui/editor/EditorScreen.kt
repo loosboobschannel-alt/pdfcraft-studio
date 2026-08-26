@@ -90,6 +90,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pdfcraft.studio.R
 import com.pdfcraft.studio.ui.editor.canvas.PdfPagesPreview
@@ -1869,40 +1870,110 @@ private fun RotateImageDialog(
             android.graphics.Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, m, true)
         }
     }
+    val norm = ((degrees % 360f) + 360f) % 360f
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text(stringResource(R.string.rotate_title)) },
+        title = {
+            Text(
+                text = stringResource(R.string.rotate_title),
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+        },
         text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Image(
                     bitmap = preview.asImageBitmap(),
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp),
+                        .height(140.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFFF5F5F5)),
                     contentScale = ContentScale.Fit
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-                TextButton(onClick = { onDegreesChange((degrees + 90f) % 360f) }) {
-                    Text(stringResource(R.string.rotate_right))
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    RotateActionCard(
+                        icon = "\u21B6",
+                        label = stringResource(R.string.rotate_left),
+                        selected = norm == 270f,
+                        onClick = { onDegreesChange((degrees + 270f) % 360f) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    RotateActionCard(
+                        icon = "\u21B7",
+                        label = stringResource(R.string.rotate_right),
+                        selected = norm == 90f,
+                        onClick = { onDegreesChange((degrees + 90f) % 360f) },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                TextButton(onClick = { onDegreesChange((degrees + 270f) % 360f) }) {
-                    Text(stringResource(R.string.rotate_left))
-                }
-                TextButton(onClick = { onDegreesChange((degrees + 180f) % 360f) }) {
-                    Text(stringResource(R.string.rotate_180))
-                }
-                TextButton(onClick = { onDegreesChange(0f) }) {
-                    Text(stringResource(R.string.rotate_reset))
-                }
+                Spacer(modifier = Modifier.height(10.dp))
+                RotateActionCard(
+                    icon = "\u21BB",
+                    label = stringResource(R.string.rotate_180),
+                    selected = norm == 180f,
+                    onClick = { onDegreesChange((degrees + 180f) % 360f) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                RotateActionCard(
+                    icon = "\u27F3",
+                    label = stringResource(R.string.rotate_reset),
+                    selected = norm == 0f,
+                    onClick = { onDegreesChange(0f) },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
-            TextButton(onClick = onOk) { Text(stringResource(R.string.rotate_ok)) }
+            TextButton(onClick = onOk) {
+                Text(stringResource(R.string.rotate_ok), color = Color(0xFF1976D2))
+            }
         },
         dismissButton = {
-            TextButton(onClick = onCancel) { Text(stringResource(R.string.rotate_cancel)) }
+            TextButton(onClick = onCancel) {
+                Text(stringResource(R.string.rotate_cancel), color = Color.Black)
+            }
         }
     )
 }
 
+@Composable
+private fun RotateActionCard(
+    icon: String,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val bg = if (selected) Color(0xFFE3F2FD) else Color.White
+    val border = if (selected) Color(0xFF1976D2) else Color(0xFFE0E0E0)
+    val fg = if (selected) Color(0xFF1976D2) else Color.Black
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg, RoundedCornerShape(12.dp))
+            .border(1.dp, border, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = icon, fontSize = 22.sp, color = fg)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            color = fg,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
+        )
+    }
+}

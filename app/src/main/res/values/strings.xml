@@ -213,9 +213,9 @@
     <string name="crop_title">Crop</string>
     <string name="crop_cancel">Cancel</string>
     <string name="crop_apply">Apply</string>
-    <string name="rotate_title">Rotate</string>
-    <string name="rotate_right">Rotate Right 90°</string>
-    <string name="rotate_left">Rotate Left 90°</string>
+    <string name="rotate_title">Rotate Image</string>
+    <string name="rotate_right">Rotate Right</string>
+    <string name="rotate_left">Rotate Left</string>
     <string name="rotate_180">Rotate 180°</string>
     <string name="rotate_reset">Reset</string>
     <string name="rotate_ok">OK</string>
