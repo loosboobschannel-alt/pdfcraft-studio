@@ -1440,20 +1440,25 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
      * Move page [fromIndex] so it lands at [toIndex].
      * All page content (images, text, links, backgrounds) moves with the page.
      */
+    /**
+     * Move source page so it lands exactly at [toIndex].
+     * Example (5 pages, source Page1 → dest Page4):
+     *   before: 1, 2, 3, 4, 5
+     *   after:  2, 3, 4, 1, 5
+     * i.e. page1 content → position 4; pages 2–4 shift one step toward the old source.
+     * Content (images, text, links, backgrounds) moves with each page via reorderPages.
+     */
     fun movePageTo(fromIndex: Int, toIndex: Int, imagesPerPage: Int) {
         val total = documentPageCount()
         if (fromIndex == toIndex) return
         if (fromIndex !in 0 until total || toIndex !in 0 until total) return
 
-        val rest = (0 until total).filter { it != fromIndex }.toMutableList()
-        // After removing source, destination index shifts if source was before dest
-        val insertAt = if (fromIndex < toIndex) {
-            (toIndex - 1).coerceIn(0, rest.size)
-        } else {
-            toIndex.coerceIn(0, rest.size)
-        }
-        rest.add(insertAt, fromIndex)
-        reorderPages(rest, imagesPerPage)
+        val order = (0 until total).toMutableList()
+        val item = order.removeAt(fromIndex)
+        // Insert at destination index in the list AFTER removal so final index == toIndex.
+        // Do NOT use toIndex-1 when from < to — that placed the page one slot early.
+        order.add(toIndex.coerceIn(0, order.size), item)
+        reorderPages(order, imagesPerPage)
     }
 
     /**
