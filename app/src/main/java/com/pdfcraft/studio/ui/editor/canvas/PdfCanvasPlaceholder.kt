@@ -144,6 +144,8 @@ fun PdfPagesPreview(
     onCut: (String) -> Unit = {},
     onCopy: (String) -> Unit = {},
     onDeleteSingle: (String) -> Unit = {},
+    onDeleteSingleKeepSpace: (String) -> Unit = {},
+    onDeleteSingleFillSpace: (String) -> Unit = {},
     onPaste: () -> Unit = {},
     onSaveSingle: (String) -> Unit = {},
     onShareSingle: (String) -> Unit = {},

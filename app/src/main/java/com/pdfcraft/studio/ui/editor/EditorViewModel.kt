@@ -1107,8 +1107,40 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun deleteSingle(id: String) {
-        importedImages.removeAll { it.id == id }
-        singleMenuImageId = null
+        deleteImages(listOf(id), keepSpace = false)
+    }
+
+    fun deleteSingleKeepSpace(id: String) {
+        deleteImages(listOf(id), keepSpace = true)
+    }
+
+    fun deleteSingleFillSpace(id: String) {
+        deleteImages(listOf(id), keepSpace = false)
+    }
+
+    fun deleteImages(ids: Collection<String>, keepSpace: Boolean) {
+        val idSet = ids.filter { it.isNotBlank() && !it.startsWith("spacer_") }.toSet()
+        if (idSet.isEmpty()) {
+            singleMenuImageId = null
+            return
+        }
+        if (keepSpace) {
+            for (i in importedImages.indices) {
+                val img = importedImages[i]
+                if (img.id in idSet) {
+                    importedImages[i] = ImportedImage(
+                        id = "spacer_" + System.nanoTime() + "_" + i,
+                        imageUri = null,
+                        bitmap = null
+                    )
+                }
+            }
+        } else {
+            importedImages.removeAll { it.id in idSet }
+        }
+        selectedImageIds.removeAll { it in idSet }
+        if (singleMenuImageId in idSet) singleMenuImageId = null
+        dragSelectedIds.removeAll { it in idSet }
     }
 
     fun finishMultipleSelection() {
