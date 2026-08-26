@@ -286,6 +286,8 @@ fun EditorToolbar(
                         },
                         onSetBackgroundColor = {
                             onClearPageBgColorSelection()
+                            // Default: all pages selected for Change Background
+                            onSelectAllPagesForBgColor()
                             showPageBgColorPicker = true
                         },
                         isPageLandscape = isPageLandscape,

@@ -68,7 +68,7 @@ fun ImportImagesDialog(
     var showPagePicker by remember { mutableStateOf(false) }
     var selectedImportRatio by remember { mutableStateOf<String?>(null) }
     var draftPageIndex by remember(selectedStartPageIndex) {
-        mutableStateOf(selectedStartPageIndex ?: 0)
+        mutableStateOf<Int?>(selectedStartPageIndex)
     }
 
     Dialog(
@@ -200,7 +200,7 @@ fun ImportImagesDialog(
                 }
                 OutlinedButton(
                     onClick = {
-                        draftPageIndex = selectedStartPageIndex ?: 0
+                        draftPageIndex = selectedStartPageIndex
                         showPagePicker = true
                     },
                     modifier = Modifier
@@ -287,8 +287,11 @@ fun ImportImagesDialog(
     if (showPagePicker) {
         ImportStartPagePickerDialog(
             pageCount = pageCount.coerceAtLeast(1),
-            selectedIndex = draftPageIndex.coerceIn(0, (pageCount.coerceAtLeast(1) - 1)),
-            onSelect = { draftPageIndex = it },
+            selectedIndex = draftPageIndex,
+            onSelect = { page ->
+                // Tap same page again → unselect
+                draftPageIndex = if (draftPageIndex == page) null else page
+            },
             onNext = {
                 onStartPageSelected(draftPageIndex)
                 showPagePicker = false
@@ -312,7 +315,7 @@ private fun SectionLabel(text: String) {
 @Composable
 private fun ImportStartPagePickerDialog(
     pageCount: Int,
-    selectedIndex: Int,
+    selectedIndex: Int?,
     onSelect: (Int) -> Unit,
     onNext: () -> Unit,
     onDismiss: () -> Unit
