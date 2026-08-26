@@ -1470,18 +1470,22 @@ Column(
 
                     onSaveSingle = { id ->
                         val image = viewModel.getImage(id)
-
-                        if (image?.bitmap != null) {
-                            saveBitmapToGallery(
-                                context = context,
-                                bitmap = image.bitmap
-                            )
-
-                            coroutineScope.launch {
+                        val bmp = image?.bitmap
+                        coroutineScope.launch {
+                            if (bmp == null || bmp.isRecycled) {
                                 snackbarHostState.showSnackbar(
-                                    imageSavedMessage
+                                    context.getString(R.string.image_save_failed)
                                 )
+                                return@launch
                             }
+                            val ok = saveBitmapToGallery(
+                                context = context,
+                                bitmap = bmp
+                            )
+                            snackbarHostState.showSnackbar(
+                                if (ok) imageSavedMessage
+                                else context.getString(R.string.image_save_failed)
+                            )
                         }
                     },
 
@@ -1602,64 +1606,49 @@ Column(
 private fun saveBitmapToGallery(
     context: Context,
     bitmap: Bitmap
-) {
+): Boolean {
+    if (bitmap.isRecycled) return false
     val resolver = context.contentResolver
-    val filename =
-        "PDFCraft_${System.currentTimeMillis()}.jpg"
+    val filename = "PDFCraft_${System.currentTimeMillis()}.jpg"
 
     val values = ContentValues().apply {
-        put(
-            MediaStore.Images.Media.DISPLAY_NAME,
-            filename
-        )
-        put(
-            MediaStore.Images.Media.MIME_TYPE,
-            "image/jpeg"
-        )
-
+        put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+        put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // No space in folder name — appears under Pictures/PDFCraftStudio in Gallery
             put(
                 MediaStore.Images.Media.RELATIVE_PATH,
-                "Pictures/PDFCraft Studio"
+                "Pictures/PDFCraftStudio"
             )
-            put(
-                MediaStore.Images.Media.IS_PENDING,
-                1
-            )
+            put(MediaStore.Images.Media.IS_PENDING, 1)
         }
     }
 
     val uri = resolver.insert(
         MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
         values
-    ) ?: return
+    ) ?: return false
 
-    try {
+    return try {
         resolver.openOutputStream(uri)?.use { output ->
-            bitmap.compress(
-                Bitmap.CompressFormat.JPEG,
-                95,
-                output
-            )
-        }
+            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
+                throw Exception("compress failed")
+            }
+        } ?: throw Exception("no output stream")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val completed = ContentValues().apply {
-                put(
-                    MediaStore.Images.Media.IS_PENDING,
-                    0
-                )
+                put(MediaStore.Images.Media.IS_PENDING, 0)
             }
-
-            resolver.update(
-                uri,
-                completed,
-                null,
-                null
-            )
+            resolver.update(uri, completed, null, null)
         }
+        true
     } catch (_: Exception) {
-        resolver.delete(uri, null, null)
+        try {
+            resolver.delete(uri, null, null)
+        } catch (_: Exception) {
+        }
+        false
     }
 }
 

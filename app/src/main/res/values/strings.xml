@@ -44,7 +44,7 @@
     <string name="cut_image">Cut</string>
     <string name="copy_image">Copy</string>
     <string name="paste_image">Paste</string>
-    <string name="save_in_gallery">Save in Gallery</string>
+    <string name="save_in_gallery">Save</string>
     <string name="share_image">Share</string>
     <string name="view_image_information">Image Details</string>
     <string name="image_info_title">Image Details</string>
@@ -64,7 +64,8 @@
     <string name="delete_all_images">Delete All</string>
     <string name="selection_done">Done</string>
     <string name="selected_images_actions">Select an Action</string>
-    <string name="image_saved_message">Image saved to gallery</string>
+    <string name="image_saved_message">Image saved to Pictures/PDFCraftStudio</string>
+    <string name="image_save_failed">Could not save image</string>
     <string name="image_import_instructions">Choose an image size before importing.</string>
     <string name="image_import_instructions_secondary">Smaller sizes save space. Original keeps the best quality.</string>
     <string name="original_image_size_label">Original</string>
@@ -243,7 +244,7 @@
     <string name="image_position_pick_hint">Tap the image where you want to place the selected image.</string>
 
 
-    <string name="image_menu_add_link">Add Clickable Link</string>
+    <string name="image_menu_add_link">Insert Link</string>
     <string name="image_link_title">Add Clickable Link</string>
     <string name="image_link_instruction">Add a web link to this image. When the image is tapped in the exported PDF, the link will open.</string>
     <string name="image_link_url_label">Website URL</string>
