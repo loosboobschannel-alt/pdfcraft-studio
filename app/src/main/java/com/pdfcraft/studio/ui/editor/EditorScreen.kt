@@ -1615,10 +1615,10 @@ private fun saveBitmapToGallery(
         put(MediaStore.Images.Media.DISPLAY_NAME, filename)
         put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // No space in folder name — appears under Pictures/PDFCraftStudio in Gallery
+            // Saved under DCIM/PDFCraftStudio so it appears in Gallery/Camera album
             put(
                 MediaStore.Images.Media.RELATIVE_PATH,
-                "Pictures/PDFCraftStudio"
+                "DCIM/PDFCraftStudio"
             )
             put(MediaStore.Images.Media.IS_PENDING, 1)
         }
