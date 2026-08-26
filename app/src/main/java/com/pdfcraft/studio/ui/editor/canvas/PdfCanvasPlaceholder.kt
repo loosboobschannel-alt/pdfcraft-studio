@@ -884,6 +884,7 @@ private fun ImageCell(
         // Compact dropdown anchored to this image cell (same style as Image/Text Tools menus).
         // Outside tap or any image click dismisses via onDismissRequest / openImageMenu logic.
         var showInfoDialog by remember(image.id) { mutableStateOf(false) }
+        var showDeleteModeDialog by remember(image.id) { mutableStateOf(false) }
         if (showMenu && !reorderMode) {
             var savedToGallery by remember(image.id) { mutableStateOf(false) }
             DropdownMenu(
@@ -1018,73 +1019,7 @@ private fun ImageCell(
                         )
                     },
                     onClick = {
-                        onClick()
                         showDeleteModeDialog = true
-                    }
-                )
-            }
-            
-            if (showDeleteModeDialog) {
-                AlertDialog(
-                    onDismissRequest = { showDeleteModeDialog = false },
-                    title = {
-                        Text(
-                            text = stringResource(R.string.image_delete_mode_title),
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                    },
-                    text = {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = stringResource(R.string.image_delete_mode_instruction),
-                                color = Color(0xFF616161),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(
-                                onClick = {
-                                    showDeleteModeDialog = false
-                                    onDeleteKeepSpace()
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF1976D2)
-                                )
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.image_delete_keep_space),
-                                    color = Color.White,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(10.dp))
-                            OutlinedButton(
-                                onClick = {
-                                    showDeleteModeDialog = false
-                                    onDeleteFillSpace()
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.image_delete_fill_space),
-                                    color = Color(0xFF1976D2),
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                    },
-                    confirmButton = {},
-                    dismissButton = {
-                        TextButton(onClick = { showDeleteModeDialog = false }) {
-                            Text(stringResource(android.R.string.cancel), color = Color.Black)
-                        }
                     }
                 )
             }
@@ -1130,6 +1065,79 @@ private fun ImageCell(
                     }
                 )
             }
+        }
+
+        if (showDeleteModeDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteModeDialog = false },
+                title = {
+                    Text(
+                        text = stringResource(R.string.image_delete_mode_title),
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                },
+                text = {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = stringResource(R.string.image_delete_mode_instruction),
+                            color = Color(0xFF616161),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = {
+                                showDeleteModeDialog = false
+                                onClick()
+                                onDeleteKeepSpace()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF1976D2)
+                            )
+                        ) {
+                            Text(
+                                text = stringResource(R.string.image_delete_keep_space),
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        OutlinedButton(
+                            onClick = {
+                                showDeleteModeDialog = false
+                                onClick()
+                                onDeleteFillSpace()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.image_delete_fill_space),
+                                color = Color(0xFF1976D2),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        TextButton(
+                            onClick = {
+                                showDeleteModeDialog = false
+                                onClick()
+                            },
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text(stringResource(android.R.string.cancel), color = Color.Black)
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {}
+            )
         }
     }
 }
