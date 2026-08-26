@@ -54,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.PopupProperties
 import com.pdfcraft.studio.R
 import kotlin.math.roundToInt
 
@@ -160,6 +161,8 @@ fun EditorToolbar(
     onDragDone: () -> Unit = {},
     onDragImagesMenuClick: () -> Unit = {},
     onDeleteImagesMenuClick: () -> Unit = {},
+    closeMenusSignal: Int = 0,
+    onToolMenuOpenChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var resizeModeActive by remember { mutableStateOf(false) }
@@ -177,6 +180,12 @@ fun EditorToolbar(
     var showPageDeletePicker by remember { mutableStateOf(false) }
     // Only one of Page / Image / Text menus open at a time
     var openToolMenu by remember { mutableStateOf<String?>(null) }
+    androidx.compose.runtime.LaunchedEffect(closeMenusSignal) {
+        if (closeMenusSignal > 0) openToolMenu = null
+    }
+    androidx.compose.runtime.LaunchedEffect(openToolMenu) {
+        onToolMenuOpenChange(openToolMenu != null)
+    }
     var showPageDuplicatePicker by remember { mutableStateOf(false) }
     var showArrangePagesDialog by remember { mutableStateOf(false) }
     var pageBgColorModeActive by remember { mutableStateOf(false) }
@@ -274,8 +283,10 @@ fun EditorToolbar(
                     Box(modifier = Modifier.weight(1f)) {
                     PageToolsMenu(
                         menuExpanded = openToolMenu == "page",
-                        onMenuExpand = { openToolMenu = "page" },
-                        onMenuDismiss = { if (openToolMenu == "page") openToolMenu = null },
+                        onMenuExpand = {
+                            openToolMenu = if (openToolMenu == "page") null else "page"
+                        },
+                        onMenuDismiss = { },
                         onAddNewPage = onAddNewPage,
                         currentPageCount = pageCountForDelete.coerceAtLeast(1),
                         onDuplicatePages = {
@@ -318,8 +329,10 @@ fun EditorToolbar(
                     Box(modifier = Modifier.weight(1f)) {
                     ImageToolsMenu(
                         menuExpanded = openToolMenu == "image",
-                        onMenuExpand = { openToolMenu = "image" },
-                        onMenuDismiss = { if (openToolMenu == "image") openToolMenu = null },
+                        onMenuExpand = {
+                            openToolMenu = if (openToolMenu == "image") null else "image"
+                        },
+                        onMenuDismiss = { },
                         onImportImagesClick = onImportImagesClick,
                         onDragImagesClick = onDragImagesMenuClick,
                         onDeleteImagesClick = onDeleteImagesMenuClick,
@@ -336,8 +349,10 @@ fun EditorToolbar(
                     Box(modifier = Modifier.weight(1f)) {
                     TextToolsMenu(
                         menuExpanded = openToolMenu == "text",
-                        onMenuExpand = { openToolMenu = "text" },
-                        onMenuDismiss = { if (openToolMenu == "text") openToolMenu = null },
+                        onMenuExpand = {
+                            openToolMenu = if (openToolMenu == "text") null else "text"
+                        },
+                        onMenuDismiss = { },
                         onEnterTextClick = onAddTextClick,
                         onFontClick = onFontClick,
                         onTextColorClick = onTextColorClick,
@@ -650,7 +665,12 @@ private fun ImageToolsMenu(
 
         DropdownMenu(
             expanded = menuExpanded,
-            onDismissRequest = onMenuDismiss
+            onDismissRequest = onMenuDismiss,
+            properties = PopupProperties(
+                focusable = false,
+                dismissOnClickOutside = false,
+                dismissOnBackPress = true
+            )
         ) {
             ToolMenuItem(stringResource(R.string.import_images)) {
                 onMenuDismiss()
@@ -762,7 +782,12 @@ private fun PageToolsMenu(
                 onMenuDismiss()
                 orientationSub = false
                 backgroundSub = false
-            }
+            },
+            properties = PopupProperties(
+                focusable = false,
+                dismissOnClickOutside = false,
+                dismissOnBackPress = true
+            )
         ) {
             // 1. Add New Page + live page count badge
             Row(
@@ -897,7 +922,12 @@ private fun TextToolsMenu(
 
         DropdownMenu(
             expanded = menuExpanded,
-            onDismissRequest = onMenuDismiss
+            onDismissRequest = onMenuDismiss,
+            properties = PopupProperties(
+                focusable = false,
+                dismissOnClickOutside = false,
+                dismissOnBackPress = true
+            )
         ) {
             ToolMenuItem(stringResource(R.string.text_tool_enter_text)) {
                 onMenuDismiss()

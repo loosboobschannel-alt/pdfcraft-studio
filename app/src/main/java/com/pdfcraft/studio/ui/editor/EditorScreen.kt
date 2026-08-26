@@ -49,6 +49,9 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.DropdownMenuItem
@@ -222,6 +225,8 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
     var showImportSettings by remember { mutableStateOf(false) }
     var showDragPagePicker by remember { mutableStateOf(false) }
     var showDeleteImagesPagePicker by remember { mutableStateOf(false) }
+    var closeMenusSignal by remember { mutableStateOf(0) }
+    var toolMenuOpen by remember { mutableStateOf(false) }
     var showDeleteImagesImagePicker by remember { mutableStateOf(false) }
     var showDeleteImagesModeDialog by remember { mutableStateOf(false) }
     var deletePagesSelected by remember { mutableStateOf(setOf(0)) }
@@ -679,41 +684,72 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
         }
 
         if (showDeleteImagesModeDialog) {
-            androidx.compose.material3.AlertDialog(
+            AlertDialog(
                 onDismissRequest = { showDeleteImagesModeDialog = false },
-                title = { Text(stringResource(R.string.image_delete_mode_title)) },
+                title = {
+                    Text(
+                        text = stringResource(R.string.image_delete_mode_title),
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                },
                 text = {
-                    Column {
-                        Text(stringResource(R.string.image_delete_mode_instruction))
-                        Spacer(Modifier.height(12.dp))
-                        TextButton(
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = stringResource(R.string.image_delete_mode_instruction),
+                            color = Color(0xFF616161),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
                             onClick = {
                                 viewModel.deleteImages(deleteImagePickSelected, keepSpace = true)
                                 showDeleteImagesModeDialog = false
                                 deleteImagePickSelected = emptySet()
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF1976D2)
+                            )
                         ) {
-                            Text(stringResource(R.string.image_delete_keep_space))
+                            Text(
+                                text = stringResource(R.string.image_delete_keep_space),
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
-                        TextButton(
+                        Spacer(modifier = Modifier.height(10.dp))
+                        OutlinedButton(
                             onClick = {
                                 viewModel.deleteImages(deleteImagePickSelected, keepSpace = false)
                                 showDeleteImagesModeDialog = false
                                 deleteImagePickSelected = emptySet()
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text(stringResource(R.string.image_delete_fill_space))
+                            Text(
+                                text = stringResource(R.string.image_delete_fill_space),
+                                color = Color(0xFF1976D2),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        TextButton(
+                            onClick = { showDeleteImagesModeDialog = false },
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text(stringResource(android.R.string.cancel), color = Color.Black)
                         }
                     }
                 },
                 confirmButton = {},
-                dismissButton = {
-                    TextButton(onClick = { showDeleteImagesModeDialog = false }) {
-                        Text(stringResource(R.string.image_link_cancel))
-                    }
-                }
+                dismissButton = {}
             )
         }
 
@@ -1120,9 +1156,10 @@ Column(
                 onDragCenter = viewModel::centerDragImages,
                 onDragDone = viewModel::exitDragImages,
                 onDragImagesMenuClick = { showDragPagePicker = true },
+                closeMenusSignal = closeMenusSignal,
+                onToolMenuOpenChange = { toolMenuOpen = it },
                 onDeleteImagesMenuClick = {
-                    val n = viewModel.documentPageCount().coerceAtLeast(1)
-                    deletePagesSelected = (0 until n).toSet()
+                    deletePagesSelected = emptySet()
                     deleteImagePickSelected = emptySet()
                     showDeleteImagesPagePicker = true
                 },
@@ -1314,6 +1351,12 @@ Column(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
+                    .then(
+                        if (toolMenuOpen) Modifier.clickable {
+                            closeMenusSignal++
+                            toolMenuOpen = false
+                        } else Modifier
+                    )
             ) {
                 Column(
                     modifier = Modifier
