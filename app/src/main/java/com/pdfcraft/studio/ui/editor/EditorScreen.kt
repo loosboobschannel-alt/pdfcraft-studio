@@ -221,6 +221,11 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
     val coroutineScope = rememberCoroutineScope()
     var showImportSettings by remember { mutableStateOf(false) }
     var showDragPagePicker by remember { mutableStateOf(false) }
+    var showDeleteImagesPagePicker by remember { mutableStateOf(false) }
+    var showDeleteImagesImagePicker by remember { mutableStateOf(false) }
+    var showDeleteImagesModeDialog by remember { mutableStateOf(false) }
+    var deletePagesSelected by remember { mutableStateOf(setOf(0)) }
+    var deleteImagePickSelected by remember { mutableStateOf(setOf<String>()) }
     var showDragImagePicker by remember { mutableStateOf(false) }
     var dragPageForPicker by remember { mutableStateOf(0) }
     var dragPagesSelected by remember { mutableStateOf(setOf(0)) }
@@ -495,6 +500,224 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
         }
 
         
+        
+        // ---- Delete Images: Step 1 pages ----
+        if (showDeleteImagesPagePicker) {
+            val pageCount = viewModel.documentPageCount().coerceAtLeast(1)
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showDeleteImagesPagePicker = false },
+                title = { Text(stringResource(R.string.image_delete_title)) },
+                text = {
+                    Column {
+                        Text(
+                            stringResource(R.string.image_delete_select_page_instruction),
+                            fontWeight = FontWeight.Bold
+                        )
+                        TextButton(onClick = {
+                            val allSelected =
+                                pageCount > 0 &&
+                                deletePagesSelected.containsAll((0 until pageCount).toList())
+                            deletePagesSelected =
+                                if (allSelected) emptySet()
+                                else (0 until pageCount).toSet()
+                        }) {
+                            Text(stringResource(R.string.image_drag_select_all))
+                        }
+                        Column(
+                            Modifier
+                                .heightIn(max = 320.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            for (i in 0 until pageCount) {
+                                val checked = i in deletePagesSelected
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            deletePagesSelected =
+                                                if (checked) deletePagesSelected - i
+                                                else deletePagesSelected + i
+                                        }
+                                        .padding(vertical = 4.dp)
+                                ) {
+                                    androidx.compose.material3.Checkbox(
+                                        checked = checked,
+                                        onCheckedChange = { on ->
+                                            deletePagesSelected =
+                                                if (on) deletePagesSelected + i
+                                                else deletePagesSelected - i
+                                        }
+                                    )
+                                    Text("Page ${i + 1}")
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        if (deletePagesSelected.isNotEmpty()) {
+                            deleteImagePickSelected = emptySet()
+                            showDeleteImagesPagePicker = false
+                            showDeleteImagesImagePicker = true
+                        }
+                    }) { Text(stringResource(R.string.image_drag_next)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteImagesPagePicker = false }) {
+                        Text(stringResource(R.string.image_link_cancel))
+                    }
+                }
+            )
+        }
+
+        // ---- Delete Images: Step 2 image grid ----
+        if (showDeleteImagesImagePicker) {
+            val pageImgs = viewModel.imagesOnPages(deletePagesSelected)
+            Dialog(
+                onDismissRequest = { showDeleteImagesImagePicker = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Scaffold(
+                    topBar = {
+                        TopAppBar(
+                            title = {
+                                Text(
+                                    stringResource(R.string.image_delete_title),
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.Black
+                                )
+                            },
+                            navigationIcon = {
+                                Text(
+                                    text = "\u2715",
+                                    color = Color.Black,
+                                    modifier = Modifier
+                                        .padding(horizontal = 16.dp)
+                                        .clickable { showDeleteImagesImagePicker = false }
+                                )
+                            },
+                            actions = {
+                                TextButton(onClick = {
+                                    val allIds = pageImgs.map { it.id }.toSet()
+                                    deleteImagePickSelected =
+                                        if (allIds.isNotEmpty() && deleteImagePickSelected.containsAll(allIds))
+                                            emptySet()
+                                        else
+                                            allIds
+                                }) {
+                                    Text(stringResource(R.string.image_drag_select_all))
+                                }
+                                TextButton(onClick = {
+                                    if (deleteImagePickSelected.isNotEmpty()) {
+                                        showDeleteImagesImagePicker = false
+                                        showDeleteImagesModeDialog = true
+                                    }
+                                }) {
+                                    Text(stringResource(R.string.image_drag_next))
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                        )
+                    },
+                    containerColor = Color.White
+                ) { pad ->
+                    val rows = pageImgs.chunked(4)
+                    Column(
+                        Modifier
+                            .padding(pad)
+                            .verticalScroll(rememberScrollState())
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            stringResource(R.string.image_delete_select_images_instruction),
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        rows.forEach { row ->
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                row.forEach { img ->
+                                    val selected = img.id in deleteImagePickSelected
+                                    Box(
+                                        Modifier
+                                            .weight(1f)
+                                            .aspectRatio(1f)
+                                            .border(
+                                                width = if (selected) 3.dp else 1.dp,
+                                                color = if (selected) Color(0xFF1976D2) else Color.LightGray
+                                            )
+                                            .clickable {
+                                                deleteImagePickSelected =
+                                                    if (selected) deleteImagePickSelected - img.id
+                                                    else deleteImagePickSelected + img.id
+                                            }
+                                    ) {
+                                        val bmp = img.bitmap
+                                        if (bmp != null && !bmp.isRecycled) {
+                                            androidx.compose.foundation.Image(
+                                                bitmap = bmp.asImageBitmap(),
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+                                    }
+                                }
+                                repeat(4 - row.size) {
+                                    Spacer(Modifier.weight(1f))
+                                }
+                            }
+                            Spacer(Modifier.height(8.dp))
+                        }
+                    }
+                }
+            }
+        }
+
+        if (showDeleteImagesModeDialog) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showDeleteImagesModeDialog = false },
+                title = { Text(stringResource(R.string.image_delete_mode_title)) },
+                text = {
+                    Column {
+                        Text(stringResource(R.string.image_delete_mode_instruction))
+                        Spacer(Modifier.height(12.dp))
+                        TextButton(
+                            onClick = {
+                                viewModel.deleteImages(deleteImagePickSelected, keepSpace = true)
+                                showDeleteImagesModeDialog = false
+                                deleteImagePickSelected = emptySet()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.image_delete_keep_space))
+                        }
+                        TextButton(
+                            onClick = {
+                                viewModel.deleteImages(deleteImagePickSelected, keepSpace = false)
+                                showDeleteImagesModeDialog = false
+                                deleteImagePickSelected = emptySet()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(stringResource(R.string.image_delete_fill_space))
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { showDeleteImagesModeDialog = false }) {
+                        Text(stringResource(R.string.image_link_cancel))
+                    }
+                }
+            )
+        }
+
+
         // ---- Drag Images: Step 1 multi-page picker ----
         if (showDragPagePicker) {
             val pageCount = viewModel.documentPageCount().coerceAtLeast(1)
@@ -897,6 +1120,12 @@ Column(
                 onDragCenter = viewModel::centerDragImages,
                 onDragDone = viewModel::exitDragImages,
                 onDragImagesMenuClick = { showDragPagePicker = true },
+                onDeleteImagesMenuClick = {
+                    val n = viewModel.documentPageCount().coerceAtLeast(1)
+                    deletePagesSelected = (0 until n).toSet()
+                    deleteImagePickSelected = emptySet()
+                    showDeleteImagesPagePicker = true
+                },
                 onNumberingDone = { viewModel.finishNumberingEdit() },
 
                 onImagesPerRowSelected =
@@ -1244,6 +1473,12 @@ Column(
                     },
                     onDeleteSingle = { id ->
                         viewModel.deleteSingle(id)
+                    },
+                    onDeleteSingleKeepSpace = { id ->
+                        viewModel.deleteSingleKeepSpace(id)
+                    },
+                    onDeleteSingleFillSpace = { id ->
+                        viewModel.deleteSingleFillSpace(id)
                     },
 
                     onFinishMultipleSelection = {

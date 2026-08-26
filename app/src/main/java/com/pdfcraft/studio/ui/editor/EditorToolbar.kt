@@ -159,6 +159,7 @@ fun EditorToolbar(
     onDragCenter: () -> Unit = {},
     onDragDone: () -> Unit = {},
     onDragImagesMenuClick: () -> Unit = {},
+    onDeleteImagesMenuClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var resizeModeActive by remember { mutableStateOf(false) }
@@ -310,6 +311,7 @@ fun EditorToolbar(
                     ImageToolsMenu(
                         onImportImagesClick = onImportImagesClick,
                         onDragImagesClick = onDragImagesMenuClick,
+                        onDeleteImagesClick = onDeleteImagesMenuClick,
                         onResizeImagesClick = { resizeModeActive = true },
                         onAdjustSpacingClick = { spacingModeActive = true },
                         onAdjustImageShapeClick = { shapeModeActive = true },
@@ -615,6 +617,7 @@ private fun ToolMenuItem(
 private fun ImageToolsMenu(
     onImportImagesClick: () -> Unit,
     onDragImagesClick: () -> Unit = {},
+    onDeleteImagesClick: () -> Unit = {},
     onResizeImagesClick: () -> Unit,
     onAdjustSpacingClick: () -> Unit,
     onAdjustImageShapeClick: () -> Unit,
@@ -667,6 +670,11 @@ private fun ImageToolsMenu(
             ToolMenuItem(stringResource(R.string.image_drag_tool)) {
                 menuExpanded = false
                 onDragImagesClick()
+            }
+            HorizontalDivider(color = Color.LightGray)
+            ToolMenuItem(stringResource(R.string.image_delete_tool)) {
+                menuExpanded = false
+                onDeleteImagesClick()
             }
         }
     }

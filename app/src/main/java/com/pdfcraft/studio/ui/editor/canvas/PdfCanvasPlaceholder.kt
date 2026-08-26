@@ -324,6 +324,8 @@ fun PdfPagesPreview(
                                 onImagePosition = onImagePosition,
                                 onAddImageLink = onAddImageLink,
                                 onDeleteSingle = onDeleteSingle,
+                                onDeleteSingleKeepSpace = onDeleteSingleKeepSpace,
+                                onDeleteSingleFillSpace = onDeleteSingleFillSpace,
                                 onMoveSingle = onMoveSingle,
                                 onMoveMultiple = onMoveMultiple,
                                 onFinishReorder = onFinishReorder
@@ -592,6 +594,8 @@ private fun ImageGrid(
     onImagePosition: (String) -> Unit,
     onAddImageLink: (String) -> Unit,
     onDeleteSingle: (String) -> Unit,
+    onDeleteSingleKeepSpace: (String) -> Unit,
+    onDeleteSingleFillSpace: (String) -> Unit,
     onMoveSingle: (String, String) -> Unit,
     onMoveMultiple: (String) -> Unit,
     onFinishReorder: () -> Unit
@@ -655,8 +659,11 @@ private fun ImageGrid(
                         onAddLink = {
                             onAddImageLink(image.id)
                         },
-                        onDelete = {
-                            onDeleteSingle(image.id)
+                        onDeleteKeepSpace = {
+                            onDeleteSingleKeepSpace(image.id)
+                        },
+                        onDeleteFillSpace = {
+                            onDeleteSingleFillSpace(image.id)
                         },
                         onDropOnTarget = { targetId ->
                             if (selectedImageIds.size > 1) {
@@ -702,7 +709,8 @@ private fun ImageCell(
     onReplace: () -> Unit,
     onImagePosition: () -> Unit,
     onAddLink: () -> Unit,
-    onDelete: () -> Unit,
+    onDeleteKeepSpace: () -> Unit,
+    onDeleteFillSpace: () -> Unit,
     onDropOnTarget: (String) -> Unit
 ) {
     var layoutCoordinates by remember {
@@ -1001,7 +1009,7 @@ private fun ImageCell(
                 DropdownMenuItem(
                     text = {
                         Text(
-                            text = stringResource(R.string.image_menu_delete),
+                            text = stringResource(R.string.image_delete_keep_space),
                             color = Color.Black,
                             maxLines = 1,
                             softWrap = false
@@ -1009,7 +1017,21 @@ private fun ImageCell(
                     },
                     onClick = {
                         onClick()
-                        onDelete()
+                        onDeleteKeepSpace()
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(R.string.image_delete_fill_space),
+                            color = Color.Black,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    },
+                    onClick = {
+                        onClick()
+                        onDeleteFillSpace()
                     }
                 )
             }
