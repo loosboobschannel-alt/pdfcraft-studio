@@ -272,6 +272,7 @@ fun EditorToolbar(
                     Box(modifier = Modifier.weight(1f)) {
                     PageToolsMenu(
                         onAddNewPage = onAddNewPage,
+                        currentPageCount = pageCountForDelete.coerceAtLeast(1),
                         onDuplicatePages = {
                             onClearPageDuplicateSelection()
                             showPageDuplicatePicker = true
@@ -683,6 +684,7 @@ private fun ImageToolsMenu(
 @Composable
 private fun PageToolsMenu(
     onAddNewPage: () -> Unit,
+    currentPageCount: Int = 1,
     onDuplicatePages: () -> Unit,
     onArrangePages: () -> Unit,
     onSetPageSize: () -> Unit,
@@ -746,9 +748,30 @@ private fun PageToolsMenu(
                 backgroundSub = false
             }
         ) {
-            // 1. Add New Page
-            ToolMenuItem(stringResource(R.string.page_tool_add_new_page)) {
-                onAddNewPage()
+            // 1. Add New Page + live page count badge
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        onAddNewPage()
+                    }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.page_tool_add_new_page),
+                    color = Color.Black,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = "($currentPageCount)",
+                    color = Color(0xFF757575),
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1
+                )
             }
             HorizontalDivider(color = Color.LightGray)
 
