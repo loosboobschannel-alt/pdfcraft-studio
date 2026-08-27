@@ -307,6 +307,9 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     var imageCellAspectRatio: Float by mutableStateOf(1.192929f)
         private set
+    /** Grid/fallback ratio. Not changed while Resize Images targets selected images. */
+    var layoutCellAspectRatio: Float by mutableStateOf(1.192929f)
+        private set
 
     var imageCornerRadiusPercent: Int by mutableStateOf(0)
         private set
@@ -633,7 +636,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 pageAspectOverrides.clear()
                 imagesPerRow = 4
                 imageSpacingDp = 7
-                imageCellAspectRatio = imageLengthPercentToRatio(15)
+                imageCellAspectRatio = imageLengthPercentToRatio(15).also { layoutCellAspectRatio = it }
             }
             "landscape" -> {
                 // 16:9 — Page Size 11, Per Row 3, Spacing 6, Image Length 84
@@ -641,7 +644,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 pageAspectOverrides.clear()
                 imagesPerRow = 3
                 imageSpacingDp = 6
-                imageCellAspectRatio = imageLengthPercentToRatio(84)
+                imageCellAspectRatio = imageLengthPercentToRatio(84).also { layoutCellAspectRatio = it }
             }
             "square" -> {
                 // 1:1 — Page Size 13, Per Row 4, Spacing 6, Image Length 53
@@ -649,7 +652,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 pageAspectOverrides.clear()
                 imagesPerRow = 4
                 imageSpacingDp = 6
-                imageCellAspectRatio = imageLengthPercentToRatio(53)
+                imageCellAspectRatio = imageLengthPercentToRatio(53).also { layoutCellAspectRatio = it }
             }
         }
     }
@@ -774,7 +777,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         val first = resizeTargetIds.firstOrNull()?.let { id ->
             importedImages.firstOrNull { it.id == id }
         }
-        imageCellAspectRatio = (first?.aspectRatioOverride ?: imageCellAspectRatio).coerceIn(0.3f, 2.0f)
+        imageCellAspectRatio = (first?.aspectRatioOverride ?: layoutCellAspectRatio).coerceIn(0.3f, 2.0f)
         resizeEditActive = resizeTargetIds.isNotEmpty()
     }
 
@@ -786,11 +789,15 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun updateImageCellAspectRatio(ratio: Float) {
         val r = ratio.coerceIn(0.3f, 2.0f)
         imageCellAspectRatio = r
-        resizeTargetIds.forEach { id ->
-            val idx = importedImages.indexOfFirst { it.id == id }
-            if (idx >= 0) {
-                importedImages[idx] = importedImages[idx].copy(aspectRatioOverride = r)
+        if (resizeTargetIds.isNotEmpty()) {
+            resizeTargetIds.forEach { id ->
+                val idx = importedImages.indexOfFirst { it.id == id }
+                if (idx >= 0) {
+                    importedImages[idx] = importedImages[idx].copy(aspectRatioOverride = r)
+                }
             }
+        } else {
+            layoutCellAspectRatio = r
         }
     }
 

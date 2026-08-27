@@ -415,7 +415,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                         pageAspectRatio = viewModel.pageAspectRatio,
                                         pageBackgroundColor = viewModel.pageBackgroundColor,
                                         imageSpacingDp = viewModel.imageSpacingDp,
-                                        imageCellAspectRatio = viewModel.imageCellAspectRatio,
+                                        imageCellAspectRatio = viewModel.layoutCellAspectRatio,
                                         pageMarginDp = 10,
                                         minPageCount = viewModel.minPageCount,
                                         pageAspectRatioForPage = viewModel::aspectRatioForPage
@@ -1438,7 +1438,7 @@ Column(
                     images = viewModel.importedImages,
                     imagesPerRow = viewModel.imagesPerRow,
                     imageSpacingDp = viewModel.imageSpacingDp,
-                    imageCellAspectRatio = viewModel.imageCellAspectRatio,
+                    imageCellAspectRatio = viewModel.layoutCellAspectRatio,
                     imageCornerRadiusPercent = viewModel.imageCornerRadiusPercent,
 
                     pageAspectRatio = viewModel.pageAspectRatio,
