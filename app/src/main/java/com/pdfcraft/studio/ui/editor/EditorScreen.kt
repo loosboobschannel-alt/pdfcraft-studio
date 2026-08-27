@@ -26,6 +26,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
+import android.util.Log
 import android.os.Environment
 import android.net.Uri
 import java.io.File
@@ -101,6 +102,8 @@ import com.pdfcraft.studio.R
 import com.pdfcraft.studio.ui.editor.canvas.PdfPagesPreview
 import com.pdfcraft.studio.ui.theme.PDFCraftStudioTheme
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1483,10 +1486,12 @@ Column(
                                 )
                                 return@launch
                             }
-                            val ok = saveBitmapToGallery(
-                                context = context,
-                                bitmap = bmp
-                            )
+                            val ok = withContext(Dispatchers.IO) {
+                                saveBitmapToGallery(
+                                    context = context,
+                                    bitmap = bmp
+                                )
+                            }
                             snackbarHostState.showSnackbar(
                                 if (ok) imageSavedMessage
                                 else context.getString(R.string.image_save_failed)
@@ -1552,15 +1557,14 @@ Column(
                     },
 
                     onMultipleSave = {
-                        viewModel.getSelectedImages()
-                            .forEach { image ->
-                                image.bitmap?.let { bitmap ->
-                                    saveBitmapToGallery(
-                                        context = context,
-                                        bitmap = bitmap
-                                    )
+                        val bitmaps = viewModel.getSelectedImages().mapNotNull { it.bitmap }
+                        coroutineScope.launch {
+                            withContext(Dispatchers.IO) {
+                                bitmaps.forEach { bitmap ->
+                                    saveBitmapToGallery(context, bitmap)
                                 }
                             }
+                        }
 
                         viewModel.cancelSelection()
                     },
@@ -1608,50 +1612,53 @@ Column(
     }
 }
 
+private const val SAVE_LOG = "PDFCraftSave"
+
 private fun saveBitmapToGallery(
     context: Context,
     bitmap: Bitmap
 ): Boolean {
-    if (bitmap.isRecycled) return false
-    val software = if (bitmap.config == Bitmap.Config.HARDWARE) {
-        bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: return false
-    } else {
+    if (bitmap.isRecycled) {
+        Log.e(SAVE_LOG, "bitmap recycled sdk=" + Build.VERSION.SDK_INT)
+        return false
+    }
+    val software = try {
+        if (bitmap.config == Bitmap.Config.HARDWARE) {
+            bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: bitmap
+        } else bitmap
+    } catch (e: Exception) {
+        Log.e(SAVE_LOG, "hardware copy failed", e)
         bitmap
     }
     val filename = "PDFCraft_" + System.currentTimeMillis() + ".jpg"
-    val nowMs = System.currentTimeMillis()
-    val nowSec = nowMs / 1000L
-
-    fun recycleCopy() {
-        if (software !== bitmap && !software.isRecycled) {
-            software.recycle()
-        }
-    }
-
+    Log.i(SAVE_LOG, "start sdk=" + Build.VERSION.SDK_INT + " " + software.width + "x" + software.height + " file=" + filename)
     return try {
         val ok = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            saveViaMediaStoreQ(context, software, filename, nowMs, nowSec)
+            saveViaMediaStoreQ(context, software, filename, System.currentTimeMillis())
         } else {
             saveViaLegacyScan(context, software, filename)
         }
-        recycleCopy()
+        Log.i(SAVE_LOG, "result=" + ok + " file=" + filename)
         ok
-    } catch (_: Exception) {
-        recycleCopy()
+    } catch (e: Exception) {
+        Log.e(SAVE_LOG, "save failed file=" + filename, e)
         false
+    } finally {
+        if (software !== bitmap && !software.isRecycled) {
+            try { software.recycle() } catch (_: Exception) {}
+        }
     }
 }
 
-/** API 29+: MediaStore + IS_PENDING publish. No manual scanner. */
 private fun saveViaMediaStoreQ(
     context: Context,
     bitmap: Bitmap,
     filename: String,
-    nowMs: Long,
-    nowSec: Long
+    nowMs: Long
 ): Boolean {
     val resolver = context.contentResolver
     val relativeDir = Environment.DIRECTORY_DCIM + "/PDFCraftStudio/"
+    val nowSec = nowMs / 1000L
     val values = ContentValues().apply {
         put(MediaStore.Images.Media.DISPLAY_NAME, filename)
         put(MediaStore.Images.Media.TITLE, filename)
@@ -1665,35 +1672,95 @@ private fun saveViaMediaStoreQ(
         put(MediaStore.Images.Media.IS_PENDING, 1)
     }
     val collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-    val uri = resolver.insert(collection, values) ?: return false
+    Log.i(SAVE_LOG, "collection=" + collection + " path=" + relativeDir)
+    val uri = resolver.insert(collection, values)
+    if (uri == null) {
+        Log.e(SAVE_LOG, "insert returned null")
+        return false
+    }
+    Log.i(SAVE_LOG, "inserted " + uri)
     return try {
-        resolver.openOutputStream(uri)?.use { output ->
-            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
-                throw Exception("compress failed")
+        var bytes = 0
+        resolver.openOutputStream(uri, "w")?.use { output ->
+            val buffer = java.io.ByteArrayOutputStream()
+            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, buffer)) {
+                throw Exception("compress returned false")
             }
+            val data = buffer.toByteArray()
+            bytes = data.size
+            output.write(data)
             output.flush()
-        } ?: throw Exception("no output stream")
+            Log.i(SAVE_LOG, "wrote bytes=" + bytes)
+        } ?: throw Exception("openOutputStream null")
 
         val published = resolver.update(
             uri,
-            ContentValues().apply { put(MediaStore.Images.Media.IS_PENDING, 0) },
+            ContentValues().apply {
+                put(MediaStore.Images.Media.IS_PENDING, 0)
+                put(MediaStore.Images.Media.DATE_MODIFIED, System.currentTimeMillis() / 1000L)
+            },
             null,
             null
         )
-        if (published <= 0) {
-            throw Exception("publish failed")
-        }
+        Log.i(SAVE_LOG, "publish rows=" + published + " uri=" + uri)
+        if (published <= 0) throw Exception("IS_PENDING update returned " + published)
+        if (!verifyPublished(resolver, uri)) throw Exception("MediaStore row invalid")
         true
-    } catch (_: Exception) {
-        try {
-            resolver.delete(uri, null, null)
-        } catch (_: Exception) {
+    } catch (e: Exception) {
+        Log.e(SAVE_LOG, "Q save failed uri=" + uri, e)
+        try { resolver.delete(uri, null, null) } catch (del: Exception) {
+            Log.e(SAVE_LOG, "cleanup delete failed", del)
         }
         false
     }
 }
 
-/** API 26–28: write DCIM/PDFCraftStudio then MediaScanner. */
+private fun verifyPublished(
+    resolver: android.content.ContentResolver,
+    uri: android.net.Uri
+): Boolean {
+    val cols = arrayOf(
+        MediaStore.Images.Media.DISPLAY_NAME,
+        MediaStore.Images.Media.MIME_TYPE,
+        MediaStore.Images.Media.RELATIVE_PATH,
+        MediaStore.Images.Media.IS_PENDING,
+        MediaStore.Images.Media.SIZE,
+        MediaStore.Images.Media.WIDTH,
+        MediaStore.Images.Media.HEIGHT
+    )
+    resolver.query(uri, cols, null, null, null)?.use { c ->
+        if (!c.moveToFirst()) {
+            Log.e(SAVE_LOG, "query empty")
+            return false
+        }
+        fun col(name: String): String {
+            val i = c.getColumnIndex(name)
+            return if (i < 0) "?" else (c.getString(i) ?: "null")
+        }
+        val pIdx = c.getColumnIndex(MediaStore.Images.Media.IS_PENDING)
+        val sIdx = c.getColumnIndex(MediaStore.Images.Media.SIZE)
+        val pending = if (pIdx < 0) -1 else c.getInt(pIdx)
+        val size = if (sIdx < 0) -1L else c.getLong(sIdx)
+        Log.i(SAVE_LOG, "verify name=" + col(MediaStore.Images.Media.DISPLAY_NAME)
+            + " mime=" + col(MediaStore.Images.Media.MIME_TYPE)
+            + " path=" + col(MediaStore.Images.Media.RELATIVE_PATH)
+            + " pending=" + pending + " size=" + size
+            + " w=" + col(MediaStore.Images.Media.WIDTH)
+            + " h=" + col(MediaStore.Images.Media.HEIGHT))
+        if (pending != 0) {
+            Log.e(SAVE_LOG, "still pending")
+            return false
+        }
+        if (size == 0L) {
+            Log.e(SAVE_LOG, "size 0")
+            return false
+        }
+        return true
+    }
+    Log.e(SAVE_LOG, "query null")
+    return false
+}
+
 private fun saveViaLegacyScan(
     context: Context,
     bitmap: Bitmap,
@@ -1703,23 +1770,27 @@ private fun saveViaLegacyScan(
         Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
         "PDFCraftStudio"
     )
-    if (!folder.exists() && !folder.mkdirs()) return false
+    if (!folder.exists() && !folder.mkdirs()) {
+        Log.e(SAVE_LOG, "mkdirs failed " + folder.absolutePath)
+        return false
+    }
     val file = File(folder, filename)
     return try {
         FileOutputStream(file).use { output ->
             if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
-                throw Exception("compress failed")
+                throw Exception("compress returned false")
             }
             output.flush()
         }
+        Log.i(SAVE_LOG, "legacy bytes=" + file.length() + " path=" + file.absolutePath)
         MediaScannerConnection.scanFile(
             context.applicationContext,
             arrayOf(file.absolutePath),
-            arrayOf("image/jpeg"),
-            null
-        )
+            arrayOf("image/jpeg")
+        ) { path, uri -> Log.i(SAVE_LOG, "scanned path=" + path + " uri=" + uri) }
         file.exists() && file.length() > 0L
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        Log.e(SAVE_LOG, "legacy save failed", e)
         if (file.exists()) file.delete()
         false
     }
