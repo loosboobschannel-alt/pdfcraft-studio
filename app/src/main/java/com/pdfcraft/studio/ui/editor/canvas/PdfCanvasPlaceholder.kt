@@ -620,7 +620,7 @@ private fun ImageGrid(
                     ImageCell(
                         image = image,
                         modifier = Modifier.weight(1f),
-                        aspectRatio = cellAspectRatio,
+                        aspectRatio = (image.aspectRatioOverride ?: cellAspectRatio).coerceIn(0.3f, 2.0f),
                         cornerRadiusPercent = image.cornerRadiusPercent.coerceIn(0, 100),
                         selected = selectedImageIds.contains(image.id),
                         reorderMode = reorderMode,

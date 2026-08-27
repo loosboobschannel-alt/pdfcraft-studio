@@ -780,17 +780,22 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                 onDismissRequest = { showDragPagePicker = false },
                 title = {
                     Text(stringResource(
-                        if (imagePagePickerKind == "corners") R.string.round_corners_title
-                        else R.string.image_drag_title
+                        when (imagePagePickerKind) {
+                            "corners" -> R.string.round_corners_title
+                            "resize" -> R.string.image_shape_title
+                            else -> R.string.image_drag_title
+                        }
                     ))
                 },
                 text = {
                     Column {
                         Text(
                             stringResource(
-                                if (imagePagePickerKind == "corners")
-                                    R.string.round_corners_select_page_instruction
-                                else R.string.image_drag_select_page_instruction
+                                when (imagePagePickerKind) {
+                                    "corners" -> R.string.round_corners_select_page_instruction
+                                    "resize" -> R.string.resize_select_page_instruction
+                                    else -> R.string.image_drag_select_page_instruction
+                                }
                             ),
                             fontWeight = FontWeight.Bold
                         )
@@ -870,7 +875,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                         TopAppBar(
                             title = {
                                 Text(
-                                    stringResource(if (imagePagePickerKind == "corners") R.string.round_corners_title else R.string.image_drag_title),
+                                    stringResource(when (imagePagePickerKind) { "corners" -> R.string.round_corners_title; "resize" -> R.string.image_shape_title; else -> R.string.image_drag_title }),
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color.Black
                                 )
@@ -897,13 +902,20 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                 }
                                 TextButton(onClick = {
                                     if (dragImagePickSelected.isNotEmpty()) {
-                                        if (imagePagePickerKind == "corners") {
-                                            viewModel.beginCornerEdit(dragImagePickSelected)
-                                            showDragImagePicker = false
-                                        } else {
-                                            viewModel.setDragImageSelection(dragImagePickSelected)
-                                            viewModel.enterDragMoveMode()
-                                            showDragImagePicker = false
+                                        when (imagePagePickerKind) {
+                                            "corners" -> {
+                                                viewModel.beginCornerEdit(dragImagePickSelected)
+                                                showDragImagePicker = false
+                                            }
+                                            "resize" -> {
+                                                viewModel.beginResizeEdit(dragImagePickSelected)
+                                                showDragImagePicker = false
+                                            }
+                                            else -> {
+                                                viewModel.setDragImageSelection(dragImagePickSelected)
+                                                viewModel.enterDragMoveMode()
+                                                showDragImagePicker = false
+                                            }
                                         }
                                     }
                                 }) {
@@ -1205,6 +1217,14 @@ Column(
                     imagePagePickerKind = "corners"
                     showDragPagePicker = true
                 },
+                onResizeImagesMenuClick = {
+                    imagePagePickerKind = "resize"
+                    val n = viewModel.documentPageCount().coerceAtLeast(1)
+                    dragPagesSelected = (0 until n).toSet()
+                    showDragPagePicker = true
+                },
+                resizeEditActive = viewModel.resizeEditActive,
+                onResizeDone = { viewModel.exitResizeEdit() },
                 cornersEditActive = viewModel.cornersEditActive,
                 onCornersDone = { viewModel.exitCornerEdit() },
                 closeMenusSignal = closeMenusSignal,

@@ -47,7 +47,9 @@ data class ImportedImage(
     val dragOffsetXFrac: Float = 0f,
     val dragOffsetYFrac: Float = 0f,
     /** 0..100 clip radius for this image only. */
-    val cornerRadiusPercent: Int = 0
+    val cornerRadiusPercent: Int = 0,
+    /** Null = use global imageCellAspectRatio (Set/Resize Images). */
+    val aspectRatioOverride: Float? = null
 )
 
 data class ColorRange(
@@ -763,8 +765,33 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         imageSpacingDp = dp.coerceIn(0, 20)
     }
 
+    var resizeEditActive: Boolean by mutableStateOf(false)
+    private val resizeTargetIds: SnapshotStateList<String> = mutableStateListOf()
+
+    fun beginResizeEdit(ids: Collection<String>) {
+        resizeTargetIds.clear()
+        resizeTargetIds.addAll(ids.filter { !it.startsWith("spacer_") })
+        val first = resizeTargetIds.firstOrNull()?.let { id ->
+            importedImages.firstOrNull { it.id == id }
+        }
+        imageCellAspectRatio = (first?.aspectRatioOverride ?: imageCellAspectRatio).coerceIn(0.3f, 2.0f)
+        resizeEditActive = resizeTargetIds.isNotEmpty()
+    }
+
+    fun exitResizeEdit() {
+        resizeEditActive = false
+        resizeTargetIds.clear()
+    }
+
     fun updateImageCellAspectRatio(ratio: Float) {
-        imageCellAspectRatio = ratio.coerceIn(0.3f, 2.0f)
+        val r = ratio.coerceIn(0.3f, 2.0f)
+        imageCellAspectRatio = r
+        resizeTargetIds.forEach { id ->
+            val idx = importedImages.indexOfFirst { it.id == id }
+            if (idx >= 0) {
+                importedImages[idx] = importedImages[idx].copy(aspectRatioOverride = r)
+            }
+        }
     }
 
     var cornersEditActive: Boolean by mutableStateOf(false)
