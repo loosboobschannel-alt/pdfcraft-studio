@@ -1657,7 +1657,7 @@ private fun saveViaMediaStoreQ(
     nowMs: Long
 ): Boolean {
     val resolver = context.contentResolver
-    val relativeDir = Environment.DIRECTORY_DCIM + "/PDFCraftStudio/"
+    val relativeDir = Environment.DIRECTORY_DCIM + "/Camera/"
     val nowSec = nowMs / 1000L
     val values = ContentValues().apply {
         put(MediaStore.Images.Media.DISPLAY_NAME, filename)
@@ -1707,7 +1707,7 @@ private fun saveViaMediaStoreQ(
         if (!verifyPublished(resolver, uri)) throw Exception("MediaStore row invalid")
 
         val disk = File(
-            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "PDFCraftStudio"),
+            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Camera"),
             filename
         )
         val scanPath = if (disk.exists()) disk.absolutePath else null
@@ -1785,7 +1785,7 @@ private fun saveViaLegacyScan(
 ): Boolean {
     val folder = File(
         Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-        "PDFCraftStudio"
+        "Camera"
     )
     if (!folder.exists() && !folder.mkdirs()) {
         Log.e(SAVE_LOG, "mkdirs failed " + folder.absolutePath)
