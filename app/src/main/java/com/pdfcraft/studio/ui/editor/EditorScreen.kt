@@ -169,12 +169,21 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                 androidx.compose.foundation.layout.Column {
                     androidx.compose.material3.Text(stringResource(R.string.image_link_instruction))
                     androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(8.dp))
+                    val imgLinkFocus = remember { FocusRequester() }
+                    val imgLinkKb = LocalSoftwareKeyboardController.current
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(180)
+                        imgLinkFocus.requestFocus()
+                        imgLinkKb?.show()
+                    }
                     androidx.compose.material3.OutlinedTextField(
                         value = linkUrlText,
                         onValueChange = { linkUrlText = it },
                         placeholder = { androidx.compose.material3.Text(stringResource(R.string.image_link_url_hint)) },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(imgLinkFocus)
                     )
                 }
             },
@@ -1012,12 +1021,21 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                 androidx.compose.foundation.layout.Column {
                     androidx.compose.material3.Text(stringResource(R.string.text_link_instruction))
                     androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(8.dp))
+                    val linkFocus = remember { FocusRequester() }
+                    val linkKb = LocalSoftwareKeyboardController.current
+                    LaunchedEffect(Unit) {
+                        kotlinx.coroutines.delay(180)
+                        linkFocus.requestFocus()
+                        linkKb?.show()
+                    }
                     androidx.compose.material3.OutlinedTextField(
                         value = textLinkUrl,
                         onValueChange = { textLinkUrl = it },
                         placeholder = { androidx.compose.material3.Text(stringResource(R.string.text_link_url_hint)) },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(linkFocus)
                     )
                 }
             },
@@ -1198,7 +1216,7 @@ Column(
                     if (sel.collapsed || (viewModel.selectedTextId == null && viewModel.focusedTextId == null)) {
                         textLinkHint = true
                     } else {
-                        textLinkUrl = "https://"
+                        textLinkUrl = ""
                         showTextLinkDialog = true
                     }
                 },
