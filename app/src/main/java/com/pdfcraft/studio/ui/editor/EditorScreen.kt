@@ -1602,7 +1602,12 @@ Column(
                     modifier = Modifier.fillMaxWidth()
                 )
                 }
-            }private fun saveBitmapToGallery(
+            }
+        }
+    }
+}
+
+private fun saveBitmapToGallery(
     context: Context,
     bitmap: Bitmap
 ): Boolean {
@@ -1699,9 +1704,6 @@ Column(
     }
 }
 
-     false
-    }
-}
 
 private fun shareImages(
     context: Context,
