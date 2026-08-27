@@ -36,6 +36,42 @@ object PdfGenerator {
         val savedUri: Uri? = null
     )
 
+    
+    private fun packImagesForPagesPdf(
+        images: List<com.pdfcraft.studio.ui.editor.ImportedImage>,
+        imagesPerRow: Int,
+        spacingPx: Float,
+        cellWidthPx: Float,
+        gridHeightPx: Float,
+        defaultAspect: Float
+    ): List<List<com.pdfcraft.studio.ui.editor.ImportedImage>> {
+        if (images.isEmpty()) return emptyList()
+        val perRow = imagesPerRow.coerceAtLeast(1)
+        val pages = mutableListOf<MutableList<com.pdfcraft.studio.ui.editor.ImportedImage>>()
+        var page = mutableListOf<com.pdfcraft.studio.ui.editor.ImportedImage>()
+        var usedH = 0f
+        fun imgH(img: com.pdfcraft.studio.ui.editor.ImportedImage): Float {
+            val aspect = (img.aspectRatioOverride ?: defaultAspect).coerceIn(0.3f, 2.0f)
+            return cellWidthPx / aspect
+        }
+        fun rowH(row: List<com.pdfcraft.studio.ui.editor.ImportedImage>): Float =
+            row.maxOf { imgH(it) }
+        for (row in images.chunked(perRow)) {
+            val h = rowH(row)
+            val gap = if (page.isEmpty()) 0f else spacingPx
+            if (page.isNotEmpty() && usedH + gap + h > gridHeightPx + 0.5f) {
+                pages.add(page)
+                page = mutableListOf()
+                usedH = 0f
+            }
+            val g = if (page.isEmpty()) 0f else spacingPx
+            page.addAll(row)
+            usedH += g + h
+        }
+        if (page.isNotEmpty()) pages.add(page)
+        return pages
+    }
+
     fun export(
         context: Context,
         fileName: String,
@@ -79,7 +115,14 @@ object PdfGenerator {
         }
         // Auto-flow images by how many fit per page (same as editor preview).
         val imagesPerPage = (perRow * rowsPerPage).coerceAtLeast(1)
-        val imagePages = if (images.isEmpty()) emptyList() else images.chunked(imagesPerPage)
+        val imagePages = packImagesForPagesPdf(
+            images = images,
+            imagesPerRow = perRow,
+            spacingPx = spacing,
+            cellWidthPx = cellWidth,
+            gridHeightPx = gridHeight,
+            defaultAspect = cellAspect
+        )
 
         // Include every page that has text OR blank pages the user added in the editor.
         // Previously text-only page 2+ were dropped because export only used image chunks.

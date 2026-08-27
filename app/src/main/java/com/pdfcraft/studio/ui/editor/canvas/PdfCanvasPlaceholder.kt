@@ -105,6 +105,42 @@ private const val PAGE_ASPECT_RATIO = 9f / 16f
 private const val PAGE_INNER_PADDING_DP = 10f
 
 @OptIn(ExperimentalFoundationApi::class)
+
+private fun packImagesForPages(
+    images: List<com.pdfcraft.studio.ui.editor.ImportedImage>,
+    imagesPerRow: Int,
+    spacingDp: Float,
+    cellWidthDp: Float,
+    gridHeightDp: Float,
+    defaultAspect: Float
+): List<List<com.pdfcraft.studio.ui.editor.ImportedImage>> {
+    if (images.isEmpty()) return emptyList()
+    val perRow = imagesPerRow.coerceAtLeast(1)
+    val pages = mutableListOf<MutableList<com.pdfcraft.studio.ui.editor.ImportedImage>>()
+    var page = mutableListOf<com.pdfcraft.studio.ui.editor.ImportedImage>()
+    var usedH = 0f
+    fun imgH(img: com.pdfcraft.studio.ui.editor.ImportedImage): Float {
+        val aspect = (img.aspectRatioOverride ?: defaultAspect).coerceIn(0.3f, 2.0f)
+        return cellWidthDp / aspect
+    }
+    fun rowH(row: List<com.pdfcraft.studio.ui.editor.ImportedImage>): Float =
+        row.maxOf { imgH(it) }
+    for (row in images.chunked(perRow)) {
+        val h = rowH(row)
+        val gap = if (page.isEmpty()) 0f else spacingDp
+        if (page.isNotEmpty() && usedH + gap + h > gridHeightDp + 0.5f) {
+            pages.add(page)
+            page = mutableListOf()
+            usedH = 0f
+        }
+        val g = if (page.isEmpty()) 0f else spacingDp
+        page.addAll(row)
+        usedH += g + h
+    }
+    if (page.isNotEmpty()) pages.add(page)
+    return pages
+}
+
 @Composable
 fun PdfPagesPreview(
     images: List<ImportedImage>,
@@ -268,9 +304,15 @@ fun PdfPagesPreview(
             1
         }
 
-        // Auto-flow: only as many images as fit on a page; overflow goes to next page.
-        val imagesPerPage = (imagesPerRow * rowsPerPage).coerceAtLeast(1)
-        val contentPages = if (images.isEmpty()) emptyList() else images.chunked(imagesPerPage)
+        // Auto-flow by real row heights (Resize Images can make some cells taller).
+        val contentPages = packImagesForPages(
+            images = images,
+            imagesPerRow = imagesPerRow,
+            spacingDp = spacing,
+            cellWidthDp = cellWidthDp,
+            gridHeightDp = gridHeightDp,
+            defaultAspect = imageCellAspectRatio
+        )
         val pages = if (contentPages.size >= minPageCount) contentPages
             else contentPages + List(minPageCount - contentPages.size) { emptyList() }
 
