@@ -26,6 +26,9 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
+import android.os.Environment
+import android.net.Uri
+import java.io.File
 import android.provider.MediaStore
 import android.media.MediaScannerConnection
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -1599,94 +1602,104 @@ Column(
                     modifier = Modifier.fillMaxWidth()
                 )
                 }
-            }
-        }
-    }
-}
-
-private fun saveBitmapToGallery(
+            }private fun saveBitmapToGallery(
     context: Context,
     bitmap: Bitmap
 ): Boolean {
     if (bitmap.isRecycled) return false
+    val software = if (bitmap.config == Bitmap.Config.HARDWARE) {
+        bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: return false
+    } else {
+        bitmap
+    }
     val resolver = context.contentResolver
-    val filename = "PDFCraft_${System.currentTimeMillis()}.jpg"
+    val filename = "PDFCraft_" + System.currentTimeMillis() + ".jpg"
     val nowMs = System.currentTimeMillis()
     val nowSec = nowMs / 1000L
+    val relativeDir = Environment.DIRECTORY_DCIM + "/PDFCraftStudio/"
 
     val values = ContentValues().apply {
         put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+        put(MediaStore.Images.Media.TITLE, filename)
         put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+        put(MediaStore.Images.Media.WIDTH, software.width)
+        put(MediaStore.Images.Media.HEIGHT, software.height)
         put(MediaStore.Images.Media.DATE_ADDED, nowSec)
         put(MediaStore.Images.Media.DATE_MODIFIED, nowSec)
         put(MediaStore.Images.Media.DATE_TAKEN, nowMs)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            put(MediaStore.Images.Media.RELATIVE_PATH, "DCIM/PDFCraftStudio/")
+            put(MediaStore.Images.Media.RELATIVE_PATH, relativeDir)
             put(MediaStore.Images.Media.IS_PENDING, 1)
         }
     }
 
-    val uri = resolver.insert(
-        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-        values
-    ) ?: return false
+    val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+    } else {
+        MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+    }
+
+    val uri = resolver.insert(collection, values) ?: return false
 
     return try {
         resolver.openOutputStream(uri)?.use { output ->
-            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
+            if (!software.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
                 throw Exception("compress failed")
             }
             output.flush()
         } ?: throw Exception("no output stream")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val completed = ContentValues().apply {
-                put(MediaStore.Images.Media.IS_PENDING, 0)
-                put(MediaStore.Images.Media.DATE_TAKEN, nowMs)
-                put(MediaStore.Images.Media.DATE_ADDED, nowSec)
-                put(MediaStore.Images.Media.DATE_MODIFIED, nowSec)
-            }
-            resolver.update(uri, completed, null, null)
-        }
-
-        // Tell Gallery / Photos this file exists now
-        resolver.notifyChange(uri, null)
-        val path = try {
-            var p: String? = null
-            resolver.query(
+            resolver.update(
                 uri,
-                arrayOf(MediaStore.Images.Media.DATA),
-                null,
+                ContentValues().apply { put(MediaStore.Images.Media.IS_PENDING, 0) },
                 null,
                 null
-            )?.use { c ->
-                if (c.moveToFirst()) {
-                    val idx = c.getColumnIndex(MediaStore.Images.Media.DATA)
-                    if (idx >= 0) p = c.getString(idx)
-                }
-            }
-            p
-        } catch (_: Exception) {
-            null
+            )
         }
-        val scanPaths = if (!path.isNullOrBlank()) {
-            arrayOf(path)
-        } else {
-            arrayOf("/storage/emulated/0/DCIM/PDFCraftStudio/$filename")
-        }
+
+        resolver.notifyChange(uri, null)
+
+        val folder = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+            "PDFCraftStudio"
+        )
+        val fileOnDisk = File(folder, filename)
+        val scanTargets = buildList {
+            add(folder.absolutePath)
+            if (fileOnDisk.exists()) add(fileOnDisk.absolutePath)
+        }.toTypedArray()
+
         MediaScannerConnection.scanFile(
-            context,
-            scanPaths,
-            arrayOf("image/jpeg"),
+            context.applicationContext,
+            scanTargets,
+            arrayOf("image/jpeg", "image/jpeg"),
             null
         )
-        true
-    } catch (_: Exception) {
         try {
-            resolver.delete(uri, null, null)
+            context.sendBroadcast(
+                Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).setData(uri)
+            )
+            if (fileOnDisk.exists()) {
+                context.sendBroadcast(
+                    Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).setData(
+                        Uri.fromFile(fileOnDisk)
+                    )
+                )
+            }
         } catch (_: Exception) {
         }
+        if (software !== bitmap && !software.isRecycled) {
+            software.recycle()
+        }
+        true
+    } catch (_: Exception) {
+        try { resolver.delete(uri, null, null) } catch (_: Exception) {}
         false
+    }
+}
+
+     false
     }
 }
 
