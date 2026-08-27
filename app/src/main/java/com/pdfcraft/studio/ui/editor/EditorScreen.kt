@@ -242,6 +242,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
     val coroutineScope = rememberCoroutineScope()
     var showImportSettings by remember { mutableStateOf(false) }
     var showDragPagePicker by remember { mutableStateOf(false) }
+    var imagePagePickerKind by remember { mutableStateOf("drag") }
     var showDeleteImagesPagePicker by remember { mutableStateOf(false) }
     var closeMenusSignal by remember { mutableStateOf(0) }
     var toolMenuOpen by remember { mutableStateOf(false) }
@@ -777,11 +778,20 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
             val pageCount = viewModel.documentPageCount().coerceAtLeast(1)
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { showDragPagePicker = false },
-                title = { Text(stringResource(R.string.image_drag_title)) },
+                title = {
+                    Text(stringResource(
+                        if (imagePagePickerKind == "corners") R.string.round_corners_title
+                        else R.string.image_drag_title
+                    ))
+                },
                 text = {
                     Column {
                         Text(
-                            stringResource(R.string.image_drag_select_page_instruction),
+                            stringResource(
+                                if (imagePagePickerKind == "corners")
+                                    R.string.round_corners_select_page_instruction
+                                else R.string.image_drag_select_page_instruction
+                            ),
                             fontWeight = FontWeight.Bold
                         )
                         TextButton(onClick = {
@@ -860,7 +870,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                         TopAppBar(
                             title = {
                                 Text(
-                                    stringResource(R.string.image_drag_title),
+                                    stringResource(if (imagePagePickerKind == "corners") R.string.round_corners_title else R.string.image_drag_title),
                                     fontWeight = FontWeight.SemiBold,
                                     color = Color.Black
                                 )
@@ -887,9 +897,14 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                 }
                                 TextButton(onClick = {
                                     if (dragImagePickSelected.isNotEmpty()) {
-                                        viewModel.setDragImageSelection(dragImagePickSelected)
-                                        viewModel.enterDragMoveMode()
-                                        showDragImagePicker = false
+                                        if (imagePagePickerKind == "corners") {
+                                            viewModel.beginCornerEdit(dragImagePickSelected)
+                                            showDragImagePicker = false
+                                        } else {
+                                            viewModel.setDragImageSelection(dragImagePickSelected)
+                                            viewModel.enterDragMoveMode()
+                                            showDragImagePicker = false
+                                        }
                                     }
                                 }) {
                                     Text(stringResource(R.string.image_drag_next))
@@ -1182,7 +1197,16 @@ Column(
                 onDragNudge = viewModel::nudgeDragImages,
                 onDragCenter = viewModel::centerDragImages,
                 onDragDone = viewModel::exitDragImages,
-                onDragImagesMenuClick = { showDragPagePicker = true },
+                onDragImagesMenuClick = {
+                    imagePagePickerKind = "drag"
+                    showDragPagePicker = true
+                },
+                onRoundCornersMenuClick = {
+                    imagePagePickerKind = "corners"
+                    showDragPagePicker = true
+                },
+                cornersEditActive = viewModel.cornersEditActive,
+                onCornersDone = { viewModel.exitCornerEdit() },
                 closeMenusSignal = closeMenusSignal,
                 onToolMenuOpenChange = { toolMenuOpen = it },
                 onDeleteImagesMenuClick = {

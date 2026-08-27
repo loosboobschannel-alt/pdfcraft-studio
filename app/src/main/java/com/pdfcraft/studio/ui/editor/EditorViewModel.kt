@@ -45,7 +45,9 @@ data class ImportedImage(
     val numberWeight: Float = 0.85f,
     /** Extra shift from grid cell, as fraction of page width/height (-1..1). */
     val dragOffsetXFrac: Float = 0f,
-    val dragOffsetYFrac: Float = 0f
+    val dragOffsetYFrac: Float = 0f,
+    /** 0..100 clip radius for this image only. */
+    val cornerRadiusPercent: Int = 0
 )
 
 data class ColorRange(
@@ -765,8 +767,33 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         imageCellAspectRatio = ratio.coerceIn(0.3f, 2.0f)
     }
 
+    var cornersEditActive: Boolean by mutableStateOf(false)
+    private val cornerTargetIds: SnapshotStateList<String> = mutableStateListOf()
+
+    fun beginCornerEdit(ids: Collection<String>) {
+        cornerTargetIds.clear()
+        cornerTargetIds.addAll(ids.filter { !it.startsWith("spacer_") })
+        val first = cornerTargetIds.firstOrNull()?.let { id ->
+            importedImages.firstOrNull { it.id == id }
+        }
+        imageCornerRadiusPercent = first?.cornerRadiusPercent?.coerceIn(0, 100) ?: 0
+        cornersEditActive = cornerTargetIds.isNotEmpty()
+    }
+
+    fun exitCornerEdit() {
+        cornersEditActive = false
+        cornerTargetIds.clear()
+    }
+
     fun updateImageCornerRadiusPercent(percent: Int) {
-        imageCornerRadiusPercent = percent.coerceIn(0, 100)
+        val p = percent.coerceIn(0, 100)
+        imageCornerRadiusPercent = p
+        cornerTargetIds.forEach { id ->
+            val idx = importedImages.indexOfFirst { it.id == id }
+            if (idx >= 0) {
+                importedImages[idx] = importedImages[idx].copy(cornerRadiusPercent = p)
+            }
+        }
     }
 
     fun importImages(uris: List<Uri>, replaceId: String? = null, startPageIndex: Int = 0) {

@@ -26,6 +26,8 @@
     <string name="image_shape_title">Set Image Length</string>
     <string name="round_corners_tool">5. Round Image Corners</string>
     <string name="round_corners_title">Round Image Corners</string>
+    <string name="round_corners_select_page_instruction">Select the pages that contain the images you want to round.</string>
+    <string name="round_corners_select_images_instruction">Select one or more images to round on the selected pages.</string>
     <string name="image_spacing_tool">3. Image Spacing</string>
     <string name="image_spacing_menu_entry">Image Spacing (%1$d dp)</string>
     <string name="image_spacing_dialog_title">Image Spacing</string>

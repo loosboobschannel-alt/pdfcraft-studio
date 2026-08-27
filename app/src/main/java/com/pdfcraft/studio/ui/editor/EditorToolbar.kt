@@ -160,6 +160,9 @@ fun EditorToolbar(
     onDragCenter: () -> Unit = {},
     onDragDone: () -> Unit = {},
     onDragImagesMenuClick: () -> Unit = {},
+    onRoundCornersMenuClick: () -> Unit = {},
+    cornersEditActive: Boolean = false,
+    onCornersDone: () -> Unit = {},
     onDeleteImagesMenuClick: () -> Unit = {},
     closeMenusSignal: Int = 0,
     onToolMenuOpenChange: (Boolean) -> Unit = {},
@@ -241,10 +244,13 @@ fun EditorToolbar(
                 onAspectRatioChange = onImageCellAspectRatioSelected,
                 onDone = { shapeModeActive = false }
             )
-            cornersModeActive -> RoundCornersSlider(
+            cornersEditActive || cornersModeActive -> RoundCornersSlider(
                 percent = imageCornerRadiusPercent,
                 onPercentChange = onImageCornerRadiusSelected,
-                onDone = { cornersModeActive = false }
+                onDone = {
+                    cornersModeActive = false
+                    onCornersDone()
+                }
             )
             textSizeModeActive -> TextSizeSlider(
                 sizeSp = textSizeSp,
@@ -339,7 +345,7 @@ fun EditorToolbar(
                         onResizeImagesClick = { resizeModeActive = true },
                         onAdjustSpacingClick = { spacingModeActive = true },
                         onAdjustImageShapeClick = { shapeModeActive = true },
-                        onAdjustCornersClick = { cornersModeActive = true },
+                        onAdjustCornersClick = onRoundCornersMenuClick,
                         onImageNumberingClick = {
                             onClearPageNumberingSelection()
                             showImageNumberingPicker = true

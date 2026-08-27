@@ -621,7 +621,7 @@ private fun ImageGrid(
                         image = image,
                         modifier = Modifier.weight(1f),
                         aspectRatio = cellAspectRatio,
-                        cornerRadiusPercent = cellCornerRadiusPercent,
+                        cornerRadiusPercent = image.cornerRadiusPercent.coerceIn(0, 100),
                         selected = selectedImageIds.contains(image.id),
                         reorderMode = reorderMode,
                         showMenu = singleMenuImageId == image.id,
