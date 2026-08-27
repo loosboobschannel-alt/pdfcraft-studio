@@ -29,6 +29,7 @@ import android.os.Build
 import android.os.Environment
 import android.net.Uri
 import java.io.File
+import java.io.FileOutputStream
 import android.provider.MediaStore
 import android.media.MediaScannerConnection
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -1617,83 +1618,112 @@ private fun saveBitmapToGallery(
     } else {
         bitmap
     }
-    val resolver = context.contentResolver
     val filename = "PDFCraft_" + System.currentTimeMillis() + ".jpg"
     val nowMs = System.currentTimeMillis()
     val nowSec = nowMs / 1000L
-    val relativeDir = Environment.DIRECTORY_DCIM + "/PDFCraftStudio/"
 
+    fun recycleCopy() {
+        if (software !== bitmap && !software.isRecycled) {
+            software.recycle()
+        }
+    }
+
+    return try {
+        val ok = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            saveViaMediaStoreQ(context, software, filename, nowMs, nowSec)
+        } else {
+            saveViaLegacyScan(context, software, filename)
+        }
+        recycleCopy()
+        ok
+    } catch (_: Exception) {
+        recycleCopy()
+        false
+    }
+}
+
+/** API 29+: MediaStore + IS_PENDING publish. No manual scanner. */
+private fun saveViaMediaStoreQ(
+    context: Context,
+    bitmap: Bitmap,
+    filename: String,
+    nowMs: Long,
+    nowSec: Long
+): Boolean {
+    val resolver = context.contentResolver
+    val relativeDir = Environment.DIRECTORY_DCIM + "/PDFCraftStudio/"
     val values = ContentValues().apply {
         put(MediaStore.Images.Media.DISPLAY_NAME, filename)
         put(MediaStore.Images.Media.TITLE, filename)
         put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-        put(MediaStore.Images.Media.WIDTH, software.width)
-        put(MediaStore.Images.Media.HEIGHT, software.height)
+        put(MediaStore.Images.Media.WIDTH, bitmap.width)
+        put(MediaStore.Images.Media.HEIGHT, bitmap.height)
         put(MediaStore.Images.Media.DATE_ADDED, nowSec)
         put(MediaStore.Images.Media.DATE_MODIFIED, nowSec)
         put(MediaStore.Images.Media.DATE_TAKEN, nowMs)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            put(MediaStore.Images.Media.RELATIVE_PATH, relativeDir)
-        }
+        put(MediaStore.Images.Media.RELATIVE_PATH, relativeDir)
+        put(MediaStore.Images.Media.IS_PENDING, 1)
     }
-
-    val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-    } else {
-        MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-    }
-
+    val collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
     val uri = resolver.insert(collection, values) ?: return false
-
     return try {
         resolver.openOutputStream(uri)?.use { output ->
-            if (!software.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
+            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
                 throw Exception("compress failed")
             }
             output.flush()
         } ?: throw Exception("no output stream")
 
-        resolver.notifyChange(uri, null)
-
-        val folder = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
-            "PDFCraftStudio"
-        )
-        val fileOnDisk = File(folder, filename)
-        val scanTargets = buildList {
-            add(folder.absolutePath)
-            if (fileOnDisk.exists()) add(fileOnDisk.absolutePath)
-        }.toTypedArray()
-
-        MediaScannerConnection.scanFile(
-            context.applicationContext,
-            scanTargets,
-            arrayOf("image/jpeg", "image/jpeg"),
+        val published = resolver.update(
+            uri,
+            ContentValues().apply { put(MediaStore.Images.Media.IS_PENDING, 0) },
+            null,
             null
         )
-        try {
-            context.sendBroadcast(
-                Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).setData(uri)
-            )
-            if (fileOnDisk.exists()) {
-                context.sendBroadcast(
-                    Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).setData(
-                        Uri.fromFile(fileOnDisk)
-                    )
-                )
-            }
-        } catch (_: Exception) {
-        }
-        if (software !== bitmap && !software.isRecycled) {
-            software.recycle()
+        if (published <= 0) {
+            throw Exception("publish failed")
         }
         true
     } catch (_: Exception) {
-        try { resolver.delete(uri, null, null) } catch (_: Exception) {}
+        try {
+            resolver.delete(uri, null, null)
+        } catch (_: Exception) {
+        }
         false
     }
 }
 
+/** API 26–28: write DCIM/PDFCraftStudio then MediaScanner. */
+private fun saveViaLegacyScan(
+    context: Context,
+    bitmap: Bitmap,
+    filename: String
+): Boolean {
+    val folder = File(
+        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+        "PDFCraftStudio"
+    )
+    if (!folder.exists() && !folder.mkdirs()) return false
+    val file = File(folder, filename)
+    return try {
+        FileOutputStream(file).use { output ->
+            if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
+                throw Exception("compress failed")
+            }
+            output.flush()
+        }
+        MediaScannerConnection.scanFile(
+            context.applicationContext,
+            arrayOf(file.absolutePath),
+            arrayOf("image/jpeg"),
+            null
+        )
+        file.exists() && file.length() > 0L
+    } catch (_: Exception) {
+        if (file.exists()) file.delete()
+        false
+    }
+}
 
 private fun shareImages(
     context: Context,
