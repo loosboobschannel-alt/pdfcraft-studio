@@ -1671,7 +1671,7 @@ private fun saveViaMediaStoreQ(
         put(MediaStore.Images.Media.RELATIVE_PATH, relativeDir)
         put(MediaStore.Images.Media.IS_PENDING, 1)
     }
-    val collection = MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+    val collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
     Log.i(SAVE_LOG, "collection=" + collection + " path=" + relativeDir)
     val uri = resolver.insert(collection, values)
     if (uri == null) {
@@ -1705,6 +1705,23 @@ private fun saveViaMediaStoreQ(
         Log.i(SAVE_LOG, "publish rows=" + published + " uri=" + uri)
         if (published <= 0) throw Exception("IS_PENDING update returned " + published)
         if (!verifyPublished(resolver, uri)) throw Exception("MediaStore row invalid")
+
+        val disk = File(
+            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "PDFCraftStudio"),
+            filename
+        )
+        val scanPath = if (disk.exists()) disk.absolutePath else null
+        Log.i(SAVE_LOG, "disk=" + disk.absolutePath + " exists=" + disk.exists() + " len=" + disk.length())
+        if (scanPath != null) {
+            MediaScannerConnection.scanFile(
+                context.applicationContext,
+                arrayOf(scanPath),
+                arrayOf("image/jpeg")
+            ) { path, scanned ->
+                Log.i(SAVE_LOG, "Q scanned path=" + path + " uri=" + scanned)
+            }
+        }
+        resolver.notifyChange(uri, null)
         true
     } catch (e: Exception) {
         Log.e(SAVE_LOG, "Q save failed uri=" + uri, e)
