@@ -27,6 +27,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
 import android.provider.MediaStore
+import android.media.MediaScannerConnection
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -1610,16 +1611,17 @@ private fun saveBitmapToGallery(
     if (bitmap.isRecycled) return false
     val resolver = context.contentResolver
     val filename = "PDFCraft_${System.currentTimeMillis()}.jpg"
+    val nowMs = System.currentTimeMillis()
+    val nowSec = nowMs / 1000L
 
     val values = ContentValues().apply {
         put(MediaStore.Images.Media.DISPLAY_NAME, filename)
         put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+        put(MediaStore.Images.Media.DATE_ADDED, nowSec)
+        put(MediaStore.Images.Media.DATE_MODIFIED, nowSec)
+        put(MediaStore.Images.Media.DATE_TAKEN, nowMs)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Saved under DCIM/PDFCraftStudio so it appears in Gallery/Camera album
-            put(
-                MediaStore.Images.Media.RELATIVE_PATH,
-                "DCIM/PDFCraftStudio"
-            )
+            put(MediaStore.Images.Media.RELATIVE_PATH, "DCIM/PDFCraftStudio/")
             put(MediaStore.Images.Media.IS_PENDING, 1)
         }
     }
@@ -1634,14 +1636,50 @@ private fun saveBitmapToGallery(
             if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 95, output)) {
                 throw Exception("compress failed")
             }
+            output.flush()
         } ?: throw Exception("no output stream")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val completed = ContentValues().apply {
                 put(MediaStore.Images.Media.IS_PENDING, 0)
+                put(MediaStore.Images.Media.DATE_TAKEN, nowMs)
+                put(MediaStore.Images.Media.DATE_ADDED, nowSec)
+                put(MediaStore.Images.Media.DATE_MODIFIED, nowSec)
             }
             resolver.update(uri, completed, null, null)
         }
+
+        // Tell Gallery / Photos this file exists now
+        resolver.notifyChange(uri, null)
+        val path = try {
+            var p: String? = null
+            resolver.query(
+                uri,
+                arrayOf(MediaStore.Images.Media.DATA),
+                null,
+                null,
+                null
+            )?.use { c ->
+                if (c.moveToFirst()) {
+                    val idx = c.getColumnIndex(MediaStore.Images.Media.DATA)
+                    if (idx >= 0) p = c.getString(idx)
+                }
+            }
+            p
+        } catch (_: Exception) {
+            null
+        }
+        val scanPaths = if (!path.isNullOrBlank()) {
+            arrayOf(path)
+        } else {
+            arrayOf("/storage/emulated/0/DCIM/PDFCraftStudio/$filename")
+        }
+        MediaScannerConnection.scanFile(
+            context,
+            scanPaths,
+            arrayOf("image/jpeg"),
+            null
+        )
         true
     } catch (_: Exception) {
         try {
