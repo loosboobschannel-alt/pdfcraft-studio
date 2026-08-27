@@ -1634,7 +1634,6 @@ private fun saveBitmapToGallery(
         put(MediaStore.Images.Media.DATE_TAKEN, nowMs)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             put(MediaStore.Images.Media.RELATIVE_PATH, relativeDir)
-            put(MediaStore.Images.Media.IS_PENDING, 1)
         }
     }
 
@@ -1653,15 +1652,6 @@ private fun saveBitmapToGallery(
             }
             output.flush()
         } ?: throw Exception("no output stream")
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            resolver.update(
-                uri,
-                ContentValues().apply { put(MediaStore.Images.Media.IS_PENDING, 0) },
-                null,
-                null
-            )
-        }
 
         resolver.notifyChange(uri, null)
 
