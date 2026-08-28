@@ -249,11 +249,11 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
     var showDeleteImagesImagePicker by remember { mutableStateOf(false) }
     var showDeleteImagesModeDialog by remember { mutableStateOf(false) }
     var deletePagesSelected by remember { mutableStateOf(setOf(0)) }
-    var deleteImagePickSelected by remember { mutableStateOf(setOf<String>()) }
+    var deleteImagePickSelected by remember { mutableStateOf(listOf<String>()) }
     var showDragImagePicker by remember { mutableStateOf(false) }
     var dragPageForPicker by remember { mutableStateOf(0) }
     var dragPagesSelected by remember { mutableStateOf(setOf(0)) }
-    var dragImagePickSelected by remember { mutableStateOf(setOf<String>()) }
+    var dragImagePickSelected by remember { mutableStateOf(listOf<String>()) }
     var importStartPageIndex by remember { mutableStateOf<Int?>(null) }
     var showTextColorPicker by remember { mutableStateOf(false) }
     var showTextBgColorPicker by remember { mutableStateOf(false) }
@@ -582,7 +582,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                 confirmButton = {
                     TextButton(onClick = {
                         if (deletePagesSelected.isNotEmpty()) {
-                            deleteImagePickSelected = emptySet()
+                            deleteImagePickSelected = emptyList()
                             showDeleteImagesPagePicker = false
                             showDeleteImagesImagePicker = true
                         }
@@ -598,7 +598,6 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
 
         // ---- Delete Images: Step 2 image grid ----
         if (showDeleteImagesImagePicker) {
-            val pageImgs = viewModel.imagesOnPages(deletePagesSelected)
             Dialog(
                 onDismissRequest = { showDeleteImagesImagePicker = false },
                 properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -624,10 +623,12 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                             },
                             actions = {
                                 TextButton(onClick = {
-                                    val allIds = pageImgs.map { it.id }.toSet()
+                                    val allIds = deletePagesSelected.sorted().flatMap { p ->
+                                        viewModel.imagesOnPage(p).map { it.id }
+                                    }
                                     deleteImagePickSelected =
-                                        if (allIds.isNotEmpty() && deleteImagePickSelected.containsAll(allIds))
-                                            emptySet()
+                                        if (allIds.isNotEmpty() && deleteImagePickSelected == allIds)
+                                            emptyList()
                                         else
                                             allIds
                                 }) {
@@ -647,7 +648,6 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                     },
                     containerColor = Color.White
                 ) { pad ->
-                    val rows = pageImgs.chunked(4)
                     Column(
                         Modifier
                             .padding(pad)
@@ -657,46 +657,26 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                         Text(
                             stringResource(R.string.image_delete_select_images_instruction),
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            modifier = Modifier.padding(bottom = 6.dp)
                         )
-                        rows.forEach { row ->
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                row.forEach { img ->
-                                    val selected = img.id in deleteImagePickSelected
-                                    Box(
-                                        Modifier
-                                            .weight(1f)
-                                            .aspectRatio(1f)
-                                            .border(
-                                                width = if (selected) 3.dp else 1.dp,
-                                                color = if (selected) Color(0xFF1976D2) else Color.LightGray
-                                            )
-                                            .clickable {
-                                                deleteImagePickSelected =
-                                                    if (selected) deleteImagePickSelected - img.id
-                                                    else deleteImagePickSelected + img.id
-                                            }
-                                    ) {
-                                        val bmp = img.bitmap
-                                        if (bmp != null && !bmp.isRecycled) {
-                                            androidx.compose.foundation.Image(
-                                                bitmap = bmp.asImageBitmap(),
-                                                contentDescription = null,
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentScale = ContentScale.Fit
-                                            )
-                                        }
-                                    }
-                                }
-                                repeat(4 - row.size) {
-                                    Spacer(Modifier.weight(1f))
-                                }
+                        Text(
+                            stringResource(R.string.image_pick_selected_count, deleteImagePickSelected.size),
+                            color = Color(0xFF1976D2),
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                        PageGroupedImageGrid(
+                            pages = deletePagesSelected.sorted(),
+                            imagesForPage = { viewModel.imagesOnPage(it) },
+                            selectedIds = deleteImagePickSelected,
+                            onToggle = { id ->
+                                deleteImagePickSelected =
+                                    if (id in deleteImagePickSelected)
+                                        deleteImagePickSelected.filter { it != id }
+                                    else
+                                        deleteImagePickSelected + id
                             }
-                            Spacer(Modifier.height(8.dp))
-                        }
+                        )
                     }
                 }
             }
@@ -724,7 +704,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                             onClick = {
                                 viewModel.deleteImages(deleteImagePickSelected, keepSpace = true)
                                 showDeleteImagesModeDialog = false
-                                deleteImagePickSelected = emptySet()
+                                deleteImagePickSelected = emptyList()
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -745,7 +725,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                             onClick = {
                                 viewModel.deleteImages(deleteImagePickSelected, keepSpace = false)
                                 showDeleteImagesModeDialog = false
-                                deleteImagePickSelected = emptySet()
+                                deleteImagePickSelected = emptyList()
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -848,7 +828,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                         if (dragPagesSelected.isNotEmpty()) {
                             dragPageForPicker = dragPagesSelected.minOrNull() ?: 0
                             viewModel.startDragImagesOnPage(dragPageForPicker)
-                            dragImagePickSelected = emptySet()
+                            dragImagePickSelected = emptyList()
                             showDragPagePicker = false
                             showDragImagePicker = true
                         }
@@ -865,7 +845,6 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
         
         // ---- Drag Images: Step 2 full-screen image grid ----
         if (showDragImagePicker) {
-            val pageImgs = viewModel.imagesOnPages(dragPagesSelected)
             Dialog(
                 onDismissRequest = { showDragImagePicker = false },
                 properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -891,10 +870,12 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                             },
                             actions = {
                                 TextButton(onClick = {
-                                    val allIds = pageImgs.map { it.id }.toSet()
+                                    val allIds = dragPagesSelected.sorted().flatMap { p ->
+                                        viewModel.imagesOnPage(p).map { it.id }
+                                    }
                                     dragImagePickSelected =
-                                        if (allIds.isNotEmpty() && dragImagePickSelected.containsAll(allIds))
-                                            emptySet()
+                                        if (allIds.isNotEmpty() && dragImagePickSelected == allIds)
+                                            emptyList()
                                         else
                                             allIds
                                 }) {
@@ -935,77 +916,39 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                             .verticalScroll(rememberScrollState())
                     ) {
                         Text(
-                            stringResource(R.string.image_drag_select_images_instruction),
+                            stringResource(
+                                when (imagePagePickerKind) {
+                                    "corners" -> R.string.round_corners_select_images_instruction
+                                    "resize" -> R.string.resize_select_images_instruction
+                                    else -> R.string.image_drag_select_images_instruction
+                                }
+                            ),
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            stringResource(R.string.image_pick_selected_count, dragImagePickSelected.size),
+                            color = Color(0xFF1976D2),
+                            fontWeight = FontWeight.SemiBold
+                        )
                         Spacer(Modifier.height(12.dp))
-                        pageImgs.chunked(4).forEach { row ->
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                row.forEach { img ->
-                                    val selected = img.id in dragImagePickSelected
-                                    Box(
-                                        Modifier
-                                            .weight(1f)
-                                            .aspectRatio(1f)
-                                            .border(
-                                                width = if (selected) 3.dp else 1.dp,
-                                                color = if (selected) Color(0xFF1976D2) else Color.LightGray,
-                                                shape = androidx.compose.ui.graphics.RectangleShape
-                                            )
-                                            .clickable {
-                                                dragImagePickSelected =
-                                                    if (selected) dragImagePickSelected - img.id
-                                                    else dragImagePickSelected + img.id
-                                            }
-                                    ) {
-                                        val bmp = img.bitmap
-                                        if (bmp != null && !bmp.isRecycled) {
-                                            Image(
-                                                bitmap = bmp.asImageBitmap(),
-                                                contentDescription = null,
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentScale = ContentScale.Fit
-                                            )
-                                        } else {
-                                            Box(
-                                                Modifier.fillMaxSize().background(Color(0xFFE0E0E0)),
-                                                contentAlignment = Alignment.Center
-                                            ) { Text("…", color = Color.Gray) }
-                                        }
-                                        if (selected) {
-                                            Box(
-                                                Modifier
-                                                    .fillMaxSize()
-                                                    .background(Color(0xFF1976D2).copy(alpha = 0.28f))
-                                            )
-                                            Text(
-                                                text = "\u2713",
-                                                color = Color.White,
-                                                fontWeight = FontWeight.Bold,
-                                                modifier = Modifier
-                                                    .align(Alignment.TopEnd)
-                                                    .padding(4.dp)
-                                                    .background(Color(0xFF1976D2), CircleShape)
-                                                    .padding(horizontal = 4.dp, vertical = 2.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+                        PageGroupedImageGrid(
+                            pages = dragPagesSelected.sorted(),
+                            imagesForPage = { viewModel.imagesOnPage(it) },
+                            selectedIds = dragImagePickSelected,
+                            onToggle = { id ->
+                                dragImagePickSelected =
+                                    if (id in dragImagePickSelected)
+                                        dragImagePickSelected.filter { it != id }
+                                    else
+                                        dragImagePickSelected + id
                             }
-                            Spacer(Modifier.height(8.dp))
-                        }
+                        )
                     }
                 }
             }
         }
-
-
-        
 
         if (showImportSettings) {
             ImportImagesDialog(
@@ -1231,7 +1174,7 @@ Column(
                 onToolMenuOpenChange = { toolMenuOpen = it },
                 onDeleteImagesMenuClick = {
                     deletePagesSelected = emptySet()
-                    deleteImagePickSelected = emptySet()
+                    deleteImagePickSelected = emptyList()
                     showDeleteImagesPagePicker = true
                 },
                 onNumberingDone = { viewModel.finishNumberingEdit() },
@@ -2187,5 +2130,89 @@ private fun RotateActionCard(
             fontWeight = FontWeight.SemiBold,
             maxLines = 1
         )
+    }
+}
+
+@Composable
+private fun PageGroupedImageGrid(
+    pages: List<Int>,
+    imagesForPage: (Int) -> List<ImportedImage>,
+    selectedIds: List<String>,
+    onToggle: (String) -> Unit
+) {
+    pages.forEach { pageIndex ->
+        val imgs = imagesForPage(pageIndex)
+        if (imgs.isEmpty()) return@forEach
+        Text(
+            text = stringResource(R.string.page_label, pageIndex + 1),
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+            style = MaterialTheme.typography.titleMedium
+        )
+        Box(
+            modifier = Modifier
+                .padding(top = 4.dp, bottom = 10.dp)
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color(0xFFE0E0E0))
+        )
+        imgs.chunked(4).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                row.forEach { img ->
+                    val selIndex = selectedIds.indexOf(img.id)
+                    val selected = selIndex >= 0
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(1f)
+                            .border(
+                                width = if (selected) 3.dp else 1.dp,
+                                color = if (selected) Color(0xFF1976D2) else Color.LightGray,
+                                shape = androidx.compose.ui.graphics.RectangleShape
+                            )
+                            .clickable { onToggle(img.id) }
+                    ) {
+                        val bmp = img.bitmap
+                        if (bmp != null && !bmp.isRecycled) {
+                            Image(
+                                bitmap = bmp.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Fit
+                            )
+                        } else {
+                            Box(
+                                Modifier.fillMaxSize().background(Color(0xFFE0E0E0)),
+                                contentAlignment = Alignment.Center
+                            ) { Text("…", color = Color.Gray) }
+                        }
+                        if (selected) {
+                            Box(
+                                Modifier
+                                    .fillMaxSize()
+                                    .background(Color(0xFF1976D2).copy(alpha = 0.28f))
+                            )
+                            Text(
+                                text = (selIndex + 1).toString(),
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp)
+                                    .background(Color(0xFF1976D2), CircleShape)
+                                    .padding(horizontal = 7.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+                }
+                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+        Spacer(Modifier.height(12.dp))
     }
 }

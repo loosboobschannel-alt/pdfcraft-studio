@@ -295,6 +295,7 @@
     <string name="image_drag_select_page_instruction">Select the page that contains the images you want to reposition.</string>
     <string name="image_drag_select_images_instruction">Select one or more images to move on this page.</string>
     <string name="image_drag_select_all">Select All</string>
+    <string name="image_pick_selected_count">Selected: %1$d Images</string>
     <string name="image_drag_next">Next</string>
     <string name="image_drag_image_item">Image %1$d</string>
     <string name="image_drag_position">Position</string>
