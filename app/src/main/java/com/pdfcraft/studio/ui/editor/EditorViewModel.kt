@@ -62,6 +62,14 @@ data class LinkRange(
     val url: String
 )
 
+data class ShadowRange(
+    val range: IntRange,
+    val colorArgb: Long,
+    val offsetXPx: Float,
+    val offsetYPx: Float,
+    val blurPx: Float
+)
+
 data class TextElement(
     val id: String,
     val pageIndex: Int,
@@ -73,6 +81,7 @@ data class TextElement(
     val colorRanges: List<ColorRange> = emptyList(),
     val bgColorRanges: List<ColorRange> = emptyList(),
     val linkRanges: List<LinkRange> = emptyList(),
+    val shadowRanges: List<ShadowRange> = emptyList(),
     val fontId: String = FontCatalog.ID_DEFAULT,
     val fontSizeSp: Float = 16f,
     val textColorArgb: Long = 0xFF000000L,
@@ -394,6 +403,31 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var currentSelection: TextRange by mutableStateOf(TextRange.Zero)
         private set
 
+    var pinnedTextId: String? by mutableStateOf(null)
+        private set
+    var pinnedSelection: TextRange by mutableStateOf(TextRange.Zero)
+        private set
+
+    fun pinTextSelectionIfAny() {
+        val id = focusedTextId ?: selectedTextId ?: return
+        if (!currentSelection.collapsed) {
+            pinnedTextId = id
+            pinnedSelection = currentSelection
+        }
+    }
+
+    fun selectionForEdit(): TextRange {
+        if (!currentSelection.collapsed) return currentSelection
+        val id = focusedTextId ?: selectedTextId ?: pinnedTextId
+        if (id != null && id == pinnedTextId && !pinnedSelection.collapsed) return pinnedSelection
+        return currentSelection
+    }
+
+    fun hasTextRangeForEdit(): Boolean {
+        val id = focusedTextId ?: selectedTextId ?: pinnedTextId
+        return id != null && !selectionForEdit().collapsed
+    }
+
     val availableFonts: SnapshotStateList<AppFont> = mutableStateListOf()
 
     var lastFontImportMessage: String? by mutableStateOf(null)
@@ -481,16 +515,31 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             } else {
                 current.linkRanges
             }
+            val adjustedShadows = if (newText != current.text) {
+                adjustShadowRangesForEdit(current.text, newText, current.shadowRanges)
+            } else {
+                current.shadowRanges
+            }
+            val textChanged = newText != current.text
             textElements[index] = current.copy(
                 text = newText,
                 boldRanges = adjustedBold,
                 italicRanges = adjustedItalic,
                 colorRanges = adjustedColors,
                 linkRanges = adjustedLinks,
-                bgColorRanges = adjustedBgColors
+                bgColorRanges = adjustedBgColors,
+                shadowRanges = adjustedShadows
             )
+            if (!newSelection.collapsed) {
+                currentSelection = newSelection
+                pinnedTextId = id
+                pinnedSelection = newSelection
+            } else if (textChanged) {
+                currentSelection = newSelection
+                pinnedTextId = null
+                pinnedSelection = TextRange.Zero
+            }
         }
-        currentSelection = newSelection
     }
 
     fun moveText(id: String, xFraction: Float, yFraction: Float) {
@@ -511,7 +560,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleBoldForSelection() {
         val index = activeTextIndex()
         if (index < 0) return
-        val selection = currentSelection
+        val selection = selectionForEdit()
         if (selection.collapsed) return
 
         val element = textElements[index]
@@ -526,7 +575,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleItalicForSelection() {
         val index = activeTextIndex()
         if (index < 0) return
-        val selection = currentSelection
+        val selection = selectionForEdit()
         if (selection.collapsed) return
 
         val element = textElements[index]
@@ -541,7 +590,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun isSelectionBold(): Boolean {
         val index = activeTextIndex()
         if (index < 0) return false
-        val selection = currentSelection
+        val selection = selectionForEdit()
         if (selection.collapsed) return false
         val element = textElements[index]
         val start = selection.min.coerceIn(0, element.text.length)
@@ -555,7 +604,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun isSelectionItalic(): Boolean {
         val index = activeTextIndex()
         if (index < 0) return false
-        val selection = currentSelection
+        val selection = selectionForEdit()
         if (selection.collapsed) return false
         val element = textElements[index]
         val start = selection.min.coerceIn(0, element.text.length)
@@ -1969,7 +2018,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         val index = activeTextIndex()
         if (index < 0) return false
         val element = textElements[index]
-        val selection = currentSelection
+        val selection = selectionForEdit()
         if (selection.collapsed) return false
         val start = selection.min.coerceIn(0, element.text.length)
         val end = selection.max.coerceIn(0, element.text.length)
@@ -1985,7 +2034,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         val index = activeTextIndex()
         if (index < 0) return
         val element = textElements[index]
-        val selection = currentSelection
+        val selection = selectionForEdit()
         val start = selection.min.coerceIn(0, element.text.length)
         val end = selection.max.coerceIn(0, element.text.length)
 
@@ -2016,7 +2065,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             textElements[index] = element.copy(bgColorArgb = null, bgColorRanges = emptyList())
             return
         }
-        val selection = currentSelection
+        val selection = selectionForEdit()
         val start = selection.min.coerceIn(0, element.text.length)
         val end = selection.max.coerceIn(0, element.text.length)
 
@@ -2037,22 +2086,57 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    private fun applyShadowRange(
+        existing: List<ShadowRange>, start: Int, end: Int,
+        colorArgb: Long, offsetXPx: Float, offsetYPx: Float, blurPx: Float, textLength: Int
+    ): List<ShadowRange> {
+        if (textLength <= 0 || start >= end) return existing
+        val s = start.coerceIn(0, textLength)
+        val e = end.coerceIn(0, textLength)
+        if (s >= e) return existing
+        val result = mutableListOf<ShadowRange>()
+        for (sr in existing) {
+            val rs = sr.range.first
+            val re = sr.range.last + 1
+            if (re <= s || rs >= e) result.add(sr)
+            else {
+                if (rs < s) result.add(sr.copy(range = rs until s))
+                if (re > e) result.add(sr.copy(range = e until re))
+            }
+        }
+        result.add(ShadowRange(s until e, colorArgb, offsetXPx, offsetYPx, blurPx))
+        return result.sortedBy { it.range.first }
+    }
+
+    private fun adjustShadowRangesForEdit(oldText: String, newText: String, ranges: List<ShadowRange>): List<ShadowRange> {
+        return ranges.mapNotNull { sr ->
+            val mapped = adjustColorRangesForEdit(oldText, newText, listOf(ColorRange(sr.range, 0L)))
+            val r = mapped.firstOrNull()?.range ?: return@mapNotNull null
+            sr.copy(range = r)
+        }
+    }
+
     fun updateSelectedTextShadow(
         colorArgb: Long? = null,
         offsetXPx: Float? = null,
         offsetYPx: Float? = null,
         blurPx: Float? = null
     ) {
-        val id = focusedTextId ?: selectedTextId ?: return
-        val index = textElements.indexOfFirst { it.id == id }
+        val index = activeTextIndex()
         if (index < 0) return
         val cur = textElements[index]
-        textElements[index] = cur.copy(
-            shadowColorArgb = colorArgb ?: cur.shadowColorArgb,
-            shadowOffsetXPx = offsetXPx ?: cur.shadowOffsetXPx,
-            shadowOffsetYPx = offsetYPx ?: cur.shadowOffsetYPx,
-            shadowBlurPx = blurPx ?: cur.shadowBlurPx
-        )
+        val selection = selectionForEdit()
+        val color = colorArgb ?: cur.shadowColorArgb
+        val ox = offsetXPx ?: cur.shadowOffsetXPx
+        val oy = offsetYPx ?: cur.shadowOffsetYPx
+        val blur = blurPx ?: cur.shadowBlurPx
+        val start = selection.min.coerceIn(0, cur.text.length)
+        val end = selection.max.coerceIn(0, cur.text.length)
+        if (!selection.collapsed && start < end) {
+            textElements[index] = cur.copy(
+                shadowRanges = applyShadowRange(cur.shadowRanges, start, end, color, ox, oy, blur, cur.text.length)
+            )
+        }
     }
 
     fun activeTextElement(): TextElement? {
@@ -2064,7 +2148,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         val index = activeTextIndex()
         if (index < 0) return 0xFF000000L
         val element = textElements[index]
-        val selection = currentSelection
+        val selection = selectionForEdit()
         if (!selection.collapsed) {
             val start = selection.min.coerceIn(0, element.text.length)
             val end = selection.max.coerceIn(0, element.text.length)
@@ -2083,7 +2167,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         val index = activeTextIndex()
         if (index < 0) return null
         val element = textElements[index]
-        val selection = currentSelection
+        val selection = selectionForEdit()
         if (!selection.collapsed) {
             val start = selection.min.coerceIn(0, element.text.length)
             val end = selection.max.coerceIn(0, element.text.length)

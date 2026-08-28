@@ -101,6 +101,7 @@ import com.pdfcraft.studio.ui.editor.ImportedImage
 import com.pdfcraft.studio.ui.editor.ColorRange
 import com.pdfcraft.studio.ui.editor.TextElement
 import com.pdfcraft.studio.ui.editor.LinkRange
+import com.pdfcraft.studio.ui.editor.ShadowRange
 
 private const val PAGE_ASPECT_RATIO = 9f / 16f
 private const val PAGE_INNER_PADDING_DP = 10f
@@ -390,7 +391,8 @@ private class TextStyleRangesVisualTransformation(
     private val colorRanges: List<ColorRange> = emptyList(),
     private val bgColorRanges: List<ColorRange> = emptyList(),
     private val wholeBgColorArgb: Long? = null,
-    private val linkRanges: List<LinkRange> = emptyList()
+    private val linkRanges: List<LinkRange> = emptyList(),
+    private val shadowRanges: List<ShadowRange> = emptyList()
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val builder = AnnotatedString.Builder(text.text)
@@ -437,6 +439,23 @@ private class TextStyleRangesVisualTransformation(
                     SpanStyle(
                         color = Color(0xFF1976D2),
                         textDecoration = TextDecoration.Underline
+                    ),
+                    start,
+                    end
+                )
+            }
+        }
+        shadowRanges.forEach { sr ->
+            val start = sr.range.first.coerceIn(0, text.text.length)
+            val end = (sr.range.last + 1).coerceIn(0, text.text.length)
+            if (start < end) {
+                builder.addStyle(
+                    SpanStyle(
+                        shadow = Shadow(
+                            color = Color(sr.colorArgb),
+                            offset = Offset(sr.offsetXPx, sr.offsetYPx),
+                            blurRadius = sr.blurPx
+                        )
                     ),
                     start,
                     end
@@ -559,16 +578,19 @@ private fun PageTextOverlay(
                         colorRanges = textElement.colorRanges,
                         bgColorRanges = textElement.bgColorRanges,
                         wholeBgColorArgb = textElement.bgColorArgb,
-                        linkRanges = textElement.linkRanges
+                        linkRanges = textElement.linkRanges,
+                        shadowRanges = textElement.shadowRanges
                     ),
                     textStyle = TextStyle(
                         color = Color(textElement.textColorArgb),
                         fontSize = textElement.fontSizeSp.sp,
                         fontFamily = fontFamily,
                         shadow = if (
+                            textElement.shadowRanges.isEmpty() && (
                             textElement.shadowBlurPx > 0.01f ||
                             textElement.shadowOffsetXPx != 0f ||
                             textElement.shadowOffsetYPx != 0f
+                            )
                         ) {
                             Shadow(
                                 color = Color(textElement.shadowColorArgb),

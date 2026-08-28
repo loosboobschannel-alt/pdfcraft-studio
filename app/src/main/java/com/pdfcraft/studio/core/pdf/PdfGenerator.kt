@@ -12,6 +12,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import com.pdfcraft.studio.ui.editor.ImportedImage
 import com.pdfcraft.studio.ui.editor.TextElement
+import com.pdfcraft.studio.ui.editor.ShadowRange
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
@@ -260,17 +261,17 @@ object PdfGenerator {
 
                 val bgPaint = Paint(textPaint).apply { style = Paint.Style.FILL }
                 val scale = pageWidth / 360f
-                val hasShadow = te.shadowBlurPx > 0.01f ||
-                    te.shadowOffsetXPx != 0f || te.shadowOffsetYPx != 0f
-                if (hasShadow) {
-                    textPaint.setShadowLayer(
-                        (te.shadowBlurPx * scale).coerceAtLeast(0.01f),
-                        te.shadowOffsetXPx * scale,
-                        te.shadowOffsetYPx * scale,
-                        te.shadowColorArgb.toInt()
-                    )
-                } else {
-                    textPaint.clearShadowLayer()
+                val sh = arrayOfNulls<ShadowRange>(fullText.length)
+                if (te.shadowRanges.isEmpty() &&
+                    (te.shadowBlurPx > 0.01f || te.shadowOffsetXPx != 0f || te.shadowOffsetYPx != 0f)
+                ) {
+                    val whole = ShadowRange(0 until fullText.length, te.shadowColorArgb, te.shadowOffsetXPx, te.shadowOffsetYPx, te.shadowBlurPx)
+                    for (si in fullText.indices) sh[si] = whole
+                }
+                te.shadowRanges.forEach { sr ->
+                    val s = sr.range.first.coerceIn(0, fullText.length)
+                    val e = (sr.range.last + 1).coerceIn(0, fullText.length)
+                    for (si in s until e) sh[si] = sr
                 }
                 lines.forEachIndexed { lineNo, range ->
                     val y = firstBaseline + lineNo * lineH
@@ -280,8 +281,9 @@ object PdfGenerator {
                     while (i < lineEnd) {
                         val cFg = fg[i]
                         val cBg = bg[i]
+                        val cSh = sh[i]
                         var j = i + 1
-                        while (j < lineEnd && fg[j] == cFg && bg[j] == cBg) j++
+                        while (j < lineEnd && fg[j] == cFg && bg[j] == cBg && sh[j] == cSh) j++
                         val segment = fullText.substring(i, j)
                         val w = textPaint.measureText(segment)
                         if (cBg != null) {
@@ -291,6 +293,16 @@ object PdfGenerator {
                             canvas.drawRect(x, top, x + w, bottom, bgPaint)
                         }
                         textPaint.color = cFg.toInt()
+                        if (cSh != null) {
+                            textPaint.setShadowLayer(
+                                (cSh.blurPx * scale).coerceAtLeast(0.01f),
+                                cSh.offsetXPx * scale,
+                                cSh.offsetYPx * scale,
+                                cSh.colorArgb.toInt()
+                            )
+                        } else {
+                            textPaint.clearShadowLayer()
+                        }
                         canvas.drawText(segment, x, y, textPaint)
                         x += w
                         i = j

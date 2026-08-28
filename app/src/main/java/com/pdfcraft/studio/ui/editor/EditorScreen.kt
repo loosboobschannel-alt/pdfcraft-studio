@@ -1026,7 +1026,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
 
 if (showFontTools) {
             val hasSelection =
-                viewModel.focusedTextId != null && !viewModel.currentSelection.collapsed
+                viewModel.hasTextRangeForEdit()
             FontToolsDialog(
                 fonts = viewModel.availableFonts.toList(),
                 selectedFontId = viewModel.currentTextFontId(),
@@ -1212,38 +1212,38 @@ Column(
                 onAddTextClick =
                     viewModel::enterAddTextMode,
                 onFontClick = {
-                    if (!viewModel.currentSelection.collapsed &&
+                    if (!viewModel.selectionForEdit().collapsed &&
                         (viewModel.selectedTextId != null || viewModel.focusedTextId != null)
                     ) showFontTools = true
                     else textLinkHint = true
                 },
                 onInsertLinkClick = {
-                    val sel = viewModel.currentSelection
-                    if (sel.collapsed || (viewModel.selectedTextId == null && viewModel.focusedTextId == null)) {
+                    val sel = viewModel.selectionForEdit()
+                    if (sel.collapsed || (viewModel.selectedTextId == null && viewModel.focusedTextId == null && viewModel.pinnedTextId == null)) {
                         textLinkHint = true
                     } else {
                         textLinkUrl = ""
                         showTextLinkDialog = true
                     }
                 },
-                hasTextRangeSelection = !viewModel.currentSelection.collapsed &&
-                    (viewModel.selectedTextId != null || viewModel.focusedTextId != null),
+                hasTextRangeSelection = viewModel.hasTextRangeForEdit(),
                 onDeleteTextClick =
                     viewModel::deleteSelectedText,
                 hasSelectedText =
                     viewModel.selectedTextId != null,
                 onTextColorClick = {
-                    if (!viewModel.currentSelection.collapsed &&
+                    if (!viewModel.selectionForEdit().collapsed &&
                         (viewModel.selectedTextId != null || viewModel.focusedTextId != null)
                     ) showTextColorPicker = true else textLinkHint = true
                 },
                 onTextBgColorClick = {
-                    if (!viewModel.currentSelection.collapsed &&
+                    if (!viewModel.selectionForEdit().collapsed &&
                         (viewModel.selectedTextId != null || viewModel.focusedTextId != null)
                     ) showTextBgColorPicker = true else textLinkHint = true
                 },
+                onPinTextSelection = { viewModel.pinTextSelectionIfAny() },
                 onTextShadowClick = {
-                    if (!viewModel.currentSelection.collapsed &&
+                    if (!viewModel.selectionForEdit().collapsed &&
                         (viewModel.selectedTextId != null || viewModel.focusedTextId != null)
                     ) showTextShadowPanel = true else textLinkHint = true
                 },

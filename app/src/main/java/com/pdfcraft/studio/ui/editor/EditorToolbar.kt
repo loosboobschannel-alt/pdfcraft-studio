@@ -80,6 +80,7 @@ fun EditorToolbar(
     onTextColorClick: () -> Unit = {},
     onTextBgColorClick: () -> Unit = {},
     onTextShadowClick: () -> Unit = {},
+    onPinTextSelection: () -> Unit = {},
     textSizeSp: Float = 16f,
     onTextSizeClick: () -> Unit = {},
     onTextSizeChange: (Float) -> Unit = {},
@@ -193,7 +194,6 @@ fun EditorToolbar(
     androidx.compose.runtime.LaunchedEffect(openToolMenu) {
         if (openToolMenu != null) {
             keyboardController?.hide()
-            focusManager.clearFocus()
         }
     }
     androidx.compose.runtime.LaunchedEffect(closeMenusSignal) {
@@ -372,6 +372,7 @@ fun EditorToolbar(
                     TextToolsMenu(
                         menuExpanded = openToolMenu == "text",
                         onMenuExpand = {
+                            if (openToolMenu != "text") onPinTextSelection()
                             openToolMenu = if (openToolMenu == "text") null else "text"
                         },
                         onMenuDismiss = { openToolMenu = null },

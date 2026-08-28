@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -373,10 +374,10 @@ fun ShadowSettingsDialog(
         return (a.toLong() shl 24) or (rgb and 0x00FFFFFFL)
     }
     val previewColor = composedColor()
-    val shadowColors = listOf(
-        0xFF000000L, 0xFF424242L, 0xFF1976D2L, 0xFFD32F2FL,
-        0xFF388E3CL, 0xFF7B1FA2L, 0xFF5D4037L, 0xFFFFFFFFL
-    )
+    var colorExpanded by remember { mutableStateOf(false) }
+    val allShadowColors = remember {
+        COLOR_CATEGORIES.flatMap { cat -> cat.colors }.distinctBy { it.hex }
+    }
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = true, dismissOnClickOutside = true)
@@ -404,19 +405,35 @@ fun ShadowSettingsDialog(
                     )
                 }
                 Spacer(Modifier.height(14.dp))
-                Text(stringResource(R.string.shadow_color), fontWeight = FontWeight.SemiBold, color = Color.Black)
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    shadowColors.forEach { col ->
-                        val selected = (rgb and 0x00FFFFFFL) == (col and 0x00FFFFFFL)
-                        Box(
-                            modifier = Modifier.size(28.dp).background(Color(col), CircleShape)
-                                .border(if (selected) 2.dp else 1.dp, if (selected) Color(0xFF1976D2) else Color(0xFFBDBDBD), CircleShape)
-                                .clickable { rgb = (col and 0x00FFFFFFL) or 0xFF000000L }
-                        )
-                    }
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { colorExpanded = !colorExpanded }.padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(stringResource(R.string.shadow_color), fontWeight = FontWeight.SemiBold, color = Color.Black)
+                    Spacer(Modifier.weight(1f))
+                    Box(Modifier.size(22.dp).background(Color(previewColor), CircleShape).border(1.dp, Color(0xFFBDBDBD), CircleShape))
+                    Spacer(Modifier.width(8.dp))
+                    Text(text = if (colorExpanded) "\u25B2" else "\u25BC", color = Color(0xFF1976D2), fontSize = 14.sp)
                 }
-                Spacer(Modifier.height(12.dp))
+                if (colorExpanded) {
+                    Spacer(Modifier.height(8.dp))
+                    allShadowColors.chunked(8).forEach { row ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            row.forEach { named ->
+                                val selected = (rgb and 0x00FFFFFFL) == (named.hex and 0x00FFFFFFL)
+                                Box(
+                                    modifier = Modifier.weight(1f).aspectRatio(1f)
+                                        .background(Color(named.hex), CircleShape)
+                                        .border(if (selected) 2.dp else 1.dp, if (selected) Color(0xFF1976D2) else Color(0xFFBDBDBD), CircleShape)
+                                        .clickable { rgb = (named.hex and 0x00FFFFFFL) or 0xFF000000L }
+                                )
+                            }
+                            repeat(8 - row.size) { Spacer(Modifier.weight(1f)) }
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+                Spacer(Modifier.height(8.dp))
                 ShadowSliderRow(stringResource(R.string.shadow_opacity), opacity * 100f, 0f..100f, "${(opacity * 100f).toInt()}%") { opacity = (it / 100f).coerceIn(0f, 1f) }
                 ShadowSliderRow(stringResource(R.string.shadow_blur_label), blur, 0f..25f, blur.toInt().toString()) { blur = it }
                 ShadowSliderRow(stringResource(R.string.shadow_offset_x), offsetX, -20f..20f, offsetX.toInt().toString()) { offsetX = it }
