@@ -47,6 +47,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
@@ -186,6 +188,14 @@ fun EditorToolbar(
     var showPageDeletePicker by remember { mutableStateOf(false) }
     // Only one of Page / Image / Text menus open at a time
     var openToolMenu by remember { mutableStateOf<String?>(null) }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    androidx.compose.runtime.LaunchedEffect(openToolMenu) {
+        if (openToolMenu != null) {
+            keyboardController?.hide()
+            focusManager.clearFocus()
+        }
+    }
     androidx.compose.runtime.LaunchedEffect(closeMenusSignal) {
         if (closeMenusSignal > 0) openToolMenu = null
     }
@@ -642,7 +652,7 @@ private fun ToolMenuItem(
 ) {
     Text(
         text = label,
-        color = Color.Black,
+        color = if (enabled) Color.Black else Color(0xFFBDBDBD),
         style = MaterialTheme.typography.bodyMedium,
         maxLines = 1,
         softWrap = false,
@@ -946,7 +956,10 @@ private fun TextToolsMenu(
                 onEnterTextClick()
             }
             HorizontalDivider(color = Color.LightGray)
-            ToolMenuItem(stringResource(R.string.text_tool_font)) {
+            ToolMenuItem(
+                label = stringResource(R.string.text_tool_font),
+                enabled = hasTextRangeSelection
+            ) {
                 onMenuDismiss()
                 onFontClick()
             }
@@ -954,7 +967,7 @@ private fun TextToolsMenu(
             
             ToolMenuItem(
                 label = stringResource(R.string.text_tool_text_color),
-                enabled = hasSelectedText
+                enabled = hasTextRangeSelection
             ) {
                 onMenuDismiss()
                 onTextColorClick()
@@ -962,7 +975,7 @@ private fun TextToolsMenu(
             HorizontalDivider(color = Color.LightGray)
             ToolMenuItem(
                 label = stringResource(R.string.text_tool_bg_color),
-                enabled = hasSelectedText
+                enabled = hasTextRangeSelection
             ) {
                 onMenuDismiss()
                 onTextBgColorClick()
@@ -970,7 +983,7 @@ private fun TextToolsMenu(
             HorizontalDivider(color = Color.LightGray)
             ToolMenuItem(
                 label = stringResource(R.string.text_tool_shadow),
-                enabled = hasSelectedText
+                enabled = hasTextRangeSelection
             ) {
                 onMenuDismiss()
                 onTextShadowClick()

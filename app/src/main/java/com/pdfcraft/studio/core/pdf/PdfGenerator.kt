@@ -15,6 +15,7 @@ import com.pdfcraft.studio.ui.editor.TextElement
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
+import kotlin.math.roundToInt
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.common.PDRectangle
@@ -94,7 +95,7 @@ object PdfGenerator {
 
         // Use a fixed logical width; height follows editor page aspect ratio
         val pageWidth = 1080
-        val pageHeight = (pageWidth / pageAspectRatio.coerceAtLeast(0.1f)).toInt().coerceAtLeast(400)
+        val pageHeight = (pageWidth / pageAspectRatio.coerceAtLeast(0.1f)).roundToInt().coerceAtLeast(1)
 
         // Same margin model as editor (pageMarginDp / PAGE_INNER_PADDING)
         val margin = pageMarginDp.toFloat() * (pageWidth / 360f) // scale dp-ish to page px
@@ -148,7 +149,7 @@ object PdfGenerator {
 
         pages.forEachIndexed { pageIndex, pageImages ->
             val aspect = (pageAspectRatioForPage?.invoke(pageIndex) ?: pageAspectRatio).coerceAtLeast(0.1f)
-            val thisPageHeight = (pageWidth / aspect).toInt().coerceAtLeast(400)
+            val thisPageHeight = (pageWidth / aspect).roundToInt().coerceAtLeast(1)
             val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, thisPageHeight, pageIndex + 1).create()
             val page = pdf.startPage(pageInfo)
             val canvas = page.canvas
@@ -213,10 +214,11 @@ object PdfGenerator {
             }
 
             // Text: only elements for this page index (supports partial color + bg ranges)
+            // Newlines are drawn as separate lines (editor multiline must match PDF).
             textElements.filter { it.pageIndex == pageIndex }.forEach { te ->
                 textPaint.textSize = te.fontSizeSp * (pageWidth / 360f)
                 val baseX = te.xFraction * pageWidth
-                val y = te.yFraction * thisPageHeight + textPaint.textSize
+                val firstBaseline = te.yFraction * thisPageHeight + textPaint.textSize
                 val fullText = te.text
                 if (fullText.isEmpty()) return@forEach
 
@@ -236,51 +238,81 @@ object PdfGenerator {
                     for (i in s until e) bg[i] = cr.colorArgb
                 }
 
-                var i = 0
-                var x = baseX
-                val bgPaint = Paint(textPaint).apply { style = Paint.Style.FILL }
-                while (i < fullText.length) {
-                    val cFg = fg[i]
-                    val cBg = bg[i]
-                    var j = i + 1
-                    while (j < fullText.length && fg[j] == cFg && bg[j] == cBg) j++
-                    val segment = fullText.substring(i, j)
-                    val w = textPaint.measureText(segment)
-                    if (cBg != null) {
-                        bgPaint.color = cBg.toInt()
-                        val top = y - textPaint.textSize * 0.85f
-                        val bottom = y + textPaint.textSize * 0.2f
-                        canvas.drawRect(x, top, x + w, bottom, bgPaint)
+                val fm = textPaint.fontMetrics
+                var lineH = fm.descent - fm.ascent + fm.leading
+                if (lineH < textPaint.textSize * 0.8f) lineH = textPaint.textSize * 1.2f
+
+                val lines = mutableListOf<IntRange>()
+                var ls = 0
+                var ci = 0
+                while (true) {
+                    var le = ci
+                    while (le < fullText.length && fullText[le] != '\n' && fullText[le] != '\r') le++
+                    lines.add(ls until le)
+                    if (le >= fullText.length) break
+                    if (fullText[le] == '\r' && le + 1 < fullText.length && fullText[le + 1] == '\n') {
+                        ci = le + 2
+                    } else {
+                        ci = le + 1
                     }
-                    textPaint.color = cFg.toInt()
-                    canvas.drawText(segment, x, y, textPaint)
-                    x += w
-                    i = j
+                    ls = ci
                 }
 
-                // Clickable text links (same annotation pipeline as image links)
+                val bgPaint = Paint(textPaint).apply { style = Paint.Style.FILL }
+                lines.forEachIndexed { lineNo, range ->
+                    val y = firstBaseline + lineNo * lineH
+                    var x = baseX
+                    var i = range.first
+                    val lineEnd = range.last + 1
+                    while (i < lineEnd) {
+                        val cFg = fg[i]
+                        val cBg = bg[i]
+                        var j = i + 1
+                        while (j < lineEnd && fg[j] == cFg && bg[j] == cBg) j++
+                        val segment = fullText.substring(i, j)
+                        val w = textPaint.measureText(segment)
+                        if (cBg != null) {
+                            bgPaint.color = cBg.toInt()
+                            val top = y - textPaint.textSize * 0.85f
+                            val bottom = y + textPaint.textSize * 0.2f
+                            canvas.drawRect(x, top, x + w, bottom, bgPaint)
+                        }
+                        textPaint.color = cFg.toInt()
+                        canvas.drawText(segment, x, y, textPaint)
+                        x += w
+                        i = j
+                    }
+                }
+
                 te.linkRanges.forEach { lr ->
                     val url = lr.url.trim().takeIf { it.isNotEmpty() } ?: return@forEach
                     val s = lr.range.first.coerceIn(0, fullText.length)
                     val e = (lr.range.last + 1).coerceIn(0, fullText.length)
                     if (s >= e) return@forEach
-                    val before = fullText.substring(0, s)
-                    val linked = fullText.substring(s, e)
-                    val left = baseX + textPaint.measureText(before)
-                    val width = textPaint.measureText(linked)
-                    val top = y - textPaint.textSize * 0.85f
-                    val bottom = y + textPaint.textSize * 0.25f
-                    linkRects.add(
-                        LinkRect(
-                            pageIndex = pageIndex,
-                            left = left,
-                            top = top,
-                            right = left + width,
-                            bottom = bottom,
-                            pageHeight = thisPageHeight.toFloat(),
-                            url = url
+                    lines.forEachIndexed { lineNo, range ->
+                        val lineEnd = range.last + 1
+                        val os = maxOf(s, range.first)
+                        val oe = minOf(e, lineEnd)
+                        if (os >= oe) return@forEachIndexed
+                        val before = fullText.substring(range.first, os)
+                        val linked = fullText.substring(os, oe)
+                        val left = baseX + textPaint.measureText(before)
+                        val width = textPaint.measureText(linked)
+                        val y = firstBaseline + lineNo * lineH
+                        val top = y - textPaint.textSize * 0.85f
+                        val bottom = y + textPaint.textSize * 0.25f
+                        linkRects.add(
+                            LinkRect(
+                                pageIndex = pageIndex,
+                                left = left,
+                                top = top,
+                                right = left + width,
+                                bottom = bottom,
+                                pageHeight = thisPageHeight.toFloat(),
+                                url = url
+                            )
                         )
-                    )
+                    }
                 }
             }
 
