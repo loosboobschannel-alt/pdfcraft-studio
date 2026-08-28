@@ -600,7 +600,7 @@ private fun ToolChip(
                 shape = RoundedCornerShape(20.dp)
             )
             .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(20.dp))
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp)
     )
 }

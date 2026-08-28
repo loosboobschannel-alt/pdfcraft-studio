@@ -20,6 +20,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.res.stringResource
+import com.pdfcraft.studio.R
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -338,5 +349,105 @@ private fun ColorItem(
             maxLines = 1,
             modifier = Modifier.fillMaxWidth()
         )
+    }
+}
+
+@Composable
+fun ShadowSettingsDialog(
+    initialColorArgb: Long,
+    initialOffsetX: Float,
+    initialOffsetY: Float,
+    initialBlur: Float,
+    onApply: (Long, Float, Float, Float) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var rgb by remember { mutableStateOf((initialColorArgb and 0x00FFFFFFL) or 0xFF000000L) }
+    var opacity by remember {
+        mutableStateOf(((initialColorArgb ushr 24) and 0xFFL).toFloat() / 255f)
+    }
+    var blur by remember { mutableStateOf(initialBlur.coerceIn(0f, 25f)) }
+    var offsetX by remember { mutableStateOf(initialOffsetX.coerceIn(-20f, 20f)) }
+    var offsetY by remember { mutableStateOf(initialOffsetY.coerceIn(-20f, 20f)) }
+    fun composedColor(): Long {
+        val a = (opacity.coerceIn(0f, 1f) * 255f).toInt().coerceIn(0, 255)
+        return (a.toLong() shl 24) or (rgb and 0x00FFFFFFL)
+    }
+    val previewColor = composedColor()
+    val shadowColors = listOf(
+        0xFF000000L, 0xFF424242L, 0xFF1976D2L, 0xFFD32F2FL,
+        0xFF388E3CL, 0xFF7B1FA2L, 0xFF5D4037L, 0xFFFFFFFFL
+    )
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnBackPress = true, dismissOnClickOutside = true)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            color = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)
+            ) {
+                Text(stringResource(R.string.shadow_title), fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
+                Spacer(Modifier.height(12.dp))
+                Box(
+                    modifier = Modifier.fillMaxWidth().background(Color(0xFFF5F5F5), RoundedCornerShape(12.dp)).padding(vertical = 22.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.shadow_preview_sample),
+                        style = TextStyle(
+                            color = Color.Black, fontSize = 28.sp, fontWeight = FontWeight.Bold,
+                            shadow = Shadow(Color(previewColor), Offset(offsetX, offsetY), blur)
+                        )
+                    )
+                }
+                Spacer(Modifier.height(14.dp))
+                Text(stringResource(R.string.shadow_color), fontWeight = FontWeight.SemiBold, color = Color.Black)
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    shadowColors.forEach { col ->
+                        val selected = (rgb and 0x00FFFFFFL) == (col and 0x00FFFFFFL)
+                        Box(
+                            modifier = Modifier.size(28.dp).background(Color(col), CircleShape)
+                                .border(if (selected) 2.dp else 1.dp, if (selected) Color(0xFF1976D2) else Color(0xFFBDBDBD), CircleShape)
+                                .clickable { rgb = (col and 0x00FFFFFFL) or 0xFF000000L }
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                ShadowSliderRow(stringResource(R.string.shadow_opacity), opacity * 100f, 0f..100f, "${(opacity * 100f).toInt()}%") { opacity = (it / 100f).coerceIn(0f, 1f) }
+                ShadowSliderRow(stringResource(R.string.shadow_blur_label), blur, 0f..25f, blur.toInt().toString()) { blur = it }
+                ShadowSliderRow(stringResource(R.string.shadow_offset_x), offsetX, -20f..20f, offsetX.toInt().toString()) { offsetX = it }
+                ShadowSliderRow(stringResource(R.string.shadow_offset_y), offsetY, -20f..20f, offsetY.toInt().toString()) { offsetY = it }
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = { rgb = 0xFF000000L; opacity = 0.50f; blur = 4f; offsetX = 2f; offsetY = 2f }) {
+                        Text(stringResource(R.string.shadow_reset), color = Color(0xFF1976D2))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = { onApply(composedColor(), offsetX, offsetY, blur) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))) {
+                        Text(stringResource(R.string.shadow_apply), color = Color.White)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShadowSliderRow(
+    label: String, value: Float, valueRange: ClosedFloatingPointRange<Float>,
+    display: String, onChange: (Float) -> Unit
+) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(label, color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+            Text(display, color = Color(0xFF1976D2), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        }
+        Slider(value = value, onValueChange = onChange, valueRange = valueRange,
+            colors = SliderDefaults.colors(thumbColor = Color(0xFF1976D2), activeTrackColor = Color(0xFF1976D2)))
     }
 }

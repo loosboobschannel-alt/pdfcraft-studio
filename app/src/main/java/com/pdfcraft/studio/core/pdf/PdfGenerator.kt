@@ -259,6 +259,19 @@ object PdfGenerator {
                 }
 
                 val bgPaint = Paint(textPaint).apply { style = Paint.Style.FILL }
+                val scale = pageWidth / 360f
+                val hasShadow = te.shadowBlurPx > 0.01f ||
+                    te.shadowOffsetXPx != 0f || te.shadowOffsetYPx != 0f
+                if (hasShadow) {
+                    textPaint.setShadowLayer(
+                        (te.shadowBlurPx * scale).coerceAtLeast(0.01f),
+                        te.shadowOffsetXPx * scale,
+                        te.shadowOffsetYPx * scale,
+                        te.shadowColorArgb.toInt()
+                    )
+                } else {
+                    textPaint.clearShadowLayer()
+                }
                 lines.forEachIndexed { lineNo, range ->
                     val y = firstBaseline + lineNo * lineH
                     var x = baseX
@@ -283,6 +296,8 @@ object PdfGenerator {
                         i = j
                     }
                 }
+
+                textPaint.clearShadowLayer()
 
                 te.linkRanges.forEach { lr ->
                     val url = lr.url.trim().takeIf { it.isNotEmpty() } ?: return@forEach

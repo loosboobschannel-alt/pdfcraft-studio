@@ -95,6 +95,15 @@
     <string name="text_link_ok">OK</string>
     <string name="text_link_cancel">Cancel</string>
     <string name="text_link_select_first">Select text first to insert a link.</string>
+    <string name="text_select_first">Please select the text you want to edit.</string>
+    <string name="shadow_title">Shadow</string>
+    <string name="shadow_opacity">Opacity</string>
+    <string name="shadow_blur_label">Blur</string>
+    <string name="shadow_offset_x">X Offset</string>
+    <string name="shadow_offset_y">Y Offset</string>
+    <string name="shadow_reset">Reset</string>
+    <string name="shadow_apply">Apply</string>
+    <string name="shadow_preview_sample">Elon Musk</string>
     <string name="text_tool_rename">Rename</string>
     <string name="text_tool_copy">Copy</string>
     <string name="text_tool_cut">Cut</string>

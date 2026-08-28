@@ -78,7 +78,8 @@ data class TextElement(
     val textColorArgb: Long = 0xFF000000L,
     val bgColorArgb: Long? = null,
     val shadowColorArgb: Long = 0x80000000L,
-    val shadowOffsetPx: Float = 0f,
+    val shadowOffsetXPx: Float = 0f,
+    val shadowOffsetYPx: Float = 0f,
     val shadowBlurPx: Float = 0f
 )
 
@@ -2036,16 +2037,27 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    fun updateSelectedTextShadow(colorArgb: Long? = null, offsetPx: Float? = null, blurPx: Float? = null) {
+    fun updateSelectedTextShadow(
+        colorArgb: Long? = null,
+        offsetXPx: Float? = null,
+        offsetYPx: Float? = null,
+        blurPx: Float? = null
+    ) {
         val id = focusedTextId ?: selectedTextId ?: return
         val index = textElements.indexOfFirst { it.id == id }
         if (index < 0) return
         val cur = textElements[index]
         textElements[index] = cur.copy(
             shadowColorArgb = colorArgb ?: cur.shadowColorArgb,
-            shadowOffsetPx = offsetPx ?: cur.shadowOffsetPx,
+            shadowOffsetXPx = offsetXPx ?: cur.shadowOffsetXPx,
+            shadowOffsetYPx = offsetYPx ?: cur.shadowOffsetYPx,
             shadowBlurPx = blurPx ?: cur.shadowBlurPx
         )
+    }
+
+    fun activeTextElement(): TextElement? {
+        val id = focusedTextId ?: selectedTextId ?: return null
+        return textElements.firstOrNull { it.id == id }
     }
 
     fun selectedTextColorArgb(): Long {

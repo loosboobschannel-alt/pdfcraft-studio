@@ -65,6 +65,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
@@ -231,30 +232,6 @@ fun PdfPagesPreview(
                             pageNumberPosition = pageNumberPosition
                         ) {
                             Box(modifier = Modifier.fillMaxSize()) {
-                                // Soft hint only while page has no text yet
-                                if (textElements.none { it.pageIndex == 0 } && minPageCount <= 1) {
-                                    Column(
-                                        modifier = Modifier
-                                            .align(Alignment.Center)
-                                            .padding(horizontal = 24.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(
-                                            text = stringResource(R.string.editor_empty_state),
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.Black.copy(alpha = 0.55f),
-                                            textAlign = TextAlign.Center
-                                        )
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text(
-                                            text = stringResource(R.string.editor_empty_state_hint),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = Color.Black.copy(alpha = 0.38f),
-                                            textAlign = TextAlign.Center
-                                        )
-                                    }
-                                }
                                 PageTextOverlay(
                                     texts = textElements.filter { it.pageIndex == 0 },
                                     addTextMode = addTextMode,
@@ -587,7 +564,18 @@ private fun PageTextOverlay(
                     textStyle = TextStyle(
                         color = Color(textElement.textColorArgb),
                         fontSize = textElement.fontSizeSp.sp,
-                        fontFamily = fontFamily
+                        fontFamily = fontFamily,
+                        shadow = if (
+                            textElement.shadowBlurPx > 0.01f ||
+                            textElement.shadowOffsetXPx != 0f ||
+                            textElement.shadowOffsetYPx != 0f
+                        ) {
+                            Shadow(
+                                color = Color(textElement.shadowColorArgb),
+                                offset = Offset(textElement.shadowOffsetXPx, textElement.shadowOffsetYPx),
+                                blurRadius = textElement.shadowBlurPx
+                            )
+                        } else null
                     ),
                     cursorBrush = SolidColor(Color.Black),
                     modifier = Modifier
@@ -1395,31 +1383,7 @@ private fun EmptyStatePage(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = AppIcons.FileDocument,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                    modifier = Modifier.height(56.dp)
-                )
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = stringResource(R.string.editor_empty_state),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.Black.copy(alpha = 0.55f),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = stringResource(R.string.editor_empty_state_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Black.copy(alpha = 0.38f),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 24.dp)
-                )
             }
         }
     }

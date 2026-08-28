@@ -980,7 +980,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                     androidx.compose.material3.Text("OK")
                 }
             },
-            text = { androidx.compose.material3.Text(stringResource(R.string.text_link_select_first)) }
+            text = { androidx.compose.material3.Text(stringResource(R.string.text_select_first)) }
         )
     }
     if (showTextLinkDialog) {
@@ -1078,6 +1078,22 @@ if (showFontTools) {
             },
             onDismiss = { showTextBgColorPicker = false },
             previewAsBackground = true
+        )
+    }
+    if (showTextShadowPanel) {
+        val te = viewModel.activeTextElement()
+        ShadowSettingsDialog(
+            initialColorArgb = te?.shadowColorArgb ?: 0x80000000L,
+            initialOffsetX = te?.shadowOffsetXPx ?: 0f,
+            initialOffsetY = te?.shadowOffsetYPx ?: 0f,
+            initialBlur = te?.shadowBlurPx ?: 0f,
+            onApply = { color, x, y, b ->
+                viewModel.updateSelectedTextShadow(
+                    colorArgb = color, offsetXPx = x, offsetYPx = y, blurPx = b
+                )
+                showTextShadowPanel = false
+            },
+            onDismiss = { showTextShadowPanel = false }
         )
     }
 
@@ -1196,7 +1212,10 @@ Column(
                 onAddTextClick =
                     viewModel::enterAddTextMode,
                 onFontClick = {
-                    showFontTools = true
+                    if (!viewModel.currentSelection.collapsed &&
+                        (viewModel.selectedTextId != null || viewModel.focusedTextId != null)
+                    ) showFontTools = true
+                    else textLinkHint = true
                 },
                 onInsertLinkClick = {
                     val sel = viewModel.currentSelection
@@ -1213,9 +1232,21 @@ Column(
                     viewModel::deleteSelectedText,
                 hasSelectedText =
                     viewModel.selectedTextId != null,
-                onTextColorClick = { if (viewModel.selectedTextId != null) showTextColorPicker = true },
-                onTextBgColorClick = { if (viewModel.selectedTextId != null) showTextBgColorPicker = true },
-                onTextShadowClick = { if (viewModel.selectedTextId != null) showTextShadowPanel = true },
+                onTextColorClick = {
+                    if (!viewModel.currentSelection.collapsed &&
+                        (viewModel.selectedTextId != null || viewModel.focusedTextId != null)
+                    ) showTextColorPicker = true else textLinkHint = true
+                },
+                onTextBgColorClick = {
+                    if (!viewModel.currentSelection.collapsed &&
+                        (viewModel.selectedTextId != null || viewModel.focusedTextId != null)
+                    ) showTextBgColorPicker = true else textLinkHint = true
+                },
+                onTextShadowClick = {
+                    if (!viewModel.currentSelection.collapsed &&
+                        (viewModel.selectedTextId != null || viewModel.focusedTextId != null)
+                    ) showTextShadowPanel = true else textLinkHint = true
+                },
                 textSizeSp =
                     viewModel.selectedTextSizeSp(),
                 onTextSizeClick = { },
