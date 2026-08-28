@@ -1,4 +1,6 @@
 package com.pdfcraft.studio.ui.editor
+
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.AlertDialog
@@ -198,6 +200,9 @@ fun EditorToolbar(
     }
     androidx.compose.runtime.LaunchedEffect(closeMenusSignal) {
         if (closeMenusSignal > 0) openToolMenu = null
+    }
+    BackHandler(enabled = openToolMenu != null) {
+        openToolMenu = null
     }
     androidx.compose.runtime.LaunchedEffect(openToolMenu) {
         onToolMenuOpenChange(openToolMenu != null)
@@ -692,7 +697,7 @@ private fun ImageToolsMenu(
             properties = PopupProperties(
                 focusable = false,
                 dismissOnClickOutside = false,
-                dismissOnBackPress = true
+                dismissOnBackPress = false
             )
         ) {
             ToolMenuItem(stringResource(R.string.import_images)) {
@@ -809,7 +814,7 @@ private fun PageToolsMenu(
             properties = PopupProperties(
                 focusable = false,
                 dismissOnClickOutside = false,
-                dismissOnBackPress = true
+                dismissOnBackPress = false
             )
         ) {
             // 1. Add New Page + live page count badge
@@ -949,7 +954,7 @@ private fun TextToolsMenu(
             properties = PopupProperties(
                 focusable = false,
                 dismissOnClickOutside = false,
-                dismissOnBackPress = true
+                dismissOnBackPress = false
             )
         ) {
             ToolMenuItem(stringResource(R.string.text_tool_enter_text)) {

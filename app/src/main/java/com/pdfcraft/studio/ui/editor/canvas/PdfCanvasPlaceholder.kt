@@ -507,7 +507,6 @@ private fun PageTextOverlay(
                 } else if (selectedTextId != null) {
                     Modifier.pointerInput(selectedTextId) {
                         detectTapGestures {
-                            focusManager.clearFocus()
                             onDeselect()
                         }
                     }
