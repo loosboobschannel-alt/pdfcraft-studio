@@ -92,7 +92,7 @@ object ProjectStore {
             }
             val json = JSONObject()
             json.put("projectVersion", PROJECT_VERSION)
-            json.put("name", safeBase)
+            json.put("name", outFile.nameWithoutExtension)
             json.put("savedAt", System.currentTimeMillis())
 
             val page = JSONObject()
