@@ -117,7 +117,7 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {}) {
+fun EditorScreen(projectPath: String? = null, onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {}) {
     val viewModel: EditorViewModel = viewModel()
 
     // Image edit dialogs / actions state (must be before use)
@@ -274,6 +274,27 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
     var textLinkHint by remember { mutableStateOf(false) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
+    var openedProjectPath by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(projectPath) {
+        val path = projectPath?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
+        if (openedProjectPath == path) return@LaunchedEffect
+        openedProjectPath = path
+        val result = withContext(Dispatchers.IO) {
+            ProjectStore.load(context, java.io.File(path))
+        }
+        val data = result.data
+        if (result.success && data != null) {
+            viewModel.applyLoadedProject(data, java.io.File(path))
+            val warn = result.warning
+            if (!warn.isNullOrBlank()) snackbarHostState.showSnackbar(warn)
+        } else {
+            snackbarHostState.showSnackbar(
+                result.error?.takeIf { it.isNotBlank() }
+                    ?: context.getString(R.string.open_project_failed)
+            )
+            onBackClick()
+        }
+    }
 
     val noImagesSelectedMessage =
         stringResource(R.string.no_images_selected)
@@ -335,9 +356,11 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
             TopAppBar(
                 title = {
                     Text(
-                        stringResource(R.string.editor_title),
+                        viewModel.currentProjectName
+                            ?: stringResource(R.string.editor_title),
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.Black
+                        color = Color.Black,
+                        maxLines = 1
                     )
                 },
                 navigationIcon = {
@@ -397,9 +420,17 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                     projectSaving = true
                                     coroutineScope.launch {
                                         val result = withContext(Dispatchers.IO) {
-                                            ProjectStore.save(context, viewModel)
+                                            ProjectStore.save(
+                                                context,
+                                                viewModel,
+                                                viewModel.currentProjectName
+                                                    ?: context.getString(R.string.save_project_default_name)
+                                            )
                                         }
                                         projectSaving = false
+                                        if (result.success && result.path.isNotBlank()) {
+                                            viewModel.onProjectSaved(java.io.File(result.path))
+                                        }
                                         snackbarHostState.showSnackbar(
                                             if (result.success)
                                                 context.getString(R.string.save_project_success)

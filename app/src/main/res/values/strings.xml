@@ -324,5 +324,17 @@
     <string name="save_project_success">Project saved successfully.</string>
     <string name="save_project_failed">Could not save project. Please try again.</string>
     <string name="save_project_default_name">Untitled Project</string>
+    <string name="my_projects">My Projects</string>
+    <string name="no_saved_projects">No saved projects yet.</string>
+    <string name="no_saved_projects_hint">Save a project from the editor, then it will appear here.</string>
+    <string name="project_pages_count">%d pages</string>
+    <string name="project_unreadable">This project file is damaged and cannot be opened.</string>
+    <string name="open_project_failed">Could not open this project.</string>
+    <string name="delete_project">Delete Project</string>
+    <string name="delete_project_confirm">Delete “%1$s”? This cannot be undone.</string>
+    <string name="rename_project">Rename Project</string>
+    <string name="rename_project_hint">Project name</string>
+    <string name="rename_project_failed">Could not rename. Try a different name.</string>
+    <string name="project_selected">Selected: %d</string>
 </resources>
 

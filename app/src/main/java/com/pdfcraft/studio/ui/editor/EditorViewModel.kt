@@ -21,6 +21,8 @@ import com.pdfcraft.studio.core.text.FontCatalog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.pdfcraft.studio.core.project.ProjectStore
+import java.io.File
 
 data class ImportedImage(
     val id: String,
@@ -361,6 +363,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var minPageCount: Int by mutableStateOf(1)
         private set
 
+    var currentProjectFile: File? by mutableStateOf(null)
+        private set
+    var currentProjectName: String? by mutableStateOf(null)
+        private set
+
     var isImporting: Boolean by mutableStateOf(false)
         private set
 
@@ -459,6 +466,59 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         availableFonts.clear()
         availableFonts.addAll(FontCatalog.allFonts(getApplication()))
     }
+
+
+    fun onProjectSaved(file: File) {
+        currentProjectFile = file
+        currentProjectName = file.nameWithoutExtension
+    }
+
+    fun applyLoadedProject(data: ProjectStore.LoadedProject, file: File) {
+        importedImages.clear()
+        importedImages.addAll(data.images)
+        textElements.clear()
+        textElements.addAll(data.texts)
+        minPageCount = data.minPageCount.coerceAtLeast(1)
+        pageAspectRatio = data.pageAspectRatio
+        isPageLandscape = data.isPageLandscape
+        pageMarginDp = data.pageMarginDp
+        pageBackgroundColor = data.pageBackgroundColor
+        pageNumberPosition = runCatching {
+            PageNumberPosition.valueOf(data.pageNumberPosition)
+        }.getOrDefault(PageNumberPosition.NONE)
+        pageNumberStyle = runCatching {
+            PageNumberStyle.valueOf(data.pageNumberStyle)
+        }.getOrDefault(PageNumberStyle.ARABIC)
+        pageAspectOverrides.clear()
+        pageAspectOverrides.putAll(data.pageAspectOverrides)
+        pageBackgroundColorOverrides.clear()
+        pageBackgroundColorOverrides.putAll(data.pageBackgroundColorOverrides)
+        pageBackgroundBitmap = data.pageBackgroundBitmap
+        pageBackgroundBitmapOverrides.clear()
+        pageBackgroundBitmapOverrides.putAll(data.pageBackgroundBitmapOverrides)
+        imagesPerRow = data.imagesPerRow.coerceAtLeast(1)
+        imageSpacingDp = data.imageSpacingDp
+        imageCellAspectRatio = data.imageCellAspectRatio
+        layoutCellAspectRatio = data.layoutCellAspectRatio
+        imageCornerRadiusPercent = data.imageCornerRadiusPercent.coerceIn(0, 100)
+        selectedImageSizeOption = data.selectedImageSizeOption
+        numberingAlpha = data.numberingAlpha
+        numberingSizeFrac = data.numberingSizeFrac
+        numberingXFrac = data.numberingXFrac
+        numberingYFrac = data.numberingYFrac
+        numberingBgArgb = data.numberingBgArgb
+        numberingFgArgb = data.numberingFgArgb
+        numberingWeight = data.numberingWeight
+        currentProjectFile = file
+        currentProjectName = data.name
+        selectedImageIds.clear()
+        selectedTextId = null
+        focusedTextId = null
+        pinnedTextId = null
+        addTextMode = false
+        refreshAvailableFonts()
+    }
+
 
     fun enterAddTextMode() {
         addTextMode = true

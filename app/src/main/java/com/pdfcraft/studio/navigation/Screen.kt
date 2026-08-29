@@ -7,7 +7,26 @@ import android.util.Base64
  */
 sealed class Screen(val route: String) {
     data object Home : Screen("home")
-    data object Editor : Screen("editor")
+    data object MyProjects : Screen("my_projects")
+    data object Editor : Screen("editor?project={project}") {
+        fun routeNew(): String = "editor?project="
+        fun routeOpen(path: String): String {
+            val encoded = android.util.Base64.encodeToString(
+                path.toByteArray(Charsets.UTF_8),
+                android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
+            )
+            return "editor?project=$encoded"
+        }
+        fun decodeProject(encoded: String): String? {
+            if (encoded.isBlank()) return null
+            return try {
+                String(
+                    android.util.Base64.decode(encoded, android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP),
+                    Charsets.UTF_8
+                )
+            } catch (_: Exception) { null }
+        }
+    }
 
     /**
      * URI is Base64 (URL_SAFE) so content:// paths with '/' do not break the nav route.

@@ -27,12 +27,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pdfcraft.studio.R
+import com.pdfcraft.studio.ui.common.AppIcons
 import com.pdfcraft.studio.ui.components.AppLogo
 import com.pdfcraft.studio.ui.components.PrimaryActionButton
 import com.pdfcraft.studio.ui.theme.PDFCraftStudioTheme
 
 @Composable
-fun HomeScreen(onCreatePdfClick: () -> Unit) {
+fun HomeScreen(onCreatePdfClick: () -> Unit, onMyProjectsClick: () -> Unit = {}) {
     Scaffold(
         containerColor = Color.White
     ) { innerPadding ->
@@ -79,6 +80,17 @@ fun HomeScreen(onCreatePdfClick: () -> Unit) {
                     text = stringResource(R.string.create_pdf),
                     icon = Icons.Filled.Add,
                     onClick = onCreatePdfClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 420.dp)
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                PrimaryActionButton(
+                    text = stringResource(R.string.my_projects),
+                    icon = AppIcons.FileDocument,
+                    onClick = onMyProjectsClick,
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 420.dp)

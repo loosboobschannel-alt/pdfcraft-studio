@@ -2,10 +2,13 @@ package com.pdfcraft.studio.core.project
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Environment
 import com.pdfcraft.studio.core.image.ImageSizeOption
+import com.pdfcraft.studio.core.text.FontCatalog
 import com.pdfcraft.studio.ui.editor.ColorRange
 import com.pdfcraft.studio.ui.editor.EditorViewModel
+import com.pdfcraft.studio.ui.editor.ImportedImage
 import com.pdfcraft.studio.ui.editor.LinkRange
 import com.pdfcraft.studio.ui.editor.ShadowRange
 import com.pdfcraft.studio.ui.editor.TextElement
@@ -15,6 +18,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 
 object ProjectStore {
@@ -29,14 +33,63 @@ object ProjectStore {
         val error: String? = null
     )
 
+    data class ProjectListItem(
+        val file: File,
+        val name: String,
+        val pageCount: Int,
+        val lastModifiedMillis: Long,
+        val readable: Boolean
+    )
+
+    data class LoadedProject(
+        val name: String,
+        val minPageCount: Int,
+        val pageAspectRatio: Float,
+        val isPageLandscape: Boolean,
+        val pageMarginDp: Int,
+        val pageBackgroundColor: Long,
+        val pageNumberPosition: String,
+        val pageNumberStyle: String,
+        val pageAspectOverrides: Map<Int, Float>,
+        val pageBackgroundColorOverrides: Map<Int, Long>,
+        val pageBackgroundBitmap: Bitmap?,
+        val pageBackgroundBitmapOverrides: Map<Int, Bitmap>,
+        val imagesPerRow: Int,
+        val imageSpacingDp: Int,
+        val imageCellAspectRatio: Float,
+        val layoutCellAspectRatio: Float,
+        val imageCornerRadiusPercent: Int,
+        val selectedImageSizeOption: ImageSizeOption,
+        val numberingAlpha: Float,
+        val numberingSizeFrac: Float,
+        val numberingXFrac: Float,
+        val numberingYFrac: Float,
+        val numberingBgArgb: Long,
+        val numberingFgArgb: Long,
+        val numberingWeight: Float,
+        val images: List<ImportedImage>,
+        val texts: List<TextElement>
+    )
+
+    data class LoadResult(
+        val success: Boolean,
+        val data: LoadedProject? = null,
+        val warning: String? = null,
+        val error: String? = null
+    )
+
     fun save(context: Context, vm: EditorViewModel, displayName: String = "Untitled Project"): SaveResult {
         return try {
             val dir = projectsDir(context)
             if (!dir.exists() && !dir.mkdirs()) {
                 return SaveResult(false, error = "Could not create projects folder")
             }
-            val safeBase = sanitizeFileName(displayName.ifBlank { "Untitled Project" })
-            val outFile = uniqueFile(dir, safeBase)
+            val existing = vm.currentProjectFile
+            val outFile = if (existing != null && existing.parentFile?.canonicalPath == dir.canonicalPath) {
+                existing
+            } else {
+                uniqueFile(dir, sanitizeFileName(displayName.ifBlank { "Untitled Project" }))
+            }
             val json = JSONObject()
             json.put("projectVersion", PROJECT_VERSION)
             json.put("name", safeBase)
@@ -75,7 +128,8 @@ object ProjectStore {
             numbering.put("weight", vm.numberingWeight.toDouble())
             json.put("numberingDefaults", numbering)
 
-            ZipOutputStream(FileOutputStream(outFile).buffered()).use { zip ->
+            val tmp = File(outFile.parentFile, outFile.name + ".tmp")
+            ZipOutputStream(FileOutputStream(tmp).buffered()).use { zip ->
                 val imagesArr = JSONArray()
                 vm.importedImages.toList().forEach { img ->
                     val obj = JSONObject()
@@ -142,6 +196,14 @@ object ProjectStore {
                 zip.putNextEntry(ZipEntry("project.json"))
                 zip.write(json.toString().toByteArray(Charsets.UTF_8))
                 zip.closeEntry()
+            }
+            if (outFile.exists() && !outFile.delete()) {
+                tmp.delete()
+                return SaveResult(false, error = "Could not overwrite project")
+            }
+            if (!tmp.renameTo(outFile)) {
+                tmp.delete()
+                return SaveResult(false, error = "Could not finish saving project")
             }
             SaveResult(success = true, displayName = outFile.name, path = outFile.absolutePath)
         } catch (e: Exception) {
@@ -262,4 +324,282 @@ object ProjectStore {
         zip.closeEntry()
         return zipPath
     }
+
+    fun listProjects(context: Context): List<ProjectListItem> {
+        val dir = projectsDir(context)
+        if (!dir.exists()) return emptyList()
+        val files = dir.listFiles { f -> f.isFile && f.name.endsWith(EXTENSION, ignoreCase = true) }
+            ?: return emptyList()
+        return files.map { file ->
+            try {
+                ZipFile(file).use { zip ->
+                    val entry = zip.getEntry("project.json")
+                        ?: return@use ProjectListItem(file, file.nameWithoutExtension, 0, file.lastModified(), false)
+                    val json = JSONObject(zip.getInputStream(entry).bufferedReader().readText())
+                    val page = json.optJSONObject("page")
+                    val pages = page?.optInt("documentPageCount", page.optInt("minPageCount", 1)) ?: 1
+                    val savedAt = json.optLong("savedAt", file.lastModified())
+                    ProjectListItem(
+                        file = file,
+                        name = file.nameWithoutExtension,
+                        pageCount = pages.coerceAtLeast(1),
+                        lastModifiedMillis = maxOf(savedAt, file.lastModified()),
+                        readable = true
+                    )
+                }
+            } catch (_: Exception) {
+                ProjectListItem(file, file.nameWithoutExtension, 0, file.lastModified(), false)
+            }
+        }.sortedByDescending { it.lastModifiedMillis }
+    }
+
+    fun load(context: Context, file: File): LoadResult {
+        if (!file.exists()) return LoadResult(false, error = "Project file not found")
+        return try {
+            ZipFile(file).use { zip ->
+                val entry = zip.getEntry("project.json")
+                    ?: return LoadResult(false, error = "Invalid project file")
+                val json = JSONObject(zip.getInputStream(entry).bufferedReader().readText())
+                val page = json.optJSONObject("page") ?: JSONObject()
+                val layout = json.optJSONObject("layout") ?: JSONObject()
+                val numbering = json.optJSONObject("numberingDefaults") ?: JSONObject()
+                val missing = mutableListOf<String>()
+                restoreCustomFonts(context, zip, json.optJSONArray("customFonts"))
+                val images = mutableListOf<ImportedImage>()
+                val imagesArr = json.optJSONArray("images")
+                if (imagesArr != null) {
+                    for (i in 0 until imagesArr.length()) {
+                        val o = imagesArr.optJSONObject(i) ?: continue
+                        val id = o.optString("id")
+                        val rel = o.optString("file", "")
+                        val bmp = if (rel.isNotBlank()) decodeZipBitmap(zip, rel) else null
+                        if (rel.isNotBlank() && bmp == null && !id.startsWith("spacer_")) {
+                            missing.add(id.ifBlank { "image ${i + 1}" })
+                        }
+                        val uriStr = o.optString("imageUri", "")
+                        images.add(
+                            ImportedImage(
+                                id = id,
+                                imageUri = uriStr.takeIf { it.isNotBlank() }?.let { android.net.Uri.parse(it) },
+                                bitmap = bmp,
+                                approxSizeBytes = if (o.has("approxSizeBytes") && !o.isNull("approxSizeBytes")) o.optInt("approxSizeBytes") else null,
+                                linkUrl = o.optString("linkUrl", "").takeIf { it.isNotBlank() },
+                                numberLabel = if (o.has("numberLabel") && !o.isNull("numberLabel")) o.optInt("numberLabel") else null,
+                                numberXFrac = o.optDouble("numberXFrac", 0.5).toFloat(),
+                                numberYFrac = o.optDouble("numberYFrac", 0.5).toFloat(),
+                                numberSizeFrac = o.optDouble("numberSizeFrac", 0.18).toFloat(),
+                                numberAlpha = o.optDouble("numberAlpha", 0.9).toFloat(),
+                                numberBgArgb = o.optLong("numberBgArgb", 0xE6000000L),
+                                numberFgArgb = o.optLong("numberFgArgb", 0xFFFFFFFFL),
+                                numberWeight = o.optDouble("numberWeight", 0.85).toFloat(),
+                                dragOffsetXFrac = o.optDouble("dragOffsetXFrac", 0.0).toFloat(),
+                                dragOffsetYFrac = o.optDouble("dragOffsetYFrac", 0.0).toFloat(),
+                                cornerRadiusPercent = o.optInt("cornerRadiusPercent", 0),
+                                aspectRatioOverride = if (o.has("aspectRatioOverride") && !o.isNull("aspectRatioOverride"))
+                                    o.optDouble("aspectRatioOverride").toFloat() else null
+                            )
+                        )
+                    }
+                }
+                val bgDefault = decodeZipBitmap(zip, page.optString("backgroundFile", "backgrounds/default.jpg"))
+                val bgOverrides = mutableMapOf<Int, Bitmap>()
+                val bgFiles = page.optJSONObject("backgroundFiles")
+                if (bgFiles != null) {
+                    bgFiles.keys().forEach { key ->
+                        val idx = key.toIntOrNull() ?: return@forEach
+                        val rel = bgFiles.optString(key)
+                        val bmp = decodeZipBitmap(zip, rel)
+                        if (bmp != null) bgOverrides[idx] = bmp
+                    }
+                }
+                val texts = mutableListOf<TextElement>()
+                val textsArr = json.optJSONArray("texts")
+                if (textsArr != null) {
+                    for (i in 0 until textsArr.length()) {
+                        val o = textsArr.optJSONObject(i) ?: continue
+                        texts.add(textFromJson(o))
+                    }
+                }
+                val warning = if (missing.isEmpty()) null else "Some images could not be restored (${missing.size})."
+                LoadResult(
+                    success = true,
+                    data = LoadedProject(
+                        name = file.nameWithoutExtension,
+                        minPageCount = page.optInt("minPageCount", 1).coerceAtLeast(1),
+                        pageAspectRatio = page.optDouble("pageAspectRatio", 0.673).toFloat(),
+                        isPageLandscape = page.optBoolean("isPageLandscape", false),
+                        pageMarginDp = page.optInt("pageMarginDp", 10),
+                        pageBackgroundColor = page.optLong("pageBackgroundColor", 0xFFFFFFFFL),
+                        pageNumberPosition = page.optString("pageNumberPosition", "NONE"),
+                        pageNumberStyle = page.optString("pageNumberStyle", "ARABIC"),
+                        pageAspectOverrides = floatMapFromJson(page.optJSONObject("pageAspectOverrides")),
+                        pageBackgroundColorOverrides = longMapFromJson(page.optJSONObject("pageBackgroundColorOverrides")),
+                        pageBackgroundBitmap = bgDefault,
+                        pageBackgroundBitmapOverrides = bgOverrides,
+                        imagesPerRow = layout.optInt("imagesPerRow", 4),
+                        imageSpacingDp = layout.optInt("imageSpacingDp", 6),
+                        imageCellAspectRatio = layout.optDouble("imageCellAspectRatio", 1.192929).toFloat(),
+                        layoutCellAspectRatio = layout.optDouble("layoutCellAspectRatio", 1.192929).toFloat(),
+                        imageCornerRadiusPercent = layout.optInt("imageCornerRadiusPercent", 0),
+                        selectedImageSizeOption = imageSizeFromJson(layout.optJSONObject("selectedImageSizeOption")),
+                        numberingAlpha = numbering.optDouble("alpha", 0.9).toFloat(),
+                        numberingSizeFrac = numbering.optDouble("sizeFrac", 0.18).toFloat(),
+                        numberingXFrac = numbering.optDouble("xFrac", 0.5).toFloat(),
+                        numberingYFrac = numbering.optDouble("yFrac", 0.5).toFloat(),
+                        numberingBgArgb = numbering.optLong("bgArgb", 0xFF7C4DFFL),
+                        numberingFgArgb = numbering.optLong("fgArgb", 0xFFFFFFFFL),
+                        numberingWeight = numbering.optDouble("weight", 0.67).toFloat(),
+                        images = images,
+                        texts = texts
+                    ),
+                    warning = warning
+                )
+            }
+        } catch (e: Exception) {
+            LoadResult(false, error = "This project file is damaged and cannot be opened.")
+        }
+    }
+
+    fun deleteProject(file: File): Boolean {
+        return try { file.exists() && file.delete() } catch (_: Exception) { false }
+    }
+
+    fun renameProject(file: File, newName: String): File? {
+        return try {
+            val dir = file.parentFile ?: return null
+            val base = sanitizeFileName(newName)
+            if (base.isBlank()) return null
+            val dest = File(dir, "$base$EXTENSION")
+            if (dest.canonicalPath == file.canonicalPath) return file
+            if (dest.exists()) return null
+            if (file.renameTo(dest)) dest else null
+        } catch (_: Exception) { null }
+    }
+
+    private fun restoreCustomFonts(context: Context, zip: ZipFile, arr: JSONArray?) {
+        if (arr == null) return
+        val dir = FontCatalog.fontsDir(context)
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            val rel = o.optString("file", "")
+            if (rel.isBlank()) continue
+            val entry = zip.getEntry(rel) ?: continue
+            val dest = File(dir, File(rel).name)
+            if (dest.exists()) continue
+            try {
+                zip.getInputStream(entry).use { input ->
+                    java.io.FileOutputStream(dest).use { output -> input.copyTo(output) }
+                }
+            } catch (_: Exception) { }
+        }
+    }
+
+    private fun decodeZipBitmap(zip: ZipFile, path: String?): Bitmap? {
+        if (path.isNullOrBlank()) return null
+        val entry = zip.getEntry(path) ?: return null
+        return try { zip.getInputStream(entry).use { BitmapFactory.decodeStream(it) } } catch (_: Exception) { null }
+    }
+
+    private fun imageSizeFromJson(obj: JSONObject?): ImageSizeOption {
+        if (obj == null) return ImageSizeOption.Default
+        return when (obj.optString("type")) {
+            "preset" -> ImageSizeOption.Preset(obj.optInt("kb", 10))
+            "custom" -> ImageSizeOption.Custom(obj.optInt("kb", 100))
+            else -> ImageSizeOption.Default
+        }
+    }
+
+    private fun floatMapFromJson(obj: JSONObject?): Map<Int, Float> {
+        if (obj == null) return emptyMap()
+        val out = mutableMapOf<Int, Float>()
+        obj.keys().forEach { key ->
+            val idx = key.toIntOrNull() ?: return@forEach
+            out[idx] = obj.optDouble(key).toFloat()
+        }
+        return out
+    }
+
+    private fun longMapFromJson(obj: JSONObject?): Map<Int, Long> {
+        if (obj == null) return emptyMap()
+        val out = mutableMapOf<Int, Long>()
+        obj.keys().forEach { key ->
+            val idx = key.toIntOrNull() ?: return@forEach
+            out[idx] = obj.optLong(key)
+        }
+        return out
+    }
+
+    private fun textFromJson(o: JSONObject): TextElement {
+        return TextElement(
+            id = o.optString("id"),
+            pageIndex = o.optInt("pageIndex", 0),
+            text = o.optString("text", ""),
+            xFraction = o.optDouble("xFraction", 0.1).toFloat(),
+            yFraction = o.optDouble("yFraction", 0.1).toFloat(),
+            boldRanges = rangesFromJson(o.optJSONArray("boldRanges")),
+            italicRanges = rangesFromJson(o.optJSONArray("italicRanges")),
+            colorRanges = colorRangesFromJson(o.optJSONArray("colorRanges")),
+            bgColorRanges = colorRangesFromJson(o.optJSONArray("bgColorRanges")),
+            linkRanges = linkRangesFromJson(o.optJSONArray("linkRanges")),
+            shadowRanges = shadowRangesFromJson(o.optJSONArray("shadowRanges")),
+            fontId = o.optString("fontId", FontCatalog.ID_DEFAULT),
+            fontSizeSp = o.optDouble("fontSizeSp", 16.0).toFloat(),
+            textColorArgb = o.optLong("textColorArgb", 0xFF000000L),
+            bgColorArgb = if (o.has("bgColorArgb") && !o.isNull("bgColorArgb")) o.optLong("bgColorArgb") else null,
+            shadowColorArgb = o.optLong("shadowColorArgb", 0x80000000L),
+            shadowOffsetXPx = o.optDouble("shadowOffsetXPx", 0.0).toFloat(),
+            shadowOffsetYPx = o.optDouble("shadowOffsetYPx", 0.0).toFloat(),
+            shadowBlurPx = o.optDouble("shadowBlurPx", 0.0).toFloat()
+        )
+    }
+
+    private fun rangesFromJson(arr: JSONArray?): List<IntRange> {
+        if (arr == null) return emptyList()
+        val out = mutableListOf<IntRange>()
+        for (i in 0 until arr.length()) {
+            val pair = arr.optJSONArray(i) ?: continue
+            if (pair.length() < 2) continue
+            out.add(pair.optInt(0)..pair.optInt(1))
+        }
+        return out
+    }
+
+    private fun colorRangesFromJson(arr: JSONArray?): List<ColorRange> {
+        if (arr == null) return emptyList()
+        val out = mutableListOf<ColorRange>()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            out.add(ColorRange(o.optInt("start")..o.optInt("end"), o.optLong("colorArgb", 0xFF000000L)))
+        }
+        return out
+    }
+
+    private fun linkRangesFromJson(arr: JSONArray?): List<LinkRange> {
+        if (arr == null) return emptyList()
+        val out = mutableListOf<LinkRange>()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            out.add(LinkRange(o.optInt("start")..o.optInt("end"), o.optString("url")))
+        }
+        return out
+    }
+
+    private fun shadowRangesFromJson(arr: JSONArray?): List<ShadowRange> {
+        if (arr == null) return emptyList()
+        val out = mutableListOf<ShadowRange>()
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            out.add(
+                ShadowRange(
+                    range = o.optInt("start")..o.optInt("end"),
+                    colorArgb = o.optLong("colorArgb", 0x80000000L),
+                    offsetXPx = o.optDouble("offsetXPx", 0.0).toFloat(),
+                    offsetYPx = o.optDouble("offsetYPx", 0.0).toFloat(),
+                    blurPx = o.optDouble("blurPx", 0.0).toFloat()
+                )
+            )
+        }
+        return out
+    }
+
 }

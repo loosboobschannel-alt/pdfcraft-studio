@@ -10,6 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.pdfcraft.studio.ui.editor.EditorScreen
 import com.pdfcraft.studio.ui.home.HomeScreen
+import com.pdfcraft.studio.ui.home.MyProjectsScreen
 import com.pdfcraft.studio.ui.viewer.PdfViewerScreen
 
 @Composable
@@ -28,12 +29,32 @@ fun PdfCraftNavGraph(
         composable(Screen.Home.route) {
             HomeScreen(
                 onCreatePdfClick = {
-                    navController.navigate(Screen.Editor.route)
+                    navController.navigate(Screen.Editor.routeNew())
+                },
+                onMyProjectsClick = {
+                    navController.navigate(Screen.MyProjects.route)
                 }
             )
         }
-        composable(Screen.Editor.route) {
+        composable(Screen.MyProjects.route) {
+            MyProjectsScreen(
+                onBackClick = { navController.popBackStack() },
+                onOpenProject = { path ->
+                    navController.navigate(Screen.Editor.routeOpen(path))
+                }
+            )
+        }
+        composable(
+            route = Screen.Editor.route,
+            arguments = listOf(navArgument("project") {
+                type = NavType.StringType
+                defaultValue = ""
+            })
+        ) { backStackEntry ->
+            val encoded = backStackEntry.arguments?.getString("project").orEmpty()
+            val projectPath = Screen.Editor.decodeProject(encoded)
             EditorScreen(
+                projectPath = projectPath,
                 onBackClick = { navController.popBackStack() },
                 onViewPdfClick = { uriString ->
                     navController.navigate(Screen.PdfViewer.routeWithUri(uriString))
