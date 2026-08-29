@@ -4,6 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.selection.LocalTextToolbar
+import androidx.compose.foundation.text.selection.TextToolbar
+import androidx.compose.foundation.text.selection.TextToolbarStatus
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectDragGestures
 
@@ -1234,7 +1239,10 @@ Column(
                         showTextLinkDialog = true
                     }
                 },
-                hasTextRangeSelection = viewModel.hasTextRangeForEdit(),
+                hasTextRangeSelection = if (
+                    toolMenuOpen || showFontTools || showTextColorPicker ||
+                    showTextBgColorPicker || showTextShadowPanel || showTextLinkDialog
+                ) viewModel.hasTextRangeForEdit() else viewModel.hasLiveTextRange(),
                 onDeleteTextClick =
                     viewModel::deleteSelectedText,
                 hasSelectedText =
@@ -1400,10 +1408,22 @@ Column(
                 }
             )
 
+            val systemTextToolbar = LocalTextToolbar.current
+            val hideSystemTextMenu = toolMenuOpen || showFontTools || showTextColorPicker ||
+                showTextBgColorPicker || showTextShadowPanel || showTextLinkDialog
+            LaunchedEffect(hideSystemTextMenu) {
+                if (hideSystemTextMenu) systemTextToolbar.hide()
+            }
+            LaunchedEffect(hideSystemTextMenu) {
+                if (!hideSystemTextMenu) viewModel.releaseTextSelectionHold()
+            }
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
+            ) {
+            CompositionLocalProvider(
+                LocalTextToolbar provides if (hideSystemTextMenu) NoOpTextToolbar else systemTextToolbar
             ) {
                 Column(
                     modifier = Modifier
@@ -1659,8 +1679,21 @@ Column(
                     )
                 }
             }
+            }
         }
     }
+}
+
+private object NoOpTextToolbar : TextToolbar {
+    override val status: TextToolbarStatus = TextToolbarStatus.Hidden
+    override fun hide() {}
+    override fun showMenu(
+        rect: Rect,
+        onCopyRequested: (() -> Unit)?,
+        onPasteRequested: (() -> Unit)?,
+        onCutRequested: (() -> Unit)?,
+        onSelectAllRequested: (() -> Unit)?
+    ) {}
 }
 
 private const val SAVE_LOG = "PDFCraftSave"

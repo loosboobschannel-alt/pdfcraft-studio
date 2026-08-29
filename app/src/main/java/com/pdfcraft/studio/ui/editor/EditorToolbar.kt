@@ -664,7 +664,7 @@ private fun ToolMenuItem(
         softWrap = false,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp)
     )
 

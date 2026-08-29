@@ -408,12 +408,30 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     var pinnedSelection: TextRange by mutableStateOf(TextRange.Zero)
         private set
 
+    var holdTextSelection: Boolean by mutableStateOf(false)
+        private set
+
     fun pinTextSelectionIfAny() {
+        holdTextSelection = true
         val id = focusedTextId ?: selectedTextId ?: return
         if (!currentSelection.collapsed) {
             pinnedTextId = id
             pinnedSelection = currentSelection
         }
+    }
+
+    fun releaseTextSelectionHold() {
+        holdTextSelection = false
+        if (focusedTextId == null) {
+            currentSelection = TextRange.Zero
+            pinnedTextId = null
+            pinnedSelection = TextRange.Zero
+        }
+    }
+
+    fun hasLiveTextRange(): Boolean {
+        val id = focusedTextId ?: selectedTextId
+        return id != null && !currentSelection.collapsed
     }
 
     fun selectionForEdit(): TextRange {
@@ -469,6 +487,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     fun deselectText() {
         selectedTextId = null
         focusedTextId = null
+        holdTextSelection = false
+        pinnedTextId = null
+        pinnedSelection = TextRange.Zero
+        currentSelection = TextRange.Zero
     }
 
     fun consumePendingFocus() {
@@ -534,7 +556,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 currentSelection = newSelection
                 pinnedTextId = id
                 pinnedSelection = newSelection
-            } else if (textChanged) {
+            } else if (textChanged || !holdTextSelection) {
                 currentSelection = newSelection
                 pinnedTextId = null
                 pinnedSelection = TextRange.Zero
