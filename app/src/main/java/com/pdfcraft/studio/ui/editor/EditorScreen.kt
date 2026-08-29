@@ -4,9 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.text.selection.LocalTextToolbar
-import androidx.compose.foundation.text.selection.TextToolbar
-import androidx.compose.foundation.text.selection.TextToolbarStatus
+import androidx.compose.ui.platform.LocalTextToolbar
+import androidx.compose.ui.platform.TextToolbar
+import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.interaction.MutableInteractionSource
