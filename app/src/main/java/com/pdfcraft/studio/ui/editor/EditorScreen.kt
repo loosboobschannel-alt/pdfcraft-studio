@@ -57,9 +57,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Save
 import com.pdfcraft.studio.core.pdf.PdfGenerator
 import com.pdfcraft.studio.core.project.ProjectStore
+import com.pdfcraft.studio.ui.common.AppIcons
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.graphics.Color
@@ -386,7 +386,7 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                 text = { Text(stringResource(R.string.save_project)) },
                                 leadingIcon = {
                                     Icon(
-                                        imageVector = Icons.Filled.Save,
+                                        imageVector = AppIcons.Save,
                                         contentDescription = null
                                     )
                                 },
