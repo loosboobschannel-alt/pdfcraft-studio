@@ -96,7 +96,7 @@
     <string name="text_link_cancel">Cancel</string>
     <string name="text_link_select_first">Select text first to insert a link.</string>
     <string name="text_select_first">Please select the text you want to edit.</string>
-    <string name="shadow_title">Shadow</string>
+    <string name="shadow_title">Text Shadow</string>
     <string name="shadow_opacity">Opacity</string>
     <string name="shadow_blur_label">Blur</string>
     <string name="shadow_offset_x">X Offset</string>
@@ -161,7 +161,7 @@
 
     <string name="text_tool_text_color">3. Text Color</string>
     <string name="text_tool_bg_color">4. Background Color</string>
-    <string name="text_tool_shadow">5. Shadow</string>
+    <string name="text_tool_shadow">5. Text Shadow</string>
     <string name="color_picker_title">Select Color</string>
     <string name="color_picker_hue">Hue</string>
     <string name="color_picker_sat">Saturation</string>
