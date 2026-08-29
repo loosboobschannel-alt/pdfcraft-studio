@@ -212,6 +212,9 @@ fun EditorToolbar(
     var pageBgColorModeActive by remember { mutableStateOf(false) }
     var pageMarginModeActive by remember { mutableStateOf(false) }
     var textSizeModeActive by remember { mutableStateOf(false) }
+    LaunchedEffect(hasSelectedText) {
+        if (!hasSelectedText) textSizeModeActive = false
+    }
     var selectedToolCategory by remember { mutableStateOf(0) } // 0=Page 1=Images 2=Text
     var orientationMenuExpanded by remember { mutableStateOf(false) }
 

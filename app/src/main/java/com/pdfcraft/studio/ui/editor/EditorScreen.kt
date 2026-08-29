@@ -11,6 +11,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 
 import androidx.compose.foundation.border
 
@@ -96,6 +97,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
@@ -1246,7 +1248,7 @@ Column(
                 onDeleteTextClick =
                     viewModel::deleteSelectedText,
                 hasSelectedText =
-                    viewModel.selectedTextId != null,
+                    viewModel.focusedTextId != null,
                 onTextColorClick = {
                     if (!viewModel.selectionForEdit().collapsed &&
                         (viewModel.selectedTextId != null || viewModel.focusedTextId != null)
@@ -1265,7 +1267,7 @@ Column(
                 },
                 textSizeSp =
                     viewModel.selectedTextSizeSp(),
-                onTextSizeClick = { },
+                onTextSizeClick = { textLinkHint = true },
                 onTextSizeChange =
                     viewModel::updateSelectedTextSize,
                 pageAspectRatio =
@@ -1417,10 +1419,24 @@ Column(
             LaunchedEffect(hideSystemTextMenu) {
                 if (!hideSystemTextMenu) viewModel.releaseTextSelectionHold()
             }
+            val focusManager = LocalFocusManager.current
+            val keyboardController = LocalSoftwareKeyboardController.current
+            val textBoxActive = viewModel.focusedTextId != null || viewModel.selectedTextId != null
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
+                    .then(
+                        if (textBoxActive && !toolMenuOpen) {
+                            Modifier.pointerInput(textBoxActive) {
+                                detectTapGestures {
+                                    keyboardController?.hide()
+                                    focusManager.clearFocus(force = true)
+                                    viewModel.deselectText()
+                                }
+                            }
+                        } else Modifier
+                    )
             ) {
             CompositionLocalProvider(
                 LocalTextToolbar provides if (hideSystemTextMenu) NoOpTextToolbar else systemTextToolbar
@@ -1489,6 +1505,8 @@ Column(
                     },
 
                     onDeselectText = {
+                        keyboardController?.hide()
+                        focusManager.clearFocus(force = true)
                         viewModel.deselectText()
                     },
 
