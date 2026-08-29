@@ -320,4 +320,9 @@
     <string name="image_delete_fill_space">Delete — Fill Space</string>
     <string name="image_delete_mode_title">How should images be deleted?</string>
     <string name="image_delete_mode_instruction">Keep Space leaves empty slots. Fill Space shifts remaining images forward.</string>
+    <string name="save_project">Save Project</string>
+    <string name="save_project_success">Project saved successfully.</string>
+    <string name="save_project_failed">Could not save project. Please try again.</string>
+    <string name="save_project_default_name">Untitled Project</string>
 </resources>
+

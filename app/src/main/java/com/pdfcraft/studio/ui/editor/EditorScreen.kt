@@ -57,7 +57,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Save
 import com.pdfcraft.studio.core.pdf.PdfGenerator
+import com.pdfcraft.studio.core.project.ProjectStore
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.graphics.Color
@@ -375,10 +377,39 @@ fun EditorScreen(onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {})
                                 contentDescription = "More options"
                             )
                         }
+                        var projectSaving by remember { mutableStateOf(false) }
                         DropdownMenu(
                             expanded = menuExpanded,
                             onDismissRequest = { menuExpanded = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.save_project)) },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Filled.Save,
+                                        contentDescription = null
+                                    )
+                                },
+                                enabled = !projectSaving,
+                                onClick = {
+                                    menuExpanded = false
+                                    if (projectSaving) return@DropdownMenuItem
+                                    projectSaving = true
+                                    coroutineScope.launch {
+                                        val result = withContext(Dispatchers.IO) {
+                                            ProjectStore.save(context, viewModel)
+                                        }
+                                        projectSaving = false
+                                        snackbarHostState.showSnackbar(
+                                            if (result.success)
+                                                context.getString(R.string.save_project_success)
+                                            else
+                                                result.error?.takeIf { it.isNotBlank() }
+                                                    ?: context.getString(R.string.save_project_failed)
+                                        )
+                                    }
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.export_pdf)) },
                                 onClick = {
