@@ -36,6 +36,9 @@ fun PdfCraftNavGraph(
                 },
                 onRecoverDraft = { path ->
                     navController.navigate(Screen.Editor.routeOpen(path))
+                },
+                onOpenPdf = { uri ->
+                    navController.navigate(Screen.PdfViewer.routeWithUri(uri))
                 }
             )
         }

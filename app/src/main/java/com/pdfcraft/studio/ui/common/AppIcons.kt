@@ -43,6 +43,32 @@ object AppIcons {
         }.build()
     }
 
+    val Folder: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Folder",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).path(
+            fill = SolidColor(Color.Black),
+            pathFillType = PathFillType.NonZero
+        ) {
+            moveTo(10f, 4f)
+            horizontalLineTo(4f)
+            curveToRelative(-1.1f, 0f, -2f, 0.9f, -2f, 2f)
+            verticalLineToRelative(12f)
+            curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
+            horizontalLineToRelative(16f)
+            curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
+            verticalLineTo(8f)
+            curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
+            horizontalLineToRelative(-8f)
+            lineToRelative(-2f, -2f)
+            close()
+        }.build()
+    }
+
     val Save: ImageVector by lazy {
         ImageVector.Builder(
             name = "Save",
