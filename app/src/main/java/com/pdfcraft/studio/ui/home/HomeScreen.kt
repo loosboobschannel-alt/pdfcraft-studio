@@ -1,8 +1,5 @@
 package com.pdfcraft.studio.ui.home
 
-import android.content.Intent
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,22 +49,9 @@ fun HomeScreen(
     onCreatePdfClick: () -> Unit,
     onMyProjectsClick: () -> Unit = {},
     onRecoverDraft: (String) -> Unit = {},
-    onOpenPdf: (String) -> Unit = {}
+    onViewPdf: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val openPdfLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        try {
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-        } catch (_: Exception) {
-        }
-        onOpenPdf(uri.toString())
-    }
     var showRecoverDialog by remember { mutableStateOf(false) }
     var latestDraftPath by remember { mutableStateOf<String?>(null) }
 
@@ -153,9 +137,9 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 PrimaryActionButton(
-                    text = stringResource(R.string.open_pdf),
-                    icon = AppIcons.Folder,
-                    onClick = { openPdfLauncher.launch(arrayOf("application/pdf")) },
+                    text = stringResource(R.string.view_pdf),
+                    icon = AppIcons.Visibility,
+                    onClick = onViewPdf,
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 420.dp)

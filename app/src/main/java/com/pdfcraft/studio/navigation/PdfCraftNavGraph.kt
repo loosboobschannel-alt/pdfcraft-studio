@@ -11,6 +11,7 @@ import androidx.navigation.navArgument
 import com.pdfcraft.studio.ui.editor.EditorScreen
 import com.pdfcraft.studio.ui.home.HomeScreen
 import com.pdfcraft.studio.ui.home.MyProjectsScreen
+import com.pdfcraft.studio.ui.viewer.PdfLibraryScreen
 import com.pdfcraft.studio.ui.viewer.PdfViewerScreen
 
 @Composable
@@ -37,6 +38,14 @@ fun PdfCraftNavGraph(
                 onRecoverDraft = { path ->
                     navController.navigate(Screen.Editor.routeOpen(path))
                 },
+                onViewPdf = {
+                    navController.navigate(Screen.PdfLibrary.route)
+                }
+            )
+        }
+        composable(Screen.PdfLibrary.route) {
+            PdfLibraryScreen(
+                onBackClick = { navController.popBackStack() },
                 onOpenPdf = { uri ->
                     navController.navigate(Screen.PdfViewer.routeWithUri(uri))
                 }
