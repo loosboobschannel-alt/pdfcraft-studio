@@ -88,6 +88,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -100,6 +101,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.pointer.pointerInput
@@ -107,10 +109,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pdfcraft.studio.R
 import com.pdfcraft.studio.ui.editor.canvas.PdfPagesPreview
 import com.pdfcraft.studio.ui.theme.PDFCraftStudioTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -296,6 +301,28 @@ fun EditorScreen(projectPath: String? = null, onBackClick: () -> Unit, onViewPdf
         }
     }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                viewModel.saveDraftAsync(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            val appCtx = context.applicationContext
+            val vm = viewModel
+            Thread { vm.saveDraftBlocking(appCtx) }.start()
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(4000)
+            viewModel.saveDraftAsync(context)
+        }
+    }
+
     val noImagesSelectedMessage =
         stringResource(R.string.no_images_selected)
 
@@ -419,13 +446,16 @@ fun EditorScreen(projectPath: String? = null, onBackClick: () -> Unit, onViewPdf
                                     if (projectSaving) return@DropdownMenuItem
                                     projectSaving = true
                                     coroutineScope.launch {
+                                        val defaultName = context.getString(R.string.save_project_default_name)
+                                        val saveName =
+                                            if (viewModel.isDraftSession() ||
+                                                (viewModel.currentProjectFile == null &&
+                                                    (viewModel.currentProjectName ?: "")
+                                                        .matches(Regex("^Draft Project \\d+$")))
+                                            ) defaultName
+                                            else viewModel.currentProjectName ?: defaultName
                                         val result = withContext(Dispatchers.IO) {
-                                            ProjectStore.save(
-                                                context,
-                                                viewModel,
-                                                viewModel.currentProjectName
-                                                    ?: context.getString(R.string.save_project_default_name)
-                                            )
+                                            ProjectStore.save(context, viewModel, saveName)
                                         }
                                         projectSaving = false
                                         if (result.success && result.path.isNotBlank()) {

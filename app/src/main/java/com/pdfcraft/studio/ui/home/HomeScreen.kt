@@ -12,14 +12,22 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -27,13 +35,52 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pdfcraft.studio.R
+import com.pdfcraft.studio.core.project.ProjectStore
 import com.pdfcraft.studio.ui.common.AppIcons
 import com.pdfcraft.studio.ui.components.AppLogo
 import com.pdfcraft.studio.ui.components.PrimaryActionButton
 import com.pdfcraft.studio.ui.theme.PDFCraftStudioTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
-fun HomeScreen(onCreatePdfClick: () -> Unit, onMyProjectsClick: () -> Unit = {}) {
+fun HomeScreen(
+    onCreatePdfClick: () -> Unit,
+    onMyProjectsClick: () -> Unit = {},
+    onRecoverDraft: (String) -> Unit = {}
+) {
+    val context = LocalContext.current
+    var showRecoverDialog by remember { mutableStateOf(false) }
+    var latestDraftPath by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        val latest = withContext(Dispatchers.IO) { ProjectStore.latestDraft(context) }
+        if (latest != null && latest.readable) {
+            latestDraftPath = latest.file.absolutePath
+            showRecoverDialog = true
+        }
+    }
+
+    if (showRecoverDialog && latestDraftPath != null) {
+        AlertDialog(
+            onDismissRequest = { showRecoverDialog = false },
+            title = { Text(stringResource(R.string.draft_recover_title)) },
+            text = { Text(stringResource(R.string.draft_recover_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val path = latestDraftPath
+                    showRecoverDialog = false
+                    if (!path.isNullOrBlank()) onRecoverDraft(path)
+                }) { Text(stringResource(R.string.ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRecoverDialog = false }) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
+            }
+        )
+    }
+
     Scaffold(
         containerColor = Color.White
     ) { innerPadding ->

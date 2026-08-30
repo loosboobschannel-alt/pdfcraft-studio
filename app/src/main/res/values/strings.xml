@@ -336,5 +336,7 @@
     <string name="rename_project_hint">Project name</string>
     <string name="rename_project_failed">Could not rename. Try a different name.</string>
     <string name="project_selected">Selected: %d</string>
+    <string name="draft_recover_title">Continue From Last Editing?</string>
+    <string name="draft_recover_message">We found your latest draft. Would you like to continue where you left off?</string>
 </resources>
 

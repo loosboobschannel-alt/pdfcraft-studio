@@ -78,15 +78,30 @@ object ProjectStore {
         val error: String? = null
     )
 
-    fun save(context: Context, vm: EditorViewModel, displayName: String = "Untitled Project"): SaveResult {
+    fun save(
+        context: Context,
+        vm: EditorViewModel,
+        displayName: String = "Untitled Project",
+        targetDir: File? = null,
+        overwriteFile: File? = null
+    ): SaveResult {
         return try {
-            val dir = projectsDir(context)
+            val dir = targetDir ?: projectsDir(context)
             if (!dir.exists() && !dir.mkdirs()) {
                 return SaveResult(false, error = "Could not create projects folder")
             }
-            val existing = vm.currentProjectFile
-            val outFile = if (existing != null && existing.parentFile?.canonicalPath == dir.canonicalPath) {
+            val existing = overwriteFile ?: vm.currentProjectFile
+            val outFile = if (
+                existing != null &&
+                existing.parentFile?.canonicalPath == dir.canonicalPath &&
+                !isDraftFile(existing)
+            ) {
                 existing
+            } else if (
+                overwriteFile != null &&
+                overwriteFile.parentFile?.canonicalPath == dir.canonicalPath
+            ) {
+                overwriteFile
             } else {
                 uniqueFile(dir, sanitizeFileName(displayName.ifBlank { "Untitled Project" }))
             }
@@ -215,6 +230,86 @@ object ProjectStore {
         val ext = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
         val base = ext ?: context.filesDir
         return File(base, "PDFCraftStudio/Projects")
+    }
+
+    fun draftsDir(context: Context): File {
+        val ext = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
+        val base = ext ?: context.filesDir
+        return File(base, "PDFCraftStudio/Drafts")
+    }
+
+    fun isDraftFile(file: File?): Boolean {
+        if (file == null) return false
+        return try {
+            val parent = file.parentFile?.canonicalPath ?: return false
+            parent.endsWith("/PDFCraftStudio/Drafts") || parent.endsWith("\\PDFCraftStudio\\Drafts")
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    fun nextDraftNumber(dir: File): Int {
+        val files = dir.listFiles { f -> f.isFile && f.name.endsWith(EXTENSION, ignoreCase = true) }
+            ?: return 1
+        var max = 0
+        val re = Regex("^Draft Project (\\d+)$")
+        files.forEach { f ->
+            val m = re.matchEntire(f.nameWithoutExtension) ?: return@forEach
+            val n = m.groupValues[1].toIntOrNull() ?: return@forEach
+            if (n > max) max = n
+        }
+        return max + 1
+    }
+
+    fun listDrafts(context: Context): List<ProjectListItem> {
+        val dir = draftsDir(context)
+        if (!dir.exists()) return emptyList()
+        val files = dir.listFiles { f -> f.isFile && f.name.endsWith(EXTENSION, ignoreCase = true) }
+            ?: return emptyList()
+        return files.map { file ->
+            try {
+                ZipFile(file).use { zip ->
+                    val entry = zip.getEntry("project.json")
+                        ?: return@use ProjectListItem(file, file.nameWithoutExtension, 0, file.lastModified(), false)
+                    val json = JSONObject(zip.getInputStream(entry).bufferedReader().readText())
+                    val page = json.optJSONObject("page")
+                    val pages = page?.optInt("documentPageCount", page.optInt("minPageCount", 1)) ?: 1
+                    val savedAt = json.optLong("savedAt", file.lastModified())
+                    ProjectListItem(
+                        file = file,
+                        name = file.nameWithoutExtension,
+                        pageCount = pages.coerceAtLeast(1),
+                        lastModifiedMillis = maxOf(savedAt, file.lastModified()),
+                        readable = true
+                    )
+                }
+            } catch (_: Exception) {
+                ProjectListItem(file, file.nameWithoutExtension, 0, file.lastModified(), false)
+            }
+        }.sortedByDescending { it.lastModifiedMillis }
+    }
+
+    fun latestDraft(context: Context): ProjectListItem? {
+        return listDrafts(context).firstOrNull { it.readable }
+    }
+
+    fun saveDraft(context: Context, vm: EditorViewModel, existingDraft: File?): SaveResult {
+        val dir = draftsDir(context)
+        if (!dir.exists() && !dir.mkdirs()) {
+            return SaveResult(false, error = "Could not create drafts folder")
+        }
+        val outFile = if (existingDraft != null && isDraftFile(existingDraft)) {
+            existingDraft
+        } else {
+            File(dir, "Draft Project ${nextDraftNumber(dir)}$EXTENSION")
+        }
+        return save(
+            context = context,
+            vm = vm,
+            displayName = outFile.nameWithoutExtension,
+            targetDir = dir,
+            overwriteFile = outFile
+        )
     }
 
     private fun uniqueFile(dir: File, base: String): File {

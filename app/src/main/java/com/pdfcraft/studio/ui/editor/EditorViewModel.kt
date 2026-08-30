@@ -1,6 +1,7 @@
 package com.pdfcraft.studio.ui.editor
 
 import android.app.Application
+import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.runtime.getValue
@@ -367,6 +368,10 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         private set
     var currentProjectName: String? by mutableStateOf(null)
         private set
+    var currentDraftFile: File? by mutableStateOf(null)
+        private set
+    @Volatile
+    private var lastDraftStamp: Long = 0L
 
     var isImporting: Boolean by mutableStateOf(false)
         private set
@@ -469,8 +474,67 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
 
     fun onProjectSaved(file: File) {
+        currentDraftFile?.let { ProjectStore.deleteProject(it) }
+        currentDraftFile = null
         currentProjectFile = file
         currentProjectName = file.nameWithoutExtension
+        lastDraftStamp = contentStamp()
+    }
+
+    fun isDraftSession(): Boolean = ProjectStore.isDraftFile(currentDraftFile)
+
+    private fun isEmptyEditor(): Boolean {
+        val hasImage = importedImages.any { !it.id.startsWith("spacer_") }
+        return !hasImage &&
+            textElements.isEmpty() &&
+            minPageCount <= 1 &&
+            pageBackgroundBitmap == null &&
+            pageBackgroundBitmapOverrides.isEmpty()
+    }
+
+    private fun contentStamp(): Long {
+        var h = minPageCount.toLong()
+        h = h * 31 + imagesPerRow + imageSpacingDp + imageCornerRadiusPercent
+        h = h * 31 + pageAspectRatio.toRawBits().toLong()
+        h = h * 31 + pageBackgroundColor
+        h = h * 31 + pageMarginDp
+        importedImages.forEach { img ->
+            h = h * 31 + img.id.hashCode()
+            h = h * 31 + img.dragOffsetXFrac.toRawBits().toLong()
+            h = h * 31 + img.dragOffsetYFrac.toRawBits().toLong()
+            h = h * 31 + img.cornerRadiusPercent
+            h = h * 31 + (img.aspectRatioOverride?.toRawBits()?.toLong() ?: 0L)
+            h = h * 31 + (img.numberLabel ?: 0)
+            h = h * 31 + (img.linkUrl?.hashCode() ?: 0)
+        }
+        textElements.forEach { te ->
+            h = h * 31 + te.text.hashCode()
+            h = h * 31 + te.pageIndex
+            h = h * 31 + te.xFraction.toRawBits().toLong()
+            h = h * 31 + te.yFraction.toRawBits().toLong()
+            h = h * 31 + te.fontSizeSp.toRawBits().toLong()
+            h = h * 31 + te.fontId.hashCode()
+        }
+        return h
+    }
+
+    @Synchronized
+    fun saveDraftBlocking(appContext: Context) {
+        if (isEmptyEditor()) return
+        val stamp = contentStamp()
+        if (stamp == lastDraftStamp && currentDraftFile?.exists() == true) return
+        val result = ProjectStore.saveDraft(appContext, this, currentDraftFile)
+        if (result.success && result.path.isNotBlank()) {
+            currentDraftFile = File(result.path)
+            lastDraftStamp = stamp
+        }
+    }
+
+    fun saveDraftAsync(appContext: Context) {
+        val ctx = appContext.applicationContext
+        viewModelScope.launch(Dispatchers.IO) {
+            saveDraftBlocking(ctx)
+        }
     }
 
     fun applyLoadedProject(data: ProjectStore.LoadedProject, file: File) {
@@ -509,8 +573,15 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         numberingBgArgb = data.numberingBgArgb
         numberingFgArgb = data.numberingFgArgb
         numberingWeight = data.numberingWeight
-        currentProjectFile = file
+        if (ProjectStore.isDraftFile(file)) {
+            currentDraftFile = file
+            currentProjectFile = null
+        } else {
+            currentProjectFile = file
+            currentDraftFile = null
+        }
         currentProjectName = data.name
+        lastDraftStamp = contentStamp()
         selectedImageIds.clear()
         selectedTextId = null
         focusedTextId = null

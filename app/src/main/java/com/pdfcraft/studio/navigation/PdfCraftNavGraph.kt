@@ -33,6 +33,9 @@ fun PdfCraftNavGraph(
                 },
                 onMyProjectsClick = {
                     navController.navigate(Screen.MyProjects.route)
+                },
+                onRecoverDraft = { path ->
+                    navController.navigate(Screen.Editor.routeOpen(path))
                 }
             )
         }
