@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -84,7 +83,7 @@ fun PdfLibraryScreen(
     var recent by remember { mutableStateOf(emptyList<PdfLibraryStore.PdfItem>()) }
     var selectedFolder by remember { mutableStateOf<String?>(null) }
     var permissionDenied by remember { mutableStateOf(false) }
-    var showPermissionRationale by remember { mutableStateOf(false) }
+    var askedPermission by remember { mutableStateOf(false) }
 
     fun hasReadPermission(): Boolean {
         if (Build.VERSION.SDK_INT >= 33) return true
@@ -108,13 +107,20 @@ fun PdfLibraryScreen(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         permissionDenied = !granted
-        if (granted) reload() else loading = false
+        if (granted) {
+            permissionDenied = false
+            reload()
+        } else {
+            loading = false
+        }
     }
 
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT <= 32 && !hasReadPermission()) {
-            showPermissionRationale = true
-            loading = false
+            if (!askedPermission) {
+                askedPermission = true
+                permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
         } else {
             reload()
         }
@@ -130,26 +136,6 @@ fun PdfLibraryScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
     }
 
-    if (showPermissionRationale) {
-        AlertDialog(
-            onDismissRequest = { showPermissionRationale = false },
-            title = { Text(stringResource(R.string.view_pdf)) },
-            text = { Text(stringResource(R.string.pdf_library_permission_message)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showPermissionRationale = false
-                    permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-                }) { Text(stringResource(R.string.ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showPermissionRationale = false
-                    permissionDenied = true
-                }) { Text(stringResource(R.string.dialog_cancel)) }
-            }
-        )
-    }
-
     val q = query.trim()
     fun matches(item: PdfLibraryStore.PdfItem): Boolean {
         return q.isEmpty() || item.name.contains(q, ignoreCase = true)
@@ -163,8 +149,18 @@ fun PdfLibraryScreen(
             else allPdfs.filter { it.folder == folder }.filter(::matches)
         }
     }
-    val folders = allPdfs.filter(::matches).groupBy { it.folder }.toList()
+    val folders = allPdfs.groupBy { it.folder }.toList()
+        .filter { pair ->
+            q.isEmpty() ||
+                pair.first.contains(q, ignoreCase = true) ||
+                pair.second.any { it.name.contains(q, ignoreCase = true) }
+        }
         .sortedBy { it.first.lowercase() }
+    val emptyMsg = if (q.isNotEmpty()) {
+        stringResource(R.string.pdf_library_no_match)
+    } else {
+        stringResource(R.string.pdf_library_empty)
+    }
 
     Scaffold(
         containerColor = Color.White,
@@ -219,30 +215,39 @@ fun PdfLibraryScreen(
                 }
             }
             when {
-                loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                loading -> Column(
+                    Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     CircularProgressIndicator(color = Accent)
+                    Spacer(Modifier.height(12.dp))
+                    Text(stringResource(R.string.pdf_library_finding), color = Color(0xFF8A8A8A))
                 }
-                permissionDenied && Build.VERSION.SDK_INT <= 32 -> Column(
+                permissionDenied && Build.VERSION.SDK_INT <= 32 && allPdfs.isEmpty() -> Column(
                     Modifier.fillMaxSize().padding(32.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(stringResource(R.string.pdf_library_permission_denied), textAlign = TextAlign.Center, color = Color.Black)
+                    Text(
+                        stringResource(R.string.pdf_library_access_needed),
+                        textAlign = TextAlign.Center,
+                        color = Color.Black
+                    )
                     Spacer(Modifier.height(12.dp))
                     TextButton(onClick = {
-                        permissionDenied = false
-                        showPermissionRationale = true
-                    }) { Text(stringResource(R.string.pdf_library_try_again)) }
+                        permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+                    }) { Text(stringResource(R.string.pdf_library_allow_access)) }
                 }
                 tab == LibraryTab.Folders && selectedFolder == null -> {
-                    if (folders.isEmpty()) EmptyHint(stringResource(R.string.pdf_library_empty))
+                    if (folders.isEmpty()) EmptyHint(emptyMsg)
                     else LazyColumn(Modifier.fillMaxSize()) {
                         items(folders, key = { it.first }) { pair ->
                             FolderRow(pair.first, pair.second.size) { selectedFolder = pair.first }
                         }
                     }
                 }
-                visiblePdfs.isEmpty() -> EmptyHint(stringResource(R.string.pdf_library_empty))
+                visiblePdfs.isEmpty() -> EmptyHint(emptyMsg)
                 else -> LazyColumn(Modifier.fillMaxSize()) {
                     items(visiblePdfs, key = { it.uri }) { item ->
                         PdfRow(item) {

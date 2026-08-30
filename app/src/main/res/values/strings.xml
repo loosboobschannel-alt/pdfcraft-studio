@@ -12,6 +12,10 @@
     <string name="pdf_library_permission_message">Allow PDFCraftStudio to access PDF files on your device so you can easily find and view your documents.</string>
     <string name="pdf_library_permission_denied">Storage access is required to find PDF files on your device.</string>
     <string name="pdf_library_try_again">Try again</string>
+    <string name="pdf_library_finding">Finding PDF files...</string>
+    <string name="pdf_library_no_match">No matching PDF files found.</string>
+    <string name="pdf_library_allow_access">Allow Access</string>
+    <string name="pdf_library_access_needed">PDF file access is needed to find documents on this device.</string>
     <string name="open_pdf_failed">Unable to open this PDF. The file may be invalid or damaged.</string>
     <string name="open_pdf_empty">This PDF has no pages.</string>
     <string name="editor_title">New Document</string>
