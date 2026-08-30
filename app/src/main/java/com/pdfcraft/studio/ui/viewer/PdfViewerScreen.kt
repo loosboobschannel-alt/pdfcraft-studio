@@ -88,10 +88,10 @@ fun PdfViewerScreen(pdfUriString: String, onBackClick: () -> Unit) {
         linkRegions = emptyList()
         session = null
         val failed = context.getString(R.string.open_pdf_failed)
-        val opened = withContext(Dispatchers.IO) {
+        val opened: Result<Pair<PdfSession, List<Float>>> = withContext(Dispatchers.IO) {
             try {
                 val pfd = openPdfDescriptor(context, uri)
-                    ?: return@withContext Result.failure<PdfSession>(IllegalStateException("pfd"))
+                    ?: return@withContext Result.failure(IllegalStateException("pfd"))
                 val renderer = try {
                     PdfRenderer(pfd)
                 } catch (e: Exception) {
