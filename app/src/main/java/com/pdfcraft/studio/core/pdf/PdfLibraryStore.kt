@@ -15,7 +15,8 @@ object PdfLibraryStore {
         val name: String,
         val sizeBytes: Long,
         val folder: String,
-        val lastModifiedMillis: Long
+        val lastModifiedMillis: Long,
+        val location: String = folder
     )
 
     private const val PREFS = "pdf_library"
@@ -88,7 +89,12 @@ object PdfLibraryStore {
                     }
                     val key = name + "|" + size + "|" + folder
                     if (!into.containsKey(key) && !into.containsKey(uri)) {
-                        into[uri] = PdfItem(uri, name.ifBlank { "PDF" }, size, folder, modified)
+                        val loc = when {
+                        relCol >= 0 -> locationFromRelative(c.getString(relCol))
+                        dataCol >= 0 -> locationFromPath(c.getString(dataCol))
+                        else -> folder
+                    }
+                    into[uri] = PdfItem(uri, name.ifBlank { "PDF" }, size, folder, modified, loc)
                     }
                 }
             }
@@ -208,5 +214,27 @@ object PdfLibraryStore {
         if (millis <= 0L) return "-"
         return java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
             .format(java.util.Date(millis))
+    }
+
+    private fun locationFromRelative(rel: String?): String {
+        val r = rel?.trim()?.trim('/') ?: ""
+        return if (r.isEmpty()) "/storage/emulated/0/" else "/storage/emulated/0/" + r + "/"
+    }
+
+    private fun locationFromPath(path: String?): String {
+        if (path.isNullOrBlank()) return "/storage/emulated/0/"
+        val parent = path.substringBeforeLast('/')
+        return if (parent.isBlank()) path else parent + "/"
+    }
+
+    fun sortPdfs(items: List<PdfItem>, mode: String): List<PdfItem> {
+        return when (mode) {
+            "name_za" -> items.sortedByDescending { it.name.lowercase(Locale.US) }
+            "date_new" -> items.sortedByDescending { it.lastModifiedMillis }
+            "date_old" -> items.sortedBy { it.lastModifiedMillis }
+            "size_large" -> items.sortedByDescending { it.sizeBytes }
+            "size_small" -> items.sortedBy { it.sizeBytes }
+            else -> items.sortedBy { it.name.lowercase(Locale.US) }
+        }
     }
 }

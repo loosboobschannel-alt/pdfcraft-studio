@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.pdfcraft.studio.R
 import com.pdfcraft.studio.core.pdf.PdfLinkExtractor
+import com.pdfcraft.studio.ui.common.verticalListScrollbar
 import com.pdfcraft.studio.core.pdf.PdfLinkRegion
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -197,8 +199,10 @@ fun PdfViewerScreen(pdfUriString: String, onBackClick: () -> Unit) {
                 }
                 else -> {
                     val current = session
+                    val viewerListState = rememberLazyListState()
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
+                        state = viewerListState,
+                        modifier = Modifier.fillMaxSize().verticalListScrollbar(viewerListState),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(16.dp)
                     ) {

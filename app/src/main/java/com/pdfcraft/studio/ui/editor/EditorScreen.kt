@@ -123,7 +123,7 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditorScreen(projectPath: String? = null, onBackClick: () -> Unit, onViewPdfClick: (String) -> Unit = {}) {
-    val viewModel: EditorViewModel = viewModel()
+    val viewModel: EditorViewModel = viewModel(key = projectPath ?: "new")
 
     // Image edit dialogs / actions state (must be before use)
     var cropImageId by remember { mutableStateOf<String?>(null) }
@@ -282,7 +282,6 @@ fun EditorScreen(projectPath: String? = null, onBackClick: () -> Unit, onViewPdf
     var openedProjectPath by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(projectPath) {
         val path = projectPath?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
-        if (openedProjectPath == path) return@LaunchedEffect
         openedProjectPath = path
         if (path.startsWith("pdf|")) {
             viewModel.importPdfFromUri(context, path.substring(4))

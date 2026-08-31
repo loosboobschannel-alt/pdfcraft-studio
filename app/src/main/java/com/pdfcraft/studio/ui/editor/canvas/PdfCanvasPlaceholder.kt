@@ -28,7 +28,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import com.pdfcraft.studio.ui.common.verticalListScrollbar
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.shadow
@@ -209,11 +211,13 @@ fun PdfPagesPreview(
     customFonts: List<AppFont> = emptyList(),
     modifier: Modifier = Modifier
 ) {
+    val pageListState = rememberLazyListState()
     // Always show at least one page so text can be added before any images.
     if (images.isEmpty() && minPageCount <= 1) {
         BoxWithConstraints(modifier = modifier.fillMaxSize()) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                state = pageListState,
+                modifier = Modifier.fillMaxSize().verticalListScrollbar(pageListState),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 item {

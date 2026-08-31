@@ -33,9 +33,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -88,6 +90,11 @@ class PdfLibraryVm : ViewModel() {
     var loading by mutableStateOf(true)
     var permissionDenied by mutableStateOf(false)
     var askedPermission by mutableStateOf(false)
+    var sortMode by mutableStateOf("date_new")
+    var selectMode by mutableStateOf(false)
+    var selectedUris by mutableStateOf(setOf<String>())
+    var showSortMenu by mutableStateOf(false)
+    var showTopMenu by mutableStateOf(false)
 }
 
 
@@ -110,6 +117,12 @@ fun PdfLibraryScreen(
     var selectedFolder by vm::selectedFolder
     var permissionDenied by vm::permissionDenied
     var askedPermission by vm::askedPermission
+    var sortMode by vm::sortMode
+    var selectMode by vm::selectMode
+    var selectedUris by vm::selectedUris
+    var showSortMenu by vm::showSortMenu
+    var showTopMenu by vm::showTopMenu
+    var showMultiDelete by remember { mutableStateOf(false) }
     val pdfListState = rememberLazyListState()
     val folderListState = rememberLazyListState()
     var menuFor by remember { mutableStateOf<PdfLibraryStore.PdfItem?>(null) }
@@ -200,15 +213,18 @@ fun PdfLibraryScreen(
     fun matches(item: PdfLibraryStore.PdfItem): Boolean {
         return q.isEmpty() || item.name.contains(q, ignoreCase = true)
     }
-    val visiblePdfs = when (tab) {
-        LibraryTab.All -> allPdfs.filter(::matches)
-        LibraryTab.Recent -> recent.filter(::matches)
-        LibraryTab.Folders -> {
-            val folder = selectedFolder
-            if (folder == null) emptyList()
-            else allPdfs.filter { it.folder == folder }.filter(::matches)
-        }
-    }
+    val visiblePdfs = PdfLibraryStore.sortPdfs(
+        when (tab) {
+            LibraryTab.All -> allPdfs.filter(::matches)
+            LibraryTab.Recent -> recent.filter(::matches)
+            LibraryTab.Folders -> {
+                val folder = selectedFolder
+                if (folder == null) emptyList()
+                else allPdfs.filter { it.folder == folder }.filter(::matches)
+            }
+        },
+        sortMode
+    )
     val folders = allPdfs.groupBy { it.folder }.toList()
         .filter { pair ->
             q.isEmpty() ||
@@ -243,6 +259,37 @@ fun PdfLibraryScreen(
                         } else onBackClick()
                     }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.content_desc_back))
+                    }
+                },
+                actions = {
+                    if (selectMode) {
+                        IconButton(onClick = {
+                            if (selectedUris.isNotEmpty()) showMultiDelete = true
+                        }) {
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.pdf_library_delete), tint = Color.Black)
+                        }
+                    }
+                    Box {
+                        IconButton(onClick = { showTopMenu = true }) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.pdf_library_more), tint = Color.Black)
+                        }
+                        DropdownMenu(expanded = showTopMenu, onDismissRequest = { showTopMenu = false }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.pdf_library_select)) },
+                                onClick = {
+                                    showTopMenu = false
+                                    selectMode = !selectMode
+                                    if (!selectMode) selectedUris = emptySet()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.pdf_library_sort)) },
+                                onClick = {
+                                    showTopMenu = false
+                                    showSortMenu = true
+                                }
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
@@ -309,7 +356,7 @@ fun PdfLibraryScreen(
                 }
                 (if (q.isNotEmpty()) allPdfs.filter(::matches) else visiblePdfs).isEmpty() -> EmptyHint(emptyMsg)
                 else -> LazyColumn(Modifier.fillMaxSize(), state = pdfListState) {
-                    val rows = if (q.isNotEmpty()) allPdfs.filter(::matches) else visiblePdfs
+                    val rows = PdfLibraryStore.sortPdfs(if (q.isNotEmpty()) allPdfs.filter(::matches) else visiblePdfs, sortMode)
                     items(rows, key = { it.uri }) { item ->
                         PdfRow(
                             item = item,
@@ -349,6 +396,11 @@ fun PdfLibraryScreen(
                             onMenuDetails = {
                                 menuFor = null
                                 detailsFor = item
+                            },
+                            selectMode = selectMode,
+                            selected = item.uri in selectedUris,
+                            onToggleSelect = {
+                                selectedUris = if (item.uri in selectedUris) selectedUris - item.uri else selectedUris + item.uri
                             }
                         )
                     }
@@ -428,8 +480,8 @@ fun PdfLibraryScreen(
                     Text(stringResource(R.string.pdf_library_details_size), fontWeight = FontWeight.SemiBold)
                     Text(PdfLibraryStore.formatSize(item.sizeBytes))
                     Spacer(Modifier.height(8.dp))
-                    Text(stringResource(R.string.pdf_library_details_folder), fontWeight = FontWeight.SemiBold)
-                    Text(item.folder)
+                    Text(stringResource(R.string.pdf_library_details_location), fontWeight = FontWeight.SemiBold)
+                    Text(item.location)
                     Spacer(Modifier.height(8.dp))
                     Text(stringResource(R.string.pdf_library_details_modified), fontWeight = FontWeight.SemiBold)
                     Text(PdfLibraryStore.formatTime(item.lastModifiedMillis))
@@ -441,6 +493,69 @@ fun PdfLibraryScreen(
         )
     }
 }
+
+    if (showSortMenu) {
+        AlertDialog(
+            onDismissRequest = { showSortMenu = false },
+            title = { Text(stringResource(R.string.pdf_library_sort_title)) },
+            text = {
+                Column {
+                    val options = listOf(
+                        "name_az" to R.string.pdf_library_sort_name_az,
+                        "name_za" to R.string.pdf_library_sort_name_za,
+                        "date_new" to R.string.pdf_library_sort_date_new,
+                        "date_old" to R.string.pdf_library_sort_date_old,
+                        "size_large" to R.string.pdf_library_sort_size_large,
+                        "size_small" to R.string.pdf_library_sort_size_small
+                    )
+                    options.forEach { pair ->
+                        val key = pair.first
+                        val res = pair.second
+                        Text(
+                            text = (if (sortMode == key) "✓  " else "     ") + stringResource(res),
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                sortMode = key
+                                showSortMenu = false
+                            }.padding(vertical = 10.dp),
+                            color = Color.Black
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSortMenu = false }) { Text(stringResource(R.string.dialog_cancel)) }
+            }
+        )
+    }
+    if (showMultiDelete) {
+        AlertDialog(
+            onDismissRequest = { showMultiDelete = false },
+            title = { Text(stringResource(R.string.pdf_library_delete_selected)) },
+            text = { Text(stringResource(R.string.pdf_library_delete_selected_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val targets = (allPdfs + recent).filter { it.uri in selectedUris }.distinctBy { it.uri }
+                    var failed = false
+                    targets.forEach { item ->
+                        val ok = PdfLibraryStore.deletePdf(context, item)
+                        if (ok) {
+                            allPdfs = allPdfs.filterNot { it.uri == item.uri }
+                            recent = recent.filterNot { it.uri == item.uri }
+                            PdfLibraryStore.removeRecent(context, item.uri)
+                        } else failed = true
+                    }
+                    selectedUris = emptySet()
+                    selectMode = false
+                    showMultiDelete = false
+                    if (failed) actionMessage = context.getString(R.string.pdf_library_delete_failed)
+                }) { Text(stringResource(R.string.pdf_library_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMultiDelete = false }) { Text(stringResource(R.string.dialog_cancel)) }
+            }
+        )
+    }
+
 
 @Composable
 private fun TabChip(label: String, selected: Boolean, onClick: () -> Unit) {
@@ -473,12 +588,18 @@ private fun PdfRow(
     onMenuRename: () -> Unit,
     onMenuDelete: () -> Unit,
     onMenuShare: () -> Unit,
-    onMenuDetails: () -> Unit
+    onMenuDetails: () -> Unit,
+    selectMode: Boolean = false,
+    selected: Boolean = false,
+    onToggleSelect: () -> Unit = {}
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = { if (selectMode) onToggleSelect() else onOpen() }).padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (selectMode) {
+            Checkbox(checked = selected, onCheckedChange = { onToggleSelect() })
+        }
         Icon(AppIcons.FileDocument, null, tint = Accent, modifier = Modifier.size(28.dp))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {

@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.pdfcraft.studio.core.project.ProjectStore
+import com.pdfcraft.studio.core.pdf.PdfTextImporter
 import java.io.File
 
 data class ImportedImage(
@@ -593,26 +594,57 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
 
+    private var pdfImportGen: Int = 0
+
     fun importPdfFromUri(context: Context, uriString: String) {
+        val gen = pdfImportGen + 1
+        pdfImportGen = gen
+        importedImages.clear()
+        textElements.clear()
+        selectedTextId = null
+        focusedTextId = null
+        pinnedTextId = null
+        minPageCount = 1
         viewModelScope.launch {
             val uri = Uri.parse(uriString)
             val pages = withContext(Dispatchers.IO) { renderPdfPages(context, uri) }
-            if (pages.isEmpty()) return@launch
+            val lines = withContext(Dispatchers.IO) { PdfTextImporter.extract(context, uri) }
+            if (gen != pdfImportGen) return@launch
             importedImages.clear()
-            importedImages.addAll(pages)
             textElements.clear()
-            minPageCount = pages.size.coerceAtLeast(1)
+            if (lines.isEmpty()) {
+                importedImages.addAll(pages)
+            }
+            val pageCount = maxOf(
+                pages.size,
+                (lines.maxOfOrNull { it.pageIndex } ?: -1) + 1,
+                1
+            )
+            minPageCount = pageCount
             updateImagesPerRow(1)
             updateImageSpacing(0)
             updatePageMarginDp(0)
-            val bmp = pages.first().bitmap
+            val bmp = pages.firstOrNull()?.bitmap
             if (bmp != null && bmp.height > 0) {
                 val ratio = bmp.width.toFloat() / bmp.height.toFloat()
                 imageCellAspectRatio = ratio
                 layoutCellAspectRatio = ratio
                 pageAspectRatio = ratio
             }
+            lines.forEach { line ->
+                textElements.add(
+                    TextElement(
+                        id = "pdftext_" + line.pageIndex + "_" + textElements.size + "_" + System.nanoTime(),
+                        pageIndex = line.pageIndex,
+                        text = line.text,
+                        xFraction = line.xFrac,
+                        yFraction = line.yFrac,
+                        fontSizeSp = line.fontSizeSp
+                    )
+                )
+            }
             currentProjectFile = null
+            currentProjectName = null
             lastDraftStamp = contentStamp()
         }
     }
