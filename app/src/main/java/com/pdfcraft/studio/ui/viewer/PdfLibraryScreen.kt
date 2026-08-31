@@ -76,7 +76,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private enum class LibraryTab { All, Folders, Recent }
+enum class LibraryTab { All, Folders, Recent }
 private val Accent = Color(0xFF1976D2)
 
 class PdfLibraryVm : ViewModel() {
@@ -356,8 +356,6 @@ fun PdfLibraryScreen(
             }
         }
     }
-}
-
 
     if (actionMessage != null) {
         AlertDialog(
@@ -442,7 +440,7 @@ fun PdfLibraryScreen(
             }
         )
     }
-
+}
 
 @Composable
 private fun TabChip(label: String, selected: Boolean, onClick: () -> Unit) {
