@@ -1,6 +1,9 @@
 package com.pdfcraft.studio.core.pdf
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.net.Uri
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
@@ -11,8 +14,11 @@ data class ImportedPdfLine(
     val pageIndex: Int,
     val xFrac: Float,
     val yFrac: Float,
+    val wFrac: Float,
+    val hFrac: Float,
     val fontSizeSp: Float,
-    val text: String
+    val text: String,
+    val colorArgb: Long
 )
 
 object PdfTextImporter {
@@ -30,52 +36,72 @@ object PdfTextImporter {
             }
         } catch (_: Exception) {
         }
-        return mergeParagraphs(out)
+        return out.filter { it.text.isNotBlank() }
     }
 
-    private fun mergeParagraphs(lines: List<ImportedPdfLine>): List<ImportedPdfLine> {
-        if (lines.isEmpty()) return lines
-        val merged = ArrayList<ImportedPdfLine>()
-        var cur = lines[0]
-        for (i in 1 until lines.size) {
-            val n = lines[i]
-            val samePage = n.pageIndex == cur.pageIndex
-            val close = kotlin.math.abs(n.yFrac - cur.yFrac) < 0.035f &&
-                kotlin.math.abs(n.xFrac - cur.xFrac) < 0.08f
-            if (samePage && close) {
-                cur = cur.copy(text = cur.text + "\n" + n.text)
-            } else {
-                merged.add(cur)
-                cur = n
-            }
+    fun punchTextFromPage(bmp: Bitmap, lines: List<ImportedPdfLine>, pageIndex: Int) {
+        val pageLines = lines.filter { it.pageIndex == pageIndex }
+        if (pageLines.isEmpty()) return
+        val canvas = Canvas(bmp)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val bw = bmp.width.toFloat().coerceAtLeast(1f)
+        val bh = bmp.height.toFloat().coerceAtLeast(1f)
+        for (line in pageLines) {
+            val l = (line.xFrac * bw) - 2f
+            val t = (line.yFrac * bh) - 2f
+            val r = ((line.xFrac + line.wFrac) * bw) + 2f
+            val b = ((line.yFrac + line.hFrac) * bh) + 2f
+            val sx = l.toInt().coerceIn(0, bmp.width - 1)
+            val sy = t.toInt().coerceIn(0, bmp.height - 1)
+            paint.color = try { bmp.getPixel(sx, sy) } catch (_: Exception) { android.graphics.Color.WHITE }
+            canvas.drawRect(l, t, r, b, paint)
         }
-        merged.add(cur)
-        return merged
     }
 
     private class LineStripper(
         private val sink: (ImportedPdfLine) -> Unit
     ) : PDFTextStripper() {
         override fun writeString(text: String, textPositions: MutableList<TextPosition>) {
-            val trimmed = text.trim()
+            val trimmed = text.replace("\u0000", "").trim()
             if (trimmed.isEmpty() || textPositions.isEmpty()) return
             val first = textPositions[0]
+            val last = textPositions[textPositions.size - 1]
             val page = currentPage ?: return
             val box = page.mediaBox ?: return
             val pw = box.width.coerceAtLeast(1f)
             val ph = box.height.coerceAtLeast(1f)
-            val xFrac = (first.xDirAdj / pw).coerceIn(0f, 0.92f)
-            val yFrac = (first.yDirAdj / ph).coerceIn(0f, 0.92f)
-            val sp = first.fontSizeInPt.coerceIn(8f, 42f)
+            val fontPt = first.fontSizeInPt.coerceAtLeast(1f)
+            val glyphH = first.heightDir.coerceAtLeast(fontPt * 0.75f)
+            val top = (first.yDirAdj - glyphH).coerceAtLeast(0f)
+            val left = first.xDirAdj.coerceAtLeast(0f)
+            val right = (last.xDirAdj + last.widthDirAdj).coerceAtLeast(left + 1f)
+            val logicalPageDp = 360f
+            val fontSp = (fontPt * logicalPageDp / pw).coerceIn(5f, 48f)
             sink(
                 ImportedPdfLine(
                     pageIndex = (currentPageNo - 1).coerceAtLeast(0),
-                    xFrac = xFrac,
-                    yFrac = yFrac,
-                    fontSizeSp = sp,
-                    text = trimmed
+                    xFrac = (left / pw).coerceIn(0f, 0.98f),
+                    yFrac = (top / ph).coerceIn(0f, 0.98f),
+                    wFrac = ((right - left) / pw).coerceIn(0.005f, 1f),
+                    hFrac = (glyphH * 1.15f / ph).coerceIn(0.004f, 0.2f),
+                    fontSizeSp = fontSp,
+                    text = trimmed,
+                    colorArgb = currentFillArgb()
                 )
             )
+        }
+
+        private fun currentFillArgb(): Long {
+            return try {
+                val nsc = graphicsState.nonStrokingColor ?: return 0xFF000000L
+                val rgb = nsc.colorSpace.toRGB(nsc.components)
+                val r = (rgb[0].coerceIn(0f, 1f) * 255f).toInt()
+                val g = (rgb[1].coerceIn(0f, 1f) * 255f).toInt()
+                val b = (rgb[2].coerceIn(0f, 1f) * 255f).toInt()
+                (0xFF000000L or (r.toLong() shl 16) or (g.toLong() shl 8) or b.toLong())
+            } catch (_: Exception) {
+                0xFF000000L
+            }
         }
     }
 }

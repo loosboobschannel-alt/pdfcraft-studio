@@ -604,6 +604,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         selectedTextId = null
         focusedTextId = null
         pinnedTextId = null
+        pageBackgroundBitmapOverrides.clear()
+        pageAspectOverrides.clear()
         minPageCount = 1
         viewModelScope.launch {
             val uri = Uri.parse(uriString)
@@ -612,25 +614,29 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             if (gen != pdfImportGen) return@launch
             importedImages.clear()
             textElements.clear()
-            if (lines.isEmpty()) {
-                importedImages.addAll(pages)
+            pageBackgroundBitmapOverrides.clear()
+            pageAspectOverrides.clear()
+            pages.forEachIndexed { idx, img ->
+                val src = img.bitmap ?: return@forEachIndexed
+                val copy = src.copy(Bitmap.Config.ARGB_8888, true)
+                PdfTextImporter.punchTextFromPage(copy, lines, idx)
+                pageBackgroundBitmapOverrides[idx] = copy
+                if (copy.height > 0) {
+                    pageAspectOverrides[idx] = copy.width.toFloat() / copy.height.toFloat()
+                }
             }
-            val pageCount = maxOf(
-                pages.size,
-                (lines.maxOfOrNull { it.pageIndex } ?: -1) + 1,
-                1
-            )
-            minPageCount = pageCount
+            val firstBmp = pageBackgroundBitmapOverrides[0]
+            if (firstBmp != null && firstBmp.height > 0) {
+                val ratio = firstBmp.width.toFloat() / firstBmp.height.toFloat()
+                pageAspectRatio = ratio
+                imageCellAspectRatio = ratio
+                layoutCellAspectRatio = ratio
+            }
+            minPageCount = pages.size.coerceAtLeast(1)
             updateImagesPerRow(1)
             updateImageSpacing(0)
             updatePageMarginDp(0)
-            val bmp = pages.firstOrNull()?.bitmap
-            if (bmp != null && bmp.height > 0) {
-                val ratio = bmp.width.toFloat() / bmp.height.toFloat()
-                imageCellAspectRatio = ratio
-                layoutCellAspectRatio = ratio
-                pageAspectRatio = ratio
-            }
+            pageBackgroundColor = 0xFFFFFFFFL
             lines.forEach { line ->
                 textElements.add(
                     TextElement(
@@ -639,7 +645,8 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                         text = line.text,
                         xFraction = line.xFrac,
                         yFraction = line.yFrac,
-                        fontSizeSp = line.fontSizeSp
+                        fontSizeSp = line.fontSizeSp,
+                        textColorArgb = line.colorArgb
                     )
                 )
             }

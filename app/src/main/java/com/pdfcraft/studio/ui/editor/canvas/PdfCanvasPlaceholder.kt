@@ -544,7 +544,7 @@ private fun PageTextOverlay(
                     )
                     .padding(4.dp)
             ) {
-                Text(
+                if (textElement.id == selectedTextId) Text(
                     text = "\u28FF",
                     color = Color.Gray,
                     modifier = Modifier
@@ -1439,7 +1439,7 @@ private fun PageCard(
                 bitmap = backgroundBitmap.asImageBitmap(),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.FillBounds
             )
         }
         content()
