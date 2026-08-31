@@ -99,6 +99,18 @@ fun PdfLibraryScreen(
         }
     }
 
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        permissionDenied = !granted
+        if (granted) {
+            permissionDenied = false
+            reload()
+        } else {
+            loading = false
+        }
+    }
+
     fun openSystemAccess() {
         if (Build.VERSION.SDK_INT >= 30) {
             try {
@@ -125,18 +137,6 @@ fun PdfLibraryScreen(
             val rec = withContext(Dispatchers.IO) { PdfLibraryStore.listRecent(context) }
             allPdfs = list
             recent = rec
-            loading = false
-        }
-    }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        permissionDenied = !granted
-        if (granted) {
-            permissionDenied = false
-            reload()
-        } else {
             loading = false
         }
     }
