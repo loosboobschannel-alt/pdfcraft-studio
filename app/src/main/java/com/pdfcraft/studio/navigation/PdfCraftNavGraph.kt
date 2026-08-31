@@ -48,6 +48,9 @@ fun PdfCraftNavGraph(
                 onBackClick = { navController.popBackStack() },
                 onOpenPdf = { uri ->
                     navController.navigate(Screen.PdfViewer.routeWithUri(uri))
+                },
+                onEditPdf = { uri ->
+                    navController.navigate(Screen.Editor.routeOpen("pdf|" + uri))
                 }
             )
         }

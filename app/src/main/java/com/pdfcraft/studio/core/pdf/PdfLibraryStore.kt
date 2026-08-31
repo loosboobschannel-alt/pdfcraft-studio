@@ -168,4 +168,45 @@ object PdfLibraryStore {
             .putString(KEY_RECENT, arr.toString())
             .apply()
     }
+
+    fun removeRecent(context: Context, uri: String) {
+        saveRecent(context, listRecent(context).filterNot { it.uri == uri })
+    }
+
+    fun renamePdf(context: Context, item: PdfItem, newName: String): PdfItem? {
+        val trimmed = newName.trim()
+        if (trimmed.isEmpty()) return null
+        val finalName = if (trimmed.endsWith(".pdf", true)) trimmed else trimmed + ".pdf"
+        val uri = android.net.Uri.parse(item.uri)
+        val values = android.content.ContentValues()
+        values.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, finalName)
+        try {
+            if (context.contentResolver.update(uri, values, null, null) > 0) {
+                return item.copy(name = finalName)
+            }
+        } catch (_: Exception) {
+        }
+        return try {
+            val out = android.provider.DocumentsContract.renameDocument(
+                context.contentResolver, uri, finalName
+            )
+            if (out != null) item.copy(uri = out.toString(), name = finalName) else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun deletePdf(context: Context, item: PdfItem): Boolean {
+        return try {
+            context.contentResolver.delete(android.net.Uri.parse(item.uri), null, null) > 0
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    fun formatTime(millis: Long): String {
+        if (millis <= 0L) return "-"
+        return java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+            .format(java.util.Date(millis))
+    }
 }

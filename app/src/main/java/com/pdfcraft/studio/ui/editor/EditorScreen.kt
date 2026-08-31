@@ -284,6 +284,10 @@ fun EditorScreen(projectPath: String? = null, onBackClick: () -> Unit, onViewPdf
         val path = projectPath?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
         if (openedProjectPath == path) return@LaunchedEffect
         openedProjectPath = path
+        if (path.startsWith("pdf|")) {
+            viewModel.importPdfFromUri(context, path.substring(4))
+            return@LaunchedEffect
+        }
         val result = withContext(Dispatchers.IO) {
             ProjectStore.load(context, java.io.File(path))
         }

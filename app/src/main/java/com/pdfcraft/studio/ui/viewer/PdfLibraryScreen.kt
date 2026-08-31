@@ -1,6 +1,12 @@
 package com.pdfcraft.studio.ui.viewer
 
 import android.Manifest
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModel
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.lazy.rememberLazyListState
 import android.content.Intent
 import android.net.Uri
 import android.content.pm.PackageManager
@@ -27,6 +33,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -71,23 +79,45 @@ import kotlinx.coroutines.withContext
 private enum class LibraryTab { All, Folders, Recent }
 private val Accent = Color(0xFF1976D2)
 
+class PdfLibraryVm : ViewModel() {
+    var allPdfs by mutableStateOf(emptyList<PdfLibraryStore.PdfItem>())
+    var recent by mutableStateOf(emptyList<PdfLibraryStore.PdfItem>())
+    var tab by mutableStateOf(LibraryTab.All)
+    var query by mutableStateOf("")
+    var selectedFolder by mutableStateOf<String?>(null)
+    var loading by mutableStateOf(true)
+    var permissionDenied by mutableStateOf(false)
+    var askedPermission by mutableStateOf(false)
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PdfLibraryScreen(
     onBackClick: () -> Unit,
-    onOpenPdf: (String) -> Unit
+    onOpenPdf: (String) -> Unit,
+    onEditPdf: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
-    var tab by remember { mutableStateOf(LibraryTab.All) }
-    var query by remember { mutableStateOf("") }
-    var loading by remember { mutableStateOf(true) }
-    var allPdfs by remember { mutableStateOf(emptyList<PdfLibraryStore.PdfItem>()) }
-    var recent by remember { mutableStateOf(emptyList<PdfLibraryStore.PdfItem>()) }
-    var selectedFolder by remember { mutableStateOf<String?>(null) }
-    var permissionDenied by remember { mutableStateOf(false) }
-    var askedPermission by remember { mutableStateOf(false) }
+    val vm: PdfLibraryVm = viewModel()
+    var tab by vm::tab
+    var query by vm::query
+    var loading by vm::loading
+    var allPdfs by vm::allPdfs
+    var recent by vm::recent
+    var selectedFolder by vm::selectedFolder
+    var permissionDenied by vm::permissionDenied
+    var askedPermission by vm::askedPermission
+    val pdfListState = rememberLazyListState()
+    val folderListState = rememberLazyListState()
+    var menuFor by remember { mutableStateOf<PdfLibraryStore.PdfItem?>(null) }
+    var renameFor by remember { mutableStateOf<PdfLibraryStore.PdfItem?>(null) }
+    var renameText by remember { mutableStateOf("") }
+    var deleteFor by remember { mutableStateOf<PdfLibraryStore.PdfItem?>(null) }
+    var detailsFor by remember { mutableStateOf<PdfLibraryStore.PdfItem?>(null) }
+    var actionMessage by remember { mutableStateOf<String?>(null) }
 
     fun hasStorageAccess(): Boolean {
         return if (Build.VERSION.SDK_INT >= 30) {
@@ -99,9 +129,9 @@ fun PdfLibraryScreen(
         }
     }
 
-    fun reload() {
+    fun reload(showSpinner: Boolean = false) {
         scope.launch {
-            loading = true
+            if (showSpinner || allPdfs.isEmpty()) loading = true
             val list = withContext(Dispatchers.IO) { PdfLibraryStore.scanDevicePdfs(context) }
             val rec = withContext(Dispatchers.IO) { PdfLibraryStore.listRecent(context) }
             allPdfs = list
@@ -116,7 +146,7 @@ fun PdfLibraryScreen(
         permissionDenied = !granted
         if (granted) {
             permissionDenied = false
-            reload()
+            reload(true)
         } else {
             loading = false
         }
@@ -155,7 +185,7 @@ fun PdfLibraryScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 if (hasStorageAccess()) {
                     permissionDenied = false
-                    reload()
+                    reload(false)
                 } else if (askedPermission) {
                     permissionDenied = true
                     loading = false
@@ -269,27 +299,150 @@ fun PdfLibraryScreen(
                         Text(stringResource(R.string.pdf_library_try_again))
                     }
                 }
-                tab == LibraryTab.Folders && selectedFolder == null -> {
+                tab == LibraryTab.Folders && selectedFolder == null && q.isEmpty() -> {
                     if (folders.isEmpty()) EmptyHint(emptyMsg)
-                    else LazyColumn(Modifier.fillMaxSize()) {
+                    else LazyColumn(Modifier.fillMaxSize(), state = folderListState) {
                         items(folders, key = { it.first }) { pair ->
                             FolderRow(pair.first, pair.second.size) { selectedFolder = pair.first }
                         }
                     }
                 }
-                visiblePdfs.isEmpty() -> EmptyHint(emptyMsg)
-                else -> LazyColumn(Modifier.fillMaxSize()) {
-                    items(visiblePdfs, key = { it.uri }) { item ->
-                        PdfRow(item) {
-                            PdfLibraryStore.addRecent(context, item)
-                            onOpenPdf(item.uri)
-                        }
+                (if (q.isNotEmpty()) allPdfs.filter(::matches) else visiblePdfs).isEmpty() -> EmptyHint(emptyMsg)
+                else -> LazyColumn(Modifier.fillMaxSize(), state = pdfListState) {
+                    val rows = if (q.isNotEmpty()) allPdfs.filter(::matches) else visiblePdfs
+                    items(rows, key = { it.uri }) { item ->
+                        PdfRow(
+                            item = item,
+                            menuOpen = menuFor?.uri == item.uri,
+                            onOpen = {
+                                PdfLibraryStore.addRecent(context, item)
+                                onOpenPdf(item.uri)
+                            },
+                            onEdit = { onEditPdf(item.uri) },
+                            onMenu = { menuFor = if (menuFor?.uri == item.uri) null else item },
+                            onDismissMenu = { menuFor = null },
+                            onMenuOpen = {
+                                menuFor = null
+                                PdfLibraryStore.addRecent(context, item)
+                                onOpenPdf(item.uri)
+                            },
+                            onMenuRename = {
+                                menuFor = null
+                                renameText = item.name.removeSuffix(".pdf").removeSuffix(".PDF")
+                                renameFor = item
+                            },
+                            onMenuDelete = {
+                                menuFor = null
+                                deleteFor = item
+                            },
+                            onMenuShare = {
+                                menuFor = null
+                                try {
+                                    val send = Intent(Intent.ACTION_SEND)
+                                    send.type = "application/pdf"
+                                    send.putExtra(Intent.EXTRA_STREAM, Uri.parse(item.uri))
+                                    send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    context.startActivity(Intent.createChooser(send, item.name))
+                                } catch (_: Exception) {
+                                }
+                            },
+                            onMenuDetails = {
+                                menuFor = null
+                                detailsFor = item
+                            }
+                        )
                     }
                 }
             }
         }
     }
 }
+
+
+    if (actionMessage != null) {
+        AlertDialog(
+            onDismissRequest = { actionMessage = null },
+            confirmButton = {
+                TextButton(onClick = { actionMessage = null }) { Text(stringResource(R.string.ok)) }
+            },
+            text = { Text(actionMessage ?: "") }
+        )
+    }
+    renameFor?.let { target ->
+        AlertDialog(
+            onDismissRequest = { renameFor = null },
+            title = { Text(stringResource(R.string.pdf_library_rename_title)) },
+            text = {
+                OutlinedTextField(
+                    value = renameText,
+                    onValueChange = { renameText = it },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val updated = PdfLibraryStore.renamePdf(context, target, renameText)
+                    if (updated == null) {
+                        actionMessage = context.getString(R.string.pdf_library_rename_failed)
+                    } else {
+                        allPdfs = allPdfs.map { if (it.uri == target.uri) updated else it }
+                        recent = recent.map { if (it.uri == target.uri) updated else it }
+                    }
+                    renameFor = null
+                }) { Text(stringResource(R.string.ok)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { renameFor = null }) { Text(stringResource(R.string.dialog_cancel)) }
+            }
+        )
+    }
+    deleteFor?.let { target ->
+        AlertDialog(
+            onDismissRequest = { deleteFor = null },
+            title = { Text(stringResource(R.string.pdf_library_delete_confirm)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    val ok = PdfLibraryStore.deletePdf(context, target)
+                    if (ok) {
+                        allPdfs = allPdfs.filterNot { it.uri == target.uri }
+                        recent = recent.filterNot { it.uri == target.uri }
+                        PdfLibraryStore.removeRecent(context, target.uri)
+                    } else {
+                        actionMessage = context.getString(R.string.pdf_library_delete_failed)
+                    }
+                    deleteFor = null
+                }) { Text(stringResource(R.string.pdf_library_delete)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteFor = null }) { Text(stringResource(R.string.dialog_cancel)) }
+            }
+        )
+    }
+    detailsFor?.let { item ->
+        AlertDialog(
+            onDismissRequest = { detailsFor = null },
+            title = { Text(stringResource(R.string.pdf_library_details_title)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.pdf_library_details_name), fontWeight = FontWeight.SemiBold)
+                    Text(item.name)
+                    Spacer(Modifier.height(8.dp))
+                    Text(stringResource(R.string.pdf_library_details_size), fontWeight = FontWeight.SemiBold)
+                    Text(PdfLibraryStore.formatSize(item.sizeBytes))
+                    Spacer(Modifier.height(8.dp))
+                    Text(stringResource(R.string.pdf_library_details_folder), fontWeight = FontWeight.SemiBold)
+                    Text(item.folder)
+                    Spacer(Modifier.height(8.dp))
+                    Text(stringResource(R.string.pdf_library_details_modified), fontWeight = FontWeight.SemiBold)
+                    Text(PdfLibraryStore.formatTime(item.lastModifiedMillis))
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { detailsFor = null }) { Text(stringResource(R.string.ok)) }
+            }
+        )
+    }
+
 
 @Composable
 private fun TabChip(label: String, selected: Boolean, onClick: () -> Unit) {
@@ -311,16 +464,43 @@ private fun TabChip(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PdfRow(item: PdfLibraryStore.PdfItem, onClick: () -> Unit) {
+private fun PdfRow(
+    item: PdfLibraryStore.PdfItem,
+    menuOpen: Boolean,
+    onOpen: () -> Unit,
+    onEdit: () -> Unit,
+    onMenu: () -> Unit,
+    onDismissMenu: () -> Unit,
+    onMenuOpen: () -> Unit,
+    onMenuRename: () -> Unit,
+    onMenuDelete: () -> Unit,
+    onMenuShare: () -> Unit,
+    onMenuDetails: () -> Unit
+) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(AppIcons.FileDocument, null, tint = Accent, modifier = Modifier.size(28.dp))
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(item.name, color = Color.Black, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(PdfLibraryStore.formatSize(item.sizeBytes), color = Color(0xFF8A8A8A), fontSize = 13.sp)
+        }
+        IconButton(onClick = onEdit) {
+            Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.pdf_library_edit), tint = Color(0xFF444444))
+        }
+        Box {
+            IconButton(onClick = onMenu) {
+                Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.pdf_library_more), tint = Color(0xFF444444))
+            }
+            DropdownMenu(expanded = menuOpen, onDismissRequest = onDismissMenu) {
+                DropdownMenuItem(text = { Text(stringResource(R.string.pdf_library_open)) }, onClick = onMenuOpen)
+                DropdownMenuItem(text = { Text(stringResource(R.string.pdf_library_rename)) }, onClick = onMenuRename)
+                DropdownMenuItem(text = { Text(stringResource(R.string.pdf_library_delete)) }, onClick = onMenuDelete)
+                DropdownMenuItem(text = { Text(stringResource(R.string.pdf_library_share)) }, onClick = onMenuShare)
+                DropdownMenuItem(text = { Text(stringResource(R.string.pdf_library_details)) }, onClick = onMenuDetails)
+            }
         }
     }
 }

@@ -3,6 +3,8 @@ package com.pdfcraft.studio.ui.editor
 import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.pdf.PdfRenderer
+import android.os.ParcelFileDescriptor
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -590,6 +592,62 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         refreshAvailableFonts()
     }
 
+
+    fun importPdfFromUri(context: Context, uriString: String) {
+        viewModelScope.launch {
+            val uri = Uri.parse(uriString)
+            val pages = withContext(Dispatchers.IO) { renderPdfPages(context, uri) }
+            if (pages.isEmpty()) return@launch
+            importedImages.clear()
+            importedImages.addAll(pages)
+            textElements.clear()
+            minPageCount = pages.size.coerceAtLeast(1)
+            updateImagesPerRow(1)
+            updateImageSpacing(0)
+            updatePageMarginDp(0)
+            val bmp = pages.first().bitmap
+            if (bmp != null && bmp.height > 0) {
+                val ratio = bmp.width.toFloat() / bmp.height.toFloat()
+                imageCellAspectRatio = ratio
+                layoutCellAspectRatio = ratio
+                pageAspectRatio = ratio
+            }
+            currentProjectFile = null
+            lastDraftStamp = contentStamp()
+        }
+    }
+
+    private fun renderPdfPages(context: Context, uri: Uri): List<ImportedImage> {
+        val pfd: ParcelFileDescriptor = context.contentResolver.openFileDescriptor(uri, "r")
+            ?: return emptyList()
+        val renderer = PdfRenderer(pfd)
+        val out = ArrayList<ImportedImage>(renderer.pageCount)
+        try {
+            for (i in 0 until renderer.pageCount) {
+                renderer.openPage(i).use { page ->
+                    val maxW = 1080
+                    val scale = maxW.toFloat() / page.width.coerceAtLeast(1)
+                    val w = (page.width * scale).toInt().coerceAtLeast(1)
+                    val h = (page.height * scale).toInt().coerceAtLeast(1)
+                    val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                    bmp.eraseColor(android.graphics.Color.WHITE)
+                    page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    out.add(
+                        ImportedImage(
+                            id = "pdfpage_" + i + "_" + System.nanoTime(),
+                            imageUri = uri,
+                            bitmap = bmp
+                        )
+                    )
+                }
+            }
+        } catch (_: Exception) {
+        } finally {
+            renderer.close()
+            pfd.close()
+        }
+        return out
+    }
 
     fun enterAddTextMode() {
         addTextMode = true
