@@ -492,7 +492,6 @@ fun PdfLibraryScreen(
             }
         )
     }
-}
 
     if (showSortMenu) {
         AlertDialog(
@@ -555,7 +554,7 @@ fun PdfLibraryScreen(
             }
         )
     }
-
+}
 
 @Composable
 private fun TabChip(label: String, selected: Boolean, onClick: () -> Unit) {
