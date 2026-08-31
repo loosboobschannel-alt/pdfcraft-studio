@@ -9,7 +9,8 @@ import com.tom_roush.pdfbox.cos.COSName
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.PDPage
 import com.tom_roush.pdfbox.pdmodel.graphics.image.PDImage
-import java.awt.geom.Point2D
+import android.graphics.Path
+import android.graphics.PointF
 import java.io.IOException
 
 data class CapturedPdfImage(
@@ -87,17 +88,17 @@ object PdfImageExtractor {
             )
         }
 
-        override fun appendRectangle(p0: Point2D, p1: Point2D, p2: Point2D, p3: Point2D) {}
-        override fun clip(windingRule: Int) {}
+        override fun appendRectangle(p0: PointF, p1: PointF, p2: PointF, p3: PointF) {}
+        override fun clip(windingRule: Path.FillType) {}
         override fun moveTo(x: Float, y: Float) {}
         override fun lineTo(x: Float, y: Float) {}
         override fun curveTo(x1: Float, y1: Float, x2: Float, y2: Float, x3: Float, y3: Float) {}
-        override fun getCurrentPoint(): Point2D = Point2D.Float(0f, 0f)
+        override fun getCurrentPoint(): PointF = PointF(0f, 0f)
         override fun closePath() {}
         override fun endPath() {}
         override fun strokePath() {}
-        override fun fillPath(windingRule: Int) {}
-        override fun fillAndStrokePath(windingRule: Int) {}
+        override fun fillPath(windingRule: Path.FillType) {}
+        override fun fillAndStrokePath(windingRule: Path.FillType) {}
         override fun shadingFill(shadingName: COSName) {}
     }
 }
