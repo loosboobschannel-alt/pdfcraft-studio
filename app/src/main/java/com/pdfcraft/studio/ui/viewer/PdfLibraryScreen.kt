@@ -1,8 +1,12 @@
 package com.pdfcraft.studio.ui.viewer
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Environment
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -85,11 +89,33 @@ fun PdfLibraryScreen(
     var permissionDenied by remember { mutableStateOf(false) }
     var askedPermission by remember { mutableStateOf(false) }
 
-    fun hasReadPermission(): Boolean {
-        if (Build.VERSION.SDK_INT >= 33) return true
-        return ContextCompat.checkSelfPermission(
-            context, Manifest.permission.READ_EXTERNAL_STORAGE
-        ) == PackageManager.PERMISSION_GRANTED
+    fun hasStorageAccess(): Boolean {
+        return if (Build.VERSION.SDK_INT >= 30) {
+            Environment.isExternalStorageManager()
+        } else {
+            ContextCompat.checkSelfPermission(
+                context, Manifest.permission.READ_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    fun openSystemAccess() {
+        if (Build.VERSION.SDK_INT >= 30) {
+            try {
+                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                intent.data = Uri.fromParts("package", context.packageName, null)
+                context.startActivity(intent)
+            } catch (_: Exception) {
+                try {
+                    context.startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+                } catch (_: Exception) {
+                }
+            }
+            loading = false
+            permissionDenied = true
+        } else {
+            permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
     }
 
     fun reload() {
@@ -116,21 +142,25 @@ fun PdfLibraryScreen(
     }
 
     LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT <= 32 && !hasReadPermission()) {
-            if (!askedPermission) {
-                askedPermission = true
-                permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-            }
-        } else {
+        if (hasStorageAccess()) {
             reload()
+        } else if (!askedPermission) {
+            askedPermission = true
+            openSystemAccess()
         }
     }
 
     DisposableEffect(lifecycleOwner) {
         val obs = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME &&
-                (Build.VERSION.SDK_INT >= 33 || hasReadPermission())
-            ) reload()
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (hasStorageAccess()) {
+                    permissionDenied = false
+                    reload()
+                } else if (askedPermission) {
+                    permissionDenied = true
+                    loading = false
+                }
+            }
         }
         lifecycleOwner.lifecycle.addObserver(obs)
         onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
@@ -224,7 +254,7 @@ fun PdfLibraryScreen(
                     Spacer(Modifier.height(12.dp))
                     Text(stringResource(R.string.pdf_library_finding), color = Color(0xFF8A8A8A))
                 }
-                permissionDenied && Build.VERSION.SDK_INT <= 32 && allPdfs.isEmpty() -> Column(
+                permissionDenied && allPdfs.isEmpty() -> Column(
                     Modifier.fillMaxSize().padding(32.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -235,9 +265,9 @@ fun PdfLibraryScreen(
                         color = Color.Black
                     )
                     Spacer(Modifier.height(12.dp))
-                    TextButton(onClick = {
-                        permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-                    }) { Text(stringResource(R.string.pdf_library_allow_access)) }
+                    TextButton(onClick = { openSystemAccess() }) {
+                        Text(stringResource(R.string.pdf_library_try_again))
+                    }
                 }
                 tab == LibraryTab.Folders && selectedFolder == null -> {
                     if (folders.isEmpty()) EmptyHint(emptyMsg)
