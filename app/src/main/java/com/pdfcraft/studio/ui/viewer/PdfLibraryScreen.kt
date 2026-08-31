@@ -99,6 +99,17 @@ fun PdfLibraryScreen(
         }
     }
 
+    fun reload() {
+        scope.launch {
+            loading = true
+            val list = withContext(Dispatchers.IO) { PdfLibraryStore.scanDevicePdfs(context) }
+            val rec = withContext(Dispatchers.IO) { PdfLibraryStore.listRecent(context) }
+            allPdfs = list
+            recent = rec
+            loading = false
+        }
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -127,17 +138,6 @@ fun PdfLibraryScreen(
             permissionDenied = true
         } else {
             permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-    }
-
-    fun reload() {
-        scope.launch {
-            loading = true
-            val list = withContext(Dispatchers.IO) { PdfLibraryStore.scanDevicePdfs(context) }
-            val rec = withContext(Dispatchers.IO) { PdfLibraryStore.listRecent(context) }
-            allPdfs = list
-            recent = rec
-            loading = false
         }
     }
 
