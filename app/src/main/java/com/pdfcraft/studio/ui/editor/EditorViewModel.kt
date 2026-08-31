@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.pdfcraft.studio.core.project.ProjectStore
 import com.pdfcraft.studio.core.pdf.PdfTextImporter
+import com.pdfcraft.studio.core.pdf.PdfImageExtractor
 import java.io.File
 
 data class ImportedImage(
@@ -55,7 +56,12 @@ data class ImportedImage(
     /** 0..100 clip radius for this image only. */
     val cornerRadiusPercent: Int = 0,
     /** Null = use global imageCellAspectRatio (Set/Resize Images). */
-    val aspectRatioOverride: Float? = null
+    val aspectRatioOverride: Float? = null,
+    val ownerPageIndex: Int? = null,
+    val absXFrac: Float = 0f,
+    val absYFrac: Float = 0f,
+    val absWFrac: Float = 0f,
+    val absHFrac: Float = 0f
 )
 
 data class ColorRange(
@@ -650,6 +656,24 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                     )
                 )
             }
+            val graphics = withContext(Dispatchers.IO) { PdfImageExtractor.extract(context, uri) }
+            graphics.forEach { cap ->
+                pageBackgroundBitmapOverrides[cap.pageIndex]?.let { bg ->
+                    PdfTextImporter.punchRect(bg, cap.xFrac, cap.yFrac, cap.wFrac, cap.hFrac)
+                }
+                importedImages.add(
+                    ImportedImage(
+                        id = "pdfimg_" + cap.pageIndex + "_" + importedImages.size + "_" + System.nanoTime(),
+                        bitmap = cap.bitmap,
+                        ownerPageIndex = cap.pageIndex,
+                        absXFrac = cap.xFrac,
+                        absYFrac = cap.yFrac,
+                        absWFrac = cap.wFrac,
+                        absHFrac = cap.hFrac,
+                        aspectRatioOverride = cap.wFrac / cap.hFrac.coerceAtLeast(0.01f)
+                    )
+                )
+            }
             currentProjectFile = null
             currentProjectName = null
             lastDraftStamp = contentStamp()
@@ -986,11 +1010,12 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     /** Images currently laid out on [pageIndex] (skips spacers). */
     fun imagesOnPage(pageIndex: Int): List<ImportedImage> {
+        val abs = importedImages.filter { it.ownerPageIndex == pageIndex }
+        val grid = importedImages.filter { it.ownerPageIndex == null && !it.id.startsWith("spacer_") }
         val per = imagesPerPageCapacity().coerceAtLeast(1)
         val start = pageIndex.coerceAtLeast(0) * per
-        val end = minOf(start + per, importedImages.size)
-        if (start >= importedImages.size) return emptyList()
-        return importedImages.subList(start, end).filter { !it.id.startsWith("spacer_") }
+        val slice = if (start >= grid.size) emptyList() else grid.subList(start, minOf(start + per, grid.size))
+        return abs + slice
     }
 
     fun imagesOnPages(pageIndices: Collection<Int>): List<ImportedImage> {
@@ -1001,8 +1026,14 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private fun groupDragCenter(): Pair<Float, Float> {
         val imgs = dragSelectedIds.mapNotNull { id -> importedImages.firstOrNull { it.id == id } }
         if (imgs.isEmpty()) return 0.5f to 0.5f
-        val cx = imgs.map { 0.5f + it.dragOffsetXFrac }.average().toFloat()
-        val cy = imgs.map { 0.5f + it.dragOffsetYFrac }.average().toFloat()
+        val cx = imgs.map {
+            if (it.ownerPageIndex != null) it.absXFrac + it.absWFrac / 2f
+            else 0.5f + it.dragOffsetXFrac
+        }.average().toFloat()
+        val cy = imgs.map {
+            if (it.ownerPageIndex != null) it.absYFrac + it.absHFrac / 2f
+            else 0.5f + it.dragOffsetYFrac
+        }.average().toFloat()
         return cx to cy
     }
 
@@ -1020,9 +1051,17 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             val idx = importedImages.indexOfFirst { it.id == id }
             if (idx < 0) continue
             val img = importedImages[idx]
-            val nx = (img.dragOffsetXFrac + dx * step).coerceIn(-0.92f, 0.92f)
-            val ny = (img.dragOffsetYFrac + dy * step).coerceIn(-0.92f, 0.92f)
-            importedImages[idx] = img.copy(dragOffsetXFrac = nx, dragOffsetYFrac = ny)
+            importedImages[idx] = if (img.ownerPageIndex != null) {
+                img.copy(
+                    absXFrac = (img.absXFrac + dx * step).coerceIn(0f, 1f - img.absWFrac.coerceIn(0.02f, 1f)),
+                    absYFrac = (img.absYFrac + dy * step).coerceIn(0f, 1f - img.absHFrac.coerceIn(0.02f, 1f))
+                )
+            } else {
+                img.copy(
+                    dragOffsetXFrac = (img.dragOffsetXFrac + dx * step).coerceIn(-0.92f, 0.92f),
+                    dragOffsetYFrac = (img.dragOffsetYFrac + dy * step).coerceIn(-0.92f, 0.92f)
+                )
+            }
         }
     }
 

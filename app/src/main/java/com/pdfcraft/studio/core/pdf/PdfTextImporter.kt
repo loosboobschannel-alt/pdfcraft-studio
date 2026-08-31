@@ -39,7 +39,23 @@ object PdfTextImporter {
         return out.filter { it.text.isNotBlank() }
     }
 
+    fun punchRect(bmp: Bitmap, xFrac: Float, yFrac: Float, wFrac: Float, hFrac: Float) {
+        val canvas = Canvas(bmp)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        val bw = bmp.width.toFloat().coerceAtLeast(1f)
+        val bh = bmp.height.toFloat().coerceAtLeast(1f)
+        val l = (xFrac * bw) - 1f
+        val top = (yFrac * bh) - 1f
+        val r = ((xFrac + wFrac) * bw) + 1f
+        val b = ((yFrac + hFrac) * bh) + 1f
+        val sx = l.toInt().coerceIn(0, bmp.width - 1)
+        val sy = top.toInt().coerceIn(0, bmp.height - 1)
+        paint.color = try { bmp.getPixel(sx, sy) } catch (_: Exception) { android.graphics.Color.WHITE }
+        canvas.drawRect(l, top, r, b, paint)
+    }
+
     fun punchTextFromPage(bmp: Bitmap, lines: List<ImportedPdfLine>, pageIndex: Int) {
+
         val pageLines = lines.filter { it.pageIndex == pageIndex }
         if (pageLines.isEmpty()) return
         val canvas = Canvas(bmp)

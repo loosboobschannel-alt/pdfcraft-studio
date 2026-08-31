@@ -163,6 +163,11 @@ object ProjectStore {
                     obj.put("dragOffsetXFrac", img.dragOffsetXFrac.toDouble())
                     obj.put("dragOffsetYFrac", img.dragOffsetYFrac.toDouble())
                     obj.put("cornerRadiusPercent", img.cornerRadiusPercent)
+                    if (img.ownerPageIndex != null) obj.put("ownerPageIndex", img.ownerPageIndex)
+                    obj.put("absXFrac", img.absXFrac.toDouble())
+                    obj.put("absYFrac", img.absYFrac.toDouble())
+                    obj.put("absWFrac", img.absWFrac.toDouble())
+                    obj.put("absHFrac", img.absHFrac.toDouble())
                     if (img.aspectRatioOverride != null) {
                         obj.put("aspectRatioOverride", img.aspectRatioOverride.toDouble())
                     } else {
@@ -491,7 +496,12 @@ object ProjectStore {
                                 dragOffsetYFrac = o.optDouble("dragOffsetYFrac", 0.0).toFloat(),
                                 cornerRadiusPercent = o.optInt("cornerRadiusPercent", 0),
                                 aspectRatioOverride = if (o.has("aspectRatioOverride") && !o.isNull("aspectRatioOverride"))
-                                    o.optDouble("aspectRatioOverride").toFloat() else null
+                                    o.optDouble("aspectRatioOverride").toFloat() else null,
+                                ownerPageIndex = if (o.has("ownerPageIndex") && !o.isNull("ownerPageIndex")) o.optInt("ownerPageIndex") else null,
+                                absXFrac = o.optDouble("absXFrac", 0.0).toFloat(),
+                                absYFrac = o.optDouble("absYFrac", 0.0).toFloat(),
+                                absWFrac = o.optDouble("absWFrac", 0.0).toFloat(),
+                                absHFrac = o.optDouble("absHFrac", 0.0).toFloat()
                             )
                         )
                     }

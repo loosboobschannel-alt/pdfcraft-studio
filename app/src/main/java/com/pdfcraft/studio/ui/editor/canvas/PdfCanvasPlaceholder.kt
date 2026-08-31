@@ -92,6 +92,7 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -287,8 +288,9 @@ fun PdfPagesPreview(
         }
 
         // Auto-flow by real row heights (Resize Images can make some cells taller).
+        val gridImages = images.filter { it.ownerPageIndex == null }
         val contentPages = packImagesForPages(
-            images = images,
+            images = gridImages,
             imagesPerRow = imagesPerRow,
             spacingDp = spacing,
             cellWidthDp = cellWidthDp,
@@ -327,7 +329,7 @@ fun PdfPagesPreview(
                         pageNumberPosition = pageNumberPosition
                     ) {
                         Box(modifier = Modifier.fillMaxSize().padding(pageMarginDp.dp)) {
-                            ImageGrid(
+                            if (pageImages.isNotEmpty()) ImageGrid(
                                 images = pageImages,
                                 imagesPerRow = imagesPerRow,
                                 spacingDp = imageSpacingDp,
@@ -358,6 +360,34 @@ fun PdfPagesPreview(
                                 onMoveSingle = onMoveSingle,
                                 onMoveMultiple = onMoveMultiple,
                                 onFinishReorder = onFinishReorder
+                            )
+
+                            AbsolutePdfImagesLayer(
+                                images = images.filter { it.ownerPageIndex == pageIndex },
+                                cellAspectRatio = imageCellAspectRatio,
+                                selectedImageIds = selectedImageIds,
+                                singleMenuImageId = singleMenuImageId,
+                                reorderMode = reorderMode,
+                                hasClipboardImages = hasClipboardImages,
+                                cellBounds = cellBounds,
+                                onImageClick = onImageClick,
+                                onChangePosition = onChangePosition,
+                                onCut = onCut,
+                                onCopy = onCopy,
+                                onPaste = onPaste,
+                                onSaveSingle = onSaveSingle,
+                                onShareSingle = onShareSingle,
+                                onCropImage = onCropImage,
+                                onRotateImage = onRotateImage,
+                                onReplaceImage = onReplaceImage,
+                                onImagePosition = onImagePosition,
+                                onAddImageLink = onAddImageLink,
+                                onDeleteSingleKeepSpace = onDeleteSingleKeepSpace,
+                                onDeleteSingleFillSpace = onDeleteSingleFillSpace,
+                                onMoveSingle = onMoveSingle,
+                                onMoveMultiple = onMoveMultiple,
+                                onFinishReorder = onFinishReorder,
+                                selectedCount = selectedImageIds.size
                             )
 
                             PageTextOverlay(
@@ -622,6 +652,85 @@ private fun PageTextOverlay(
                     focusRequester.requestFocus()
                     onConsumePendingFocus()
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AbsolutePdfImagesLayer(
+    images: List<ImportedImage>,
+    cellAspectRatio: Float,
+    selectedImageIds: List<String>,
+    singleMenuImageId: String?,
+    reorderMode: Boolean,
+    hasClipboardImages: Boolean,
+    cellBounds: MutableMap<String, Rect>,
+    onImageClick: (String) -> Unit,
+    onChangePosition: (String) -> Unit,
+    onCut: (String) -> Unit,
+    onCopy: (String) -> Unit,
+    onPaste: () -> Unit,
+    onSaveSingle: (String) -> Unit,
+    onShareSingle: (String) -> Unit,
+    onCropImage: (String) -> Unit,
+    onRotateImage: (String) -> Unit,
+    onReplaceImage: (String) -> Unit,
+    onImagePosition: (String) -> Unit,
+    onAddImageLink: (String) -> Unit,
+    onDeleteSingleKeepSpace: (String) -> Unit,
+    onDeleteSingleFillSpace: (String) -> Unit,
+    onMoveSingle: (String, String) -> Unit,
+    onMoveMultiple: (String) -> Unit,
+    onFinishReorder: () -> Unit,
+    selectedCount: Int
+) {
+    if (images.isEmpty()) return
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val w = constraints.maxWidth
+        val h = constraints.maxHeight
+        val density = LocalDensity.current
+        images.forEach { image ->
+            val ww = (image.absWFrac * w).toInt().coerceAtLeast(8)
+            val hh = (image.absHFrac * h).toInt().coerceAtLeast(8)
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset((image.absXFrac * w).toInt(), (image.absYFrac * h).toInt()) }
+                    .size(
+                        width = with(density) { ww.toDp() },
+                        height = with(density) { hh.toDp() }
+                    )
+            ) {
+                ImageCell(
+                    image = image,
+                    modifier = Modifier.fillMaxSize(),
+                    aspectRatio = (image.aspectRatioOverride ?: (ww.toFloat() / hh.toFloat())).coerceIn(0.05f, 20f),
+                    cornerRadiusPercent = image.cornerRadiusPercent.coerceIn(0, 100),
+                    selected = selectedImageIds.contains(image.id),
+                    reorderMode = reorderMode,
+                    showMenu = singleMenuImageId == image.id,
+                    hasClipboardImages = hasClipboardImages,
+                    cellBounds = cellBounds,
+                    onClick = { onImageClick(image.id) },
+                    onLongPress = {},
+                    onChangePosition = { onChangePosition(image.id) },
+                    onCut = { onCut(image.id) },
+                    onCopy = { onCopy(image.id) },
+                    onPaste = onPaste,
+                    onSave = { onSaveSingle(image.id) },
+                    onShare = { onShareSingle(image.id) },
+                    onCrop = { onCropImage(image.id) },
+                    onRotate = { onRotateImage(image.id) },
+                    onReplace = { onReplaceImage(image.id) },
+                    onImagePosition = { onImagePosition(image.id) },
+                    onAddLink = { onAddImageLink(image.id) },
+                    onDeleteKeepSpace = { onDeleteSingleKeepSpace(image.id) },
+                    onDeleteFillSpace = { onDeleteSingleFillSpace(image.id) },
+                    onDropOnTarget = { targetId ->
+                        if (selectedCount > 1) onMoveMultiple(targetId) else onMoveSingle(image.id, targetId)
+                        onFinishReorder()
+                    }
+                )
             }
         }
     }
