@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">PDFCraft Studio</string>
     <string name="home_tagline">Create, edit and export beautiful PDFs</string>
+    <string name="storage_required_title">Allow file access</string>
+    <string name="storage_required_message">PDFCraft Studio needs “Allow access to manage all files” to find, open and save PDFs. The app cannot be used until this is allowed.</string>
+    <string name="storage_required_allow">Allow access</string>
     <string name="create_pdf">Create PDF</string>
     <string name="open_pdf">Open PDF</string>
     <string name="view_pdf">View PDF</string>

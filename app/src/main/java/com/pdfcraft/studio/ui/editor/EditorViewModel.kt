@@ -25,8 +25,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.pdfcraft.studio.core.project.ProjectStore
-import com.pdfcraft.studio.core.pdf.PdfTextImporter
-import com.pdfcraft.studio.core.pdf.PdfImageExtractor
 import java.io.File
 
 data class ImportedImage(
@@ -616,7 +614,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             val uri = Uri.parse(uriString)
             val pages = withContext(Dispatchers.IO) { renderPdfPages(context, uri) }
-            val lines = withContext(Dispatchers.IO) { PdfTextImporter.extract(context, uri) }
             if (gen != pdfImportGen) return@launch
             importedImages.clear()
             textElements.clear()
@@ -624,8 +621,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             pageAspectOverrides.clear()
             pages.forEachIndexed { idx, img ->
                 val src = img.bitmap ?: return@forEachIndexed
-                val copy = src.copy(Bitmap.Config.ARGB_8888, true)
-                PdfTextImporter.punchTextFromPage(copy, lines, idx)
+                val copy = src.copy(Bitmap.Config.ARGB_8888, false)
                 pageBackgroundBitmapOverrides[idx] = copy
                 if (copy.height > 0) {
                     pageAspectOverrides[idx] = copy.width.toFloat() / copy.height.toFloat()
@@ -643,37 +639,6 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             updateImageSpacing(0)
             updatePageMarginDp(0)
             pageBackgroundColor = 0xFFFFFFFFL
-            lines.forEach { line ->
-                textElements.add(
-                    TextElement(
-                        id = "pdftext_" + line.pageIndex + "_" + textElements.size + "_" + System.nanoTime(),
-                        pageIndex = line.pageIndex,
-                        text = line.text,
-                        xFraction = line.xFrac,
-                        yFraction = line.yFrac,
-                        fontSizeSp = line.fontSizeSp,
-                        textColorArgb = line.colorArgb
-                    )
-                )
-            }
-            val graphics = withContext(Dispatchers.IO) { PdfImageExtractor.extract(context, uri) }
-            graphics.forEach { cap ->
-                pageBackgroundBitmapOverrides[cap.pageIndex]?.let { bg ->
-                    PdfTextImporter.punchRect(bg, cap.xFrac, cap.yFrac, cap.wFrac, cap.hFrac)
-                }
-                importedImages.add(
-                    ImportedImage(
-                        id = "pdfimg_" + cap.pageIndex + "_" + importedImages.size + "_" + System.nanoTime(),
-                        bitmap = cap.bitmap,
-                        ownerPageIndex = cap.pageIndex,
-                        absXFrac = cap.xFrac,
-                        absYFrac = cap.yFrac,
-                        absWFrac = cap.wFrac,
-                        absHFrac = cap.hFrac,
-                        aspectRatioOverride = cap.wFrac / cap.hFrac.coerceAtLeast(0.01f)
-                    )
-                )
-            }
             currentProjectFile = null
             currentProjectName = null
             lastDraftStamp = contentStamp()
