@@ -1544,6 +1544,7 @@ Column(
                 ) {
                 PdfPagesPreview(
                     zoom = editorZoom,
+                    onZoomChange = { editorZoom = it },
                     images = viewModel.importedImages,
                     imagesPerRow = viewModel.imagesPerRow,
                     imageSpacingDp = viewModel.imageSpacingDp,

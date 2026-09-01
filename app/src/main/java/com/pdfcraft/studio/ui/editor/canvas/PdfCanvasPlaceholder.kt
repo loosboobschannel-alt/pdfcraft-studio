@@ -12,6 +12,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -214,14 +217,32 @@ fun PdfPagesPreview(
     onFinishReorder: () -> Unit = {},
     customFonts: List<AppFont> = emptyList(),
     zoom: Float = 1f,
+    onZoomChange: ((Float) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val pageListState = rememberLazyListState()
     val zoomClamped = zoom.coerceIn(1f, 4f)
     val hScroll = rememberScrollState()
+    val pinchMod = Modifier.pointerInput(zoomClamped, onZoomChange) {
+        if (onZoomChange == null) return@pointerInput
+        awaitEachGesture {
+            awaitFirstDown(requireUnconsumed = false)
+            do {
+                val event = awaitPointerEvent()
+                val fingers = event.changes.count { it.pressed }
+                if (fingers >= 2) {
+                    val z = event.calculateZoom()
+                    if (z != 1f) {
+                        onZoomChange((zoomClamped * z).coerceIn(1f, 4f))
+                        event.changes.forEach { it.consume() }
+                    }
+                }
+            } while (event.changes.any { it.pressed })
+        }
+    }
     // Always show at least one page so text can be added before any images.
     if (images.isEmpty() && minPageCount <= 1) {
-        BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier = modifier.fillMaxSize().then(pinchMod)) {
             val pageW = maxWidth * zoomClamped
             LazyColumn(
                 state = pageListState,

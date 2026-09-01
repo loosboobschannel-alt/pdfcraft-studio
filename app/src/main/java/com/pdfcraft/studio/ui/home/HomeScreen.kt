@@ -50,6 +50,7 @@ import com.pdfcraft.studio.ui.components.AppLogo
 import com.pdfcraft.studio.ui.components.PrimaryActionButton
 import com.pdfcraft.studio.ui.theme.PDFCraftStudioTheme
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -81,7 +82,8 @@ fun HomeScreen(
         storageGranted = StorageAccess.isGranted(context)
         if (!storageGranted && !askedStorage) {
             askedStorage = true
-            requestStorage()
+            delay(3000)
+            if (!StorageAccess.isGranted(context)) requestStorage()
         }
     }
     DisposableEffect(lifecycleOwner) {
@@ -167,7 +169,7 @@ fun HomeScreen(
                 PrimaryActionButton(
                     text = stringResource(R.string.create_pdf),
                     icon = Icons.Filled.Add,
-                    onClick = { if (storageGranted) onCreatePdfClick() },
+                    onClick = { if (storageGranted) onCreatePdfClick() else requestStorage() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 420.dp)
@@ -178,7 +180,7 @@ fun HomeScreen(
                 PrimaryActionButton(
                     text = stringResource(R.string.view_pdf),
                     icon = AppIcons.Visibility,
-                    onClick = { if (storageGranted) onViewPdf() },
+                    onClick = { if (storageGranted) onViewPdf() else requestStorage() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 420.dp)
@@ -189,40 +191,13 @@ fun HomeScreen(
                 PrimaryActionButton(
                     text = stringResource(R.string.my_projects),
                     icon = AppIcons.FileDocument,
-                    onClick = { if (storageGranted) onMyProjectsClick() },
+                    onClick = { if (storageGranted) onMyProjectsClick() else requestStorage() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 420.dp)
                 )
             }
 
-            if (!storageGranted) {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(28.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = stringResource(R.string.storage_required_title),
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = stringResource(R.string.storage_required_message),
-                            color = Color(0xFF444444),
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(22.dp))
-                        PrimaryActionButton(
-                            text = stringResource(R.string.storage_required_allow),
-                            icon = AppIcons.FileDocument,
-                            onClick = { requestStorage() },
-                            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp)
-                        )
-                    }
-                }
             }
         }
     }
