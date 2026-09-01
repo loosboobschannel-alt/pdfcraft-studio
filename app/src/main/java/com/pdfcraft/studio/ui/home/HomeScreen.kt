@@ -1,5 +1,13 @@
 package com.pdfcraft.studio.ui.home
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.pdfcraft.studio.core.settings.StorageAccess
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,8 +62,39 @@ fun HomeScreen(
     val context = LocalContext.current
     var showRecoverDialog by remember { mutableStateOf(false) }
     var latestDraftPath by remember { mutableStateOf<String?>(null) }
-
+    var storageGranted by remember { mutableStateOf(StorageAccess.isGranted(context)) }
+    var askedStorage by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val readLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        storageGranted = granted || StorageAccess.isGranted(context)
+    }
+    fun requestStorage() {
+        if (StorageAccess.needsRuntimeReadPermission()) {
+            readLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+        } else {
+            StorageAccess.openAllFilesSettings(context)
+        }
+    }
     LaunchedEffect(Unit) {
+        storageGranted = StorageAccess.isGranted(context)
+        if (!storageGranted && !askedStorage) {
+            askedStorage = true
+            requestStorage()
+        }
+    }
+    DisposableEffect(lifecycleOwner) {
+        val obs = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                storageGranted = StorageAccess.isGranted(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
+    LaunchedEffect(storageGranted) {
+        if (!storageGranted) return@LaunchedEffect
         val latest = withContext(Dispatchers.IO) { ProjectStore.latestDraft(context) }
         if (latest != null && latest.readable) {
             latestDraftPath = latest.file.absolutePath
@@ -128,7 +167,7 @@ fun HomeScreen(
                 PrimaryActionButton(
                     text = stringResource(R.string.create_pdf),
                     icon = Icons.Filled.Add,
-                    onClick = onCreatePdfClick,
+                    onClick = { if (storageGranted) onCreatePdfClick() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 420.dp)
@@ -139,7 +178,7 @@ fun HomeScreen(
                 PrimaryActionButton(
                     text = stringResource(R.string.view_pdf),
                     icon = AppIcons.Visibility,
-                    onClick = onViewPdf,
+                    onClick = { if (storageGranted) onViewPdf() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 420.dp)
@@ -150,11 +189,40 @@ fun HomeScreen(
                 PrimaryActionButton(
                     text = stringResource(R.string.my_projects),
                     icon = AppIcons.FileDocument,
-                    onClick = onMyProjectsClick,
+                    onClick = { if (storageGranted) onMyProjectsClick() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 420.dp)
                 )
+            }
+
+            if (!storageGranted) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(28.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = stringResource(R.string.storage_required_title),
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = stringResource(R.string.storage_required_message),
+                            color = Color(0xFF444444),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(22.dp))
+                        PrimaryActionButton(
+                            text = stringResource(R.string.storage_required_allow),
+                            icon = AppIcons.FileDocument,
+                            onClick = { requestStorage() },
+                            modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp)
+                        )
+                    }
+                }
             }
         }
     }
