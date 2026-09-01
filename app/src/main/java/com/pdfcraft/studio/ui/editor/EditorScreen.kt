@@ -280,6 +280,7 @@ fun EditorScreen(projectPath: String? = null, onBackClick: () -> Unit, onViewPdf
 
     val context = androidx.compose.ui.platform.LocalContext.current
     var openedProjectPath by remember { mutableStateOf<String?>(null) }
+    var editorZoom by remember { mutableStateOf(1f) }
     LaunchedEffect(projectPath) {
         val path = projectPath?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
         openedProjectPath = path
@@ -1542,6 +1543,7 @@ Column(
                         .padding(20.dp)
                 ) {
                 PdfPagesPreview(
+                    zoom = editorZoom,
                     images = viewModel.importedImages,
                     imagesPerRow = viewModel.imagesPerRow,
                     imageSpacingDp = viewModel.imageSpacingDp,
@@ -1777,6 +1779,34 @@ Column(
 
                     modifier = Modifier.fillMaxWidth()
                 )
+                }
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(10.dp)
+                        .background(Color.White.copy(alpha = 0.94f), RoundedCornerShape(22.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "−",
+                        color = Color.Black,
+                        modifier = Modifier.padding(8.dp).clickable {
+                            editorZoom = (editorZoom - 0.25f).coerceIn(1f, 4f)
+                        }
+                    )
+                    Text(
+                        (editorZoom * 100f).toInt().toString() + "%",
+                        color = Color.Black,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                    Text(
+                        "+",
+                        color = Color.Black,
+                        modifier = Modifier.padding(8.dp).clickable {
+                            editorZoom = (editorZoom + 0.25f).coerceIn(1f, 4f)
+                        }
+                    )
                 }
                 if (toolMenuOpen) {
                     Box(

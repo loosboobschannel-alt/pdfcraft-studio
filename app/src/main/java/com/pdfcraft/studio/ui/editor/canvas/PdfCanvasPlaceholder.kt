@@ -26,6 +26,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -210,19 +213,26 @@ fun PdfPagesPreview(
     onMoveMultiple: (String) -> Unit = {},
     onFinishReorder: () -> Unit = {},
     customFonts: List<AppFont> = emptyList(),
+    zoom: Float = 1f,
     modifier: Modifier = Modifier
 ) {
     val pageListState = rememberLazyListState()
+    val zoomClamped = zoom.coerceIn(1f, 4f)
+    val hScroll = rememberScrollState()
     // Always show at least one page so text can be added before any images.
     if (images.isEmpty() && minPageCount <= 1) {
         BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+            val pageW = maxWidth * zoomClamped
             LazyColumn(
                 state = pageListState,
-                modifier = Modifier.fillMaxSize().verticalListScrollbar(pageListState),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (zoomClamped > 1.01f) Modifier.horizontalScroll(hScroll) else Modifier)
+                    .verticalListScrollbar(pageListState),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 item {
-                    Column {
+                    Column(Modifier.then(if (zoomClamped > 1.01f) Modifier.width(pageW) else Modifier.fillMaxWidth())) {
                         Text(
                             text = stringResource(R.string.page_label, 1),
                             style = MaterialTheme.typography.bodyMedium,
@@ -300,8 +310,13 @@ fun PdfPagesPreview(
         val pages = if (contentPages.size >= minPageCount) contentPages
             else contentPages + List(minPageCount - contentPages.size) { emptyList() }
 
+        val pageW = maxWidth * zoomClamped
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            state = pageListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (zoomClamped > 1.01f) Modifier.horizontalScroll(hScroll) else Modifier)
+                .verticalListScrollbar(pageListState),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             itemsIndexed(
@@ -309,7 +324,7 @@ fun PdfPagesPreview(
                 key = { index, _ -> index }
             ) { pageIndex, pageImages ->
 
-                Column {
+                Column(Modifier.then(if (zoomClamped > 1.01f) Modifier.width(pageW) else Modifier.fillMaxWidth())) {
                     Text(
                         text = stringResource(
                             R.string.page_label,
@@ -705,6 +720,7 @@ private fun AbsolutePdfImagesLayer(
                     image = image,
                     modifier = Modifier.fillMaxSize(),
                     aspectRatio = (image.aspectRatioOverride ?: (ww.toFloat() / hh.toFloat())).coerceIn(0.05f, 20f),
+                    fillExact = true,
                     cornerRadiusPercent = image.cornerRadiusPercent.coerceIn(0, 100),
                     selected = selectedImageIds.contains(image.id),
                     reorderMode = reorderMode,
@@ -860,6 +876,7 @@ private fun ImageCell(
     image: ImportedImage,
     modifier: Modifier = Modifier,
     aspectRatio: Float,
+    fillExact: Boolean = false,
     cornerRadiusPercent: Int,
     selected: Boolean,
     reorderMode: Boolean,
@@ -889,7 +906,7 @@ private fun ImageCell(
 
     Box(
         modifier = modifier
-            .aspectRatio(aspectRatio)
+            .then(if (fillExact) Modifier.fillMaxSize() else Modifier.aspectRatio(aspectRatio))
             .onGloballyPositioned { coordinates ->
                 layoutCoordinates = coordinates
                 val position = coordinates.positionInRoot()
@@ -907,9 +924,8 @@ private fun ImageCell(
             modifier = Modifier
                 .fillMaxSize()
             .offset(
-                // Page-relative: \~full editor page width/height in dp (matches 360x\~640 logical page)
-                x = (image.dragOffsetXFrac * 360f).dp,
-                y = (image.dragOffsetYFrac * 640f).dp
+                x = if (image.ownerPageIndex != null) 0.dp else (image.dragOffsetXFrac * 360f).dp,
+                y = if (image.ownerPageIndex != null) 0.dp else (image.dragOffsetYFrac * 640f).dp
             )
                 .clip(RoundedCornerShape(percent = cornerRadiusPercent))
                 
@@ -961,7 +977,7 @@ private fun ImageCell(
                     bitmap = image.bitmap.asImageBitmap(),
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Fit
+                    contentScale = if (fillExact || image.ownerPageIndex != null) ContentScale.FillBounds else ContentScale.Fit
                 )
 
             // Image numbering badge — position inside ContentScale.Fit bounds
@@ -1538,9 +1554,11 @@ private fun PageCard(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(aspectRatio)
-            .shadow(6.dp, RoundedCornerShape(12.dp))
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(backgroundColor), RoundedCornerShape(12.dp)),
+            .then(
+                if (backgroundBitmap != null) Modifier
+                else Modifier.shadow(6.dp, RoundedCornerShape(12.dp)).clip(RoundedCornerShape(12.dp))
+            )
+            .background(Color(backgroundColor)),
         contentAlignment = Alignment.Center
     ) {
         if (backgroundBitmap != null) {

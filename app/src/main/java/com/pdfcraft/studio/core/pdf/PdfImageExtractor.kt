@@ -51,7 +51,7 @@ object PdfImageExtractor {
         override fun drawImage(pdImage: PDImage) {
             val bmp = try { pdImage.image } catch (_: Exception) { null } ?: return
             if (bmp.width < 8 || bmp.height < 8) return
-            val box = page.mediaBox ?: return
+            val box = page.cropBox ?: page.mediaBox ?: return
             val pw = box.width.coerceAtLeast(1f)
             val ph = box.height.coerceAtLeast(1f)
             val m = graphicsState.currentTransformationMatrix
@@ -82,8 +82,8 @@ object PdfImageExtractor {
                     bitmap = copy,
                     xFrac = xFrac,
                     yFrac = yFrac,
-                    wFrac = wFrac.coerceAtLeast(0.02f),
-                    hFrac = hFrac.coerceAtLeast(0.02f)
+                    wFrac = wFrac.coerceAtLeast(0.004f),
+                    hFrac = hFrac.coerceAtLeast(0.004f)
                 )
             )
         }

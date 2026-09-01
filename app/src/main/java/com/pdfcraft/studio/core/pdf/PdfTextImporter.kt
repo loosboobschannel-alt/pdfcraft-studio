@@ -78,30 +78,29 @@ object PdfTextImporter {
         private val sink: (ImportedPdfLine) -> Unit
     ) : PDFTextStripper() {
         override fun writeString(text: String, textPositions: MutableList<TextPosition>) {
-            val trimmed = text.replace("\u0000", "").trim()
-            if (trimmed.isEmpty() || textPositions.isEmpty()) return
+            val raw = text.replace("\u0000", "")
+            if (raw.isBlank() || textPositions.isEmpty()) return
             val first = textPositions[0]
             val last = textPositions[textPositions.size - 1]
             val page = currentPage ?: return
-            val box = page.mediaBox ?: return
+            val box = page.cropBox ?: page.mediaBox ?: return
             val pw = box.width.coerceAtLeast(1f)
             val ph = box.height.coerceAtLeast(1f)
-            val fontPt = first.fontSizeInPt.coerceAtLeast(1f)
-            val glyphH = first.heightDir.coerceAtLeast(fontPt * 0.75f)
-            val top = (first.yDirAdj - glyphH).coerceAtLeast(0f)
-            val left = first.xDirAdj.coerceAtLeast(0f)
-            val right = (last.xDirAdj + last.widthDirAdj).coerceAtLeast(left + 1f)
-            val logicalPageDp = 360f
-            val fontSp = (fontPt * logicalPageDp / pw).coerceIn(5f, 48f)
+            val fontPt = first.fontSizeInPt.coerceAtLeast(0.5f)
+            val glyphH = first.heightDir.coerceAtLeast(fontPt * 0.7f)
+            val top = (first.yDirAdj - glyphH)
+            val left = first.xDirAdj
+            val right = last.xDirAdj + last.widthDirAdj
+            val fontSp = fontPt * 360f / pw
             sink(
                 ImportedPdfLine(
                     pageIndex = (currentPageNo - 1).coerceAtLeast(0),
-                    xFrac = (left / pw).coerceIn(0f, 0.98f),
-                    yFrac = (top / ph).coerceIn(0f, 0.98f),
-                    wFrac = ((right - left) / pw).coerceIn(0.005f, 1f),
-                    hFrac = (glyphH * 1.15f / ph).coerceIn(0.004f, 0.2f),
+                    xFrac = (left / pw).coerceIn(0f, 1f),
+                    yFrac = (top / ph).coerceIn(0f, 1f),
+                    wFrac = ((right - left) / pw).coerceIn(0.001f, 1f),
+                    hFrac = (glyphH / ph).coerceIn(0.001f, 1f),
                     fontSizeSp = fontSp,
-                    text = trimmed,
+                    text = raw,
                     colorArgb = currentFillArgb()
                 )
             )
