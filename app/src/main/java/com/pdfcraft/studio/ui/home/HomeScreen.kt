@@ -197,8 +197,6 @@ fun HomeScreen(
                         .widthIn(max = 420.dp)
                 )
             }
-
-            }
         }
     }
 }
